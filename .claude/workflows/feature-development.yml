@@ -1,0 +1,277 @@
+# Feature Development Multi-Agent Workflow
+name: "Feature Development Workflow"
+description: "Comprehensive multi-agent workflow for constitutional feature development"
+version: "1.0.0"
+
+# Constitutional requirements embedded in workflow
+constitutional_compliance: true
+authority_level: "Constitutional Enforcement Agent: SUPREME"
+
+# Agent definitions for this workflow
+agents:
+  - "development/constitutional-enforcement-agent.md"
+  - "architecture/system-architect-agent.md"
+  - "architecture/spring-boot-modulith-architect.md"
+  - "testing/tdd-compliance-agent.md"
+  - "testing/contract-testing-agent.md"
+  - "testing/integration-testing-agent.md"
+  - "development/task-coordination-agent.md"
+  - "modules/user-module-agent.md"
+  - "modules/payment-module-agent.md"
+  - "modules/subscription-module-agent.md"
+  - "modules/audit-module-agent.md"
+  - "ui/react-frontend-agent.md"
+  - "ui/typescript-development-agent.md"
+  - "ui/redux-state-agent.md"
+  - "security/owasp-compliance-agent.md"
+  - "security/pci-dss-compliance-agent.md"
+  - "testing/security-testing-agent.md"
+  - "architecture/refactoring-agent.md"
+  - "architecture/performance-architect-agent.md"
+  - "architecture/code-review-agent.md"
+  - "devops/ci-cd-agent.md"
+  - "devops/infrastructure-agent.md"
+
+# Workflow coordination patterns
+coordination:
+  sequential_development: "Constitutional → Architecture → TDD → Implementation"
+  parallel_testing: "Contract, Integration, E2E, Security tests run in parallel"
+  constitutional_gates: "Constitutional validation at each phase"
+
+# Workflow phases with agent coordination
+phases:
+  - name: "Constitutional Analysis"
+    order: 1
+    agents:
+      - "development/constitutional-enforcement-agent.md"
+    tasks:
+      - "Analyze feature request for constitutional compliance"
+      - "Identify potential constitutional violations"
+      - "Generate constitutional compliance requirements"
+    outputs:
+      - "constitutional_analysis_report"
+      - "compliance_requirements"
+
+  - name: "Architecture Planning"
+    order: 2
+    agents:
+      - "architecture/system-architect-agent.md"
+      - "architecture/spring-boot-modulith-architect.md"
+    dependencies: ["Constitutional Analysis"]
+    tasks:
+      - "Design system architecture following constitutional principles"
+      - "Validate module boundaries and event-driven communication"
+      - "Create scalability and performance plans"
+    coordination_pattern: "parallel"
+    outputs:
+      - "architecture_design"
+      - "module_boundary_specification"
+      - "scalability_plan"
+
+  - name: "TDD Test Planning"
+    order: 3
+    agents:
+      - "testing/tdd-compliance-agent.md"
+      - "testing/contract-testing-agent.md"
+      - "testing/integration-testing-agent.md"
+    dependencies: ["Architecture Planning"]
+    tasks:
+      - "Design test hierarchy following constitutional requirements"
+      - "Create contract tests for API interfaces"
+      - "Plan integration tests with real dependencies"
+    coordination_pattern: "sequential"
+    outputs:
+      - "test_plan"
+      - "contract_specifications"
+      - "integration_test_strategy"
+
+  - name: "Implementation Planning"
+    order: 4
+    agents:
+      - "development/task-coordination-agent.md"
+      - "modules/user-module-agent.md"
+      - "modules/payment-module-agent.md"
+      - "modules/subscription-module-agent.md"
+      - "modules/audit-module-agent.md"
+    dependencies: ["TDD Test Planning"]
+    tasks:
+      - "Coordinate implementation across modules"
+      - "Plan module-specific implementation"
+      - "Ensure event-driven communication patterns"
+    coordination_pattern: "orchestrated"
+    outputs:
+      - "implementation_plan"
+      - "module_coordination_strategy"
+
+  - name: "RED Phase - Failing Tests"
+    order: 5
+    agents:
+      - "testing/tdd-compliance-agent.md"
+    dependencies: ["Implementation Planning"]
+    tasks:
+      - "Create failing tests first (RED phase)"
+      - "Validate test hierarchy compliance"
+      - "Ensure constitutional test requirements"
+    validation:
+      - "Tests must fail before implementation"
+      - "Constitutional test requirements satisfied"
+    outputs:
+      - "failing_test_suite"
+      - "tdd_compliance_validation"
+
+  - name: "GREEN Phase - Implementation"
+    order: 6
+    agents:
+      - "development/task-coordination-agent.md"
+      - "ui/react-frontend-agent.md"
+      - "ui/typescript-development-agent.md"
+      - "ui/redux-state-agent.md"
+    dependencies: ["RED Phase - Failing Tests"]
+    tasks:
+      - "Implement minimal code to make tests pass"
+      - "Coordinate frontend and backend implementation"
+      - "Maintain constitutional compliance during implementation"
+    coordination_pattern: "parallel"
+    validation:
+      - "All tests must pass (GREEN phase)"
+      - "No constitutional violations introduced"
+    outputs:
+      - "working_implementation"
+      - "test_validation_report"
+
+  - name: "Security Validation"
+    order: 7
+    agents:
+      - "security/owasp-compliance-agent.md"
+      - "security/pci-dss-compliance-agent.md"
+      - "testing/security-testing-agent.md"
+    dependencies: ["GREEN Phase - Implementation"]
+    tasks:
+      - "Validate OWASP Top 10 compliance"
+      - "Ensure PCI DSS requirements met"
+      - "Execute comprehensive security testing"
+    coordination_pattern: "parallel"
+    validation:
+      - "No critical security vulnerabilities"
+      - "PCI DSS compliance maintained"
+      - "OWASP requirements satisfied"
+    outputs:
+      - "security_assessment_report"
+      - "compliance_validation"
+
+  - name: "REFACTOR Phase - Optimization"
+    order: 8
+    agents:
+      - "architecture/refactoring-agent.md"
+      - "architecture/performance-architect-agent.md"
+      - "architecture/code-review-agent.md"
+    dependencies: ["Security Validation"]
+    tasks:
+      - "Refactor code while maintaining functionality"
+      - "Optimize performance characteristics"
+      - "Conduct comprehensive code review"
+    coordination_pattern: "sequential"
+    validation:
+      - "All tests still pass after refactoring"
+      - "Performance requirements met"
+      - "Code quality standards achieved"
+    outputs:
+      - "refactored_code"
+      - "performance_optimization_report"
+      - "code_review_report"
+
+  - name: "Deployment Preparation"
+    order: 9
+    agents:
+      - "devops/ci-cd-agent.md"
+      - "devops/infrastructure-agent.md"
+    dependencies: ["REFACTOR Phase - Optimization"]
+    tasks:
+      - "Prepare CI/CD pipeline configuration"
+      - "Validate infrastructure requirements"
+      - "Plan deployment strategy"
+    coordination_pattern: "parallel"
+    outputs:
+      - "deployment_configuration"
+      - "infrastructure_validation"
+
+  - name: "Final Constitutional Validation"
+    order: 10
+    agents:
+      - "development/constitutional-enforcement-agent.md"
+      - "testing/tdd-compliance-agent.md"
+      - "modules/audit-module-agent.md"
+    dependencies: ["Deployment Preparation"]
+    tasks:
+      - "Final constitutional compliance check"
+      - "Validate complete TDD compliance"
+      - "Generate comprehensive audit trail"
+    coordination_pattern: "sequential"
+    validation:
+      - "Constitutional compliance: 100%"
+      - "TDD compliance: Complete"
+      - "Audit trail: Comprehensive"
+    outputs:
+      - "final_compliance_report"
+      - "audit_trail"
+      - "deployment_approval"
+
+# Coordination patterns
+coordination_patterns:
+  sequential:
+    description: "Agents execute one after another"
+    error_handling: "Stop on first failure"
+    rollback: "Automatic to previous successful phase"
+
+  parallel:
+    description: "Agents execute simultaneously"
+    error_handling: "Continue unless critical failure"
+    rollback: "Partial rollback for failed agents only"
+
+  orchestrated:
+    description: "Task Coordination Agent manages execution"
+    error_handling: "Centralized error handling"
+    rollback: "Coordinated rollback across all agents"
+
+# Error handling and rollback
+error_handling:
+  constitutional_violation:
+    severity: "CRITICAL"
+    action: "IMMEDIATE_STOP"
+    authority: "Constitutional Enforcement Agent"
+    rollback: "Full workflow rollback"
+
+  security_failure:
+    severity: "HIGH"
+    action: "STOP_AND_REVIEW"
+    authority: "Security Testing Agent"
+    rollback: "Phase rollback"
+
+  test_failure:
+    severity: "MEDIUM"
+    action: "RETRY_WITH_FIXES"
+    authority: "TDD Compliance Agent"
+    rollback: "Step rollback"
+
+# Performance requirements
+performance_requirements:
+  workflow_completion_time: "< 2 hours"
+  agent_coordination_overhead: "< 10%"
+  parallel_execution_efficiency: "> 80%"
+  rollback_time: "< 5 minutes"
+
+# Monitoring and observability
+monitoring:
+  workflow_progress_tracking: true
+  agent_performance_metrics: true
+  constitutional_compliance_monitoring: true
+  real_time_error_reporting: true
+
+# Success criteria
+success_criteria:
+  - "Constitutional compliance: 100%"
+  - "All tests passing (TDD complete)"
+  - "Security validation: PASSED"
+  - "Performance requirements: MET"
+  - "Code quality standards: ACHIEVED"
+  - "Deployment readiness: CONFIRMED"

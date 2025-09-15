@@ -1,0 +1,128 @@
+# Multi-Agent Coordination Workflow
+name: "Multi-Agent Coordination Workflow"
+description: "Central orchestration workflow for managing complex multi-agent scenarios"
+version: "1.0.0"
+
+# Constitutional compliance and coordination authority
+constitutional_compliance: true
+coordination_authority: "Task Coordination Agent + Constitutional Enforcement Agent"
+
+# Agent definitions for coordination workflow
+agents:
+  - "development/task-coordination-agent.md"
+  - "development/constitutional-enforcement-agent.md"
+  - "architecture/system-architect-agent.md"
+  - "testing/tdd-compliance-agent.md"
+
+# Workflow execution steps
+steps:
+  - name: "Coordination Planning"
+    order: 1
+    agent: "development/task-coordination-agent.md"
+    tasks:
+      - "Analyze multi-agent coordination requirements"
+      - "Plan task distribution across agents"
+      - "Establish communication protocols"
+    validation:
+      - "Coordination plan: APPROVED"
+      - "Task distribution: OPTIMIZED"
+    outputs:
+      - "coordination_plan"
+      - "task_distribution_matrix"
+
+  - name: "Constitutional Coordination Enforcement"
+    order: 2
+    agent: "development/constitutional-enforcement-agent.md"
+    dependencies: ["Coordination Planning"]
+    tasks:
+      - "Validate constitutional compliance of coordination plan"
+      - "Ensure agent authority hierarchy"
+      - "Enforce non-negotiable principles"
+    validation:
+      - "Constitutional compliance: 100%"
+      - "Authority hierarchy: ESTABLISHED"
+    outputs:
+      - "constitutional_coordination_validation"
+
+  - name: "Multi-Agent Task Execution"
+    order: 3
+    agents:
+      - "development/task-coordination-agent.md"
+      - "architecture/system-architect-agent.md"
+      - "testing/tdd-compliance-agent.md"
+    dependencies: ["Constitutional Coordination Enforcement"]
+    coordination: "orchestrated"
+    tasks:
+      - "Execute parallel agent coordination"
+      - "Manage cross-agent communication"
+      - "Monitor task completion status"
+    validation:
+      - "Task coordination: SUCCESSFUL"
+      - "Agent communication: ACTIVE"
+    outputs:
+      - "coordination_results"
+      - "agent_communication_log"
+
+# Coordination patterns
+coordination:
+  orchestration_pattern: "Central coordination via Task Coordination Agent"
+  communication_protocol: "Event-driven with state synchronization"
+  error_recovery: "Automatic rollback with constitutional validation"
+
+# Agent communication protocols
+communication_protocols:
+  event_driven:
+    description: "Agents communicate via event driven architecture"
+    implementation: "ApplicationEventPublisher pattern for Spring Boot Modulith"
+    examples: ["PaymentProcessedEvent", "UserRegisteredEvent", "SubscriptionUpdatedEvent"]
+
+  message_passing:
+    description: "Direct agent-to-agent message passing coordination"
+    implementation: "Task tool coordination with structured messaging"
+    examples: ["Task: Agent coordination request", "Inter-agent status updates"]
+
+  state_synchronization:
+    description: "Shared context updates and synchronization"
+    implementation: "Context file updates and notifications across agents"
+    examples: ["Agent coordination context updates", "Workflow state synchronization"]
+
+# Error handling and rollback
+error_handling:
+  coordination_failure:
+    severity: "HIGH"
+    action: "RETRY_WITH_FALLBACK"
+    authority: "Task Coordination Agent"
+    rollback: "Coordinated agent state rollback"
+
+  constitutional_violation:
+    severity: "CRITICAL"
+    action: "IMMEDIATE_STOP"
+    authority: "Constitutional Enforcement Agent"
+    rollback: "Full coordination rollback"
+
+  agent_timeout:
+    severity: "MEDIUM"
+    action: "REDISTRIBUTE_TASKS"
+    authority: "Task Coordination Agent"
+    rollback: "Partial task redistribution"
+
+# Performance requirements
+performance_requirements:
+  coordination_latency: "< 500ms"
+  agent_response_time: "< 10 seconds"
+  task_distribution_time: "< 2 seconds"
+  error_recovery_time: "< 30 seconds"
+
+# Monitoring and observability
+monitoring:
+  coordination_metrics: true
+  agent_performance_tracking: true
+  communication_monitoring: true
+  error_rate_tracking: true
+
+# Success criteria
+success_criteria:
+  - "Coordination efficiency: > 90%"
+  - "Agent response rate: > 95%"
+  - "Constitutional compliance: 100%"
+  - "Error recovery: SUCCESSFUL"

@@ -1,0 +1,587 @@
+openapi: 3.0.3
+info:
+  title: Payment API
+  description: Stripe payment processing and payment method management
+  version: 1.0.0
+
+servers:
+  - url: https://api.payment-platform.com/v1
+    description: Production server
+
+paths:
+  /payments/intent:
+    post:
+      summary: Create payment intent
+      operationId: createPaymentIntent
+      tags: [Payments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+      responses:
+        '201':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /payments/{paymentId}:
+    get:
+      summary: Get payment details
+      operationId: getPayment
+      tags: [Payments]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payments:
+    get:
+      summary: List payments
+      operationId: listPayments
+      tags: [Payments]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: organization_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [succeeded, failed, processing, canceled]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentList'
+
+  /payment-methods:
+    get:
+      summary: List payment methods
+      operationId: listPaymentMethods
+      tags: [Payment Methods]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: organization_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of payment methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethodList'
+
+    post:
+      summary: Add payment method
+      operationId: addPaymentMethod
+      tags: [Payment Methods]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPaymentMethodRequest'
+      responses:
+        '201':
+          description: Payment method added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+
+  /payment-methods/{methodId}:
+    get:
+      summary: Get payment method
+      operationId: getPaymentMethod
+      tags: [Payment Methods]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: methodId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment method details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+
+    delete:
+      summary: Remove payment method
+      operationId: removePaymentMethod
+      tags: [Payment Methods]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: methodId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Payment method removed
+
+    patch:
+      summary: Update payment method (set as default)
+      operationId: updatePaymentMethod
+      tags: [Payment Methods]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: methodId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentMethodRequest'
+      responses:
+        '200':
+          description: Payment method updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+
+  /invoices:
+    get:
+      summary: List invoices
+      operationId: listInvoices
+      tags: [Invoices]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: organization_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, open, paid, void, uncollectible]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceList'
+
+  /invoices/{invoiceId}:
+    get:
+      summary: Get invoice details
+      operationId: getInvoice
+      tags: [Invoices]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+
+  /invoices/{invoiceId}/download:
+    get:
+      summary: Download invoice PDF
+      operationId: downloadInvoice
+      tags: [Invoices]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invoice PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /webhooks/stripe:
+    post:
+      summary: Stripe webhook endpoint
+      operationId: handleStripeWebhook
+      tags: [Webhooks]
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Stripe webhook event
+      responses:
+        '200':
+          description: Webhook processed successfully
+        '400':
+          description: Invalid webhook signature or payload
+        '500':
+          description: Webhook processing failed
+
+components:
+  schemas:
+    CreatePaymentIntentRequest:
+      type: object
+      required: [amount, currency, organization_id]
+      properties:
+        amount:
+          type: integer
+          description: Amount in cents
+          minimum: 50
+          example: 2000
+        currency:
+          type: string
+          enum: [usd, eur, gbp]
+          default: usd
+        organization_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+          example: "Subscription payment"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    PaymentIntent:
+      type: object
+      required: [id, client_secret, status, amount, currency]
+      properties:
+        id:
+          type: string
+          format: uuid
+        client_secret:
+          type: string
+          description: Secret for client-side confirmation
+        status:
+          type: string
+          enum: [requires_payment_method, requires_confirmation, processing, succeeded, canceled]
+        amount:
+          type: integer
+          description: Amount in cents
+        currency:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Payment:
+      type: object
+      required: [id, amount, currency, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        stripe_payment_intent_id:
+          type: string
+        amount:
+          type: integer
+          description: Amount in cents
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [succeeded, failed, processing, canceled, requires_action]
+        description:
+          type: string
+        invoice_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PaymentList:
+      type: object
+      required: [payments, total, has_more]
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        total:
+          type: integer
+        has_more:
+          type: boolean
+        next_offset:
+          type: integer
+
+    AddPaymentMethodRequest:
+      type: object
+      required: [stripe_payment_method_id, organization_id]
+      properties:
+        stripe_payment_method_id:
+          type: string
+          description: Stripe PaymentMethod ID
+        organization_id:
+          type: string
+          format: uuid
+        set_as_default:
+          type: boolean
+          default: false
+
+    PaymentMethod:
+      type: object
+      required: [id, type, is_default, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        stripe_payment_method_id:
+          type: string
+        type:
+          type: string
+          enum: [card, bank_account]
+        is_default:
+          type: boolean
+        card:
+          $ref: '#/components/schemas/CardDetails'
+        bank_account:
+          $ref: '#/components/schemas/BankAccountDetails'
+        created_at:
+          type: string
+          format: date-time
+
+    CardDetails:
+      type: object
+      properties:
+        brand:
+          type: string
+          example: "visa"
+        last4:
+          type: string
+          example: "4242"
+        exp_month:
+          type: integer
+          example: 12
+        exp_year:
+          type: integer
+          example: 2025
+        country:
+          type: string
+          example: "US"
+
+    BankAccountDetails:
+      type: object
+      properties:
+        account_holder_type:
+          type: string
+          enum: [individual, company]
+        bank_name:
+          type: string
+        country:
+          type: string
+        currency:
+          type: string
+        last4:
+          type: string
+
+    PaymentMethodList:
+      type: object
+      required: [payment_methods]
+      properties:
+        payment_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentMethod'
+
+    UpdatePaymentMethodRequest:
+      type: object
+      properties:
+        set_as_default:
+          type: boolean
+
+    Invoice:
+      type: object
+      required: [id, status, amount, currency, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        stripe_invoice_id:
+          type: string
+        subscription_id:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          description: Amount in cents
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [draft, open, paid, void, uncollectible]
+        due_date:
+          type: string
+          format: date
+        created_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+        invoice_pdf:
+          type: string
+          format: uri
+        hosted_invoice_url:
+          type: string
+          format: uri
+
+    InvoiceList:
+      type: object
+      required: [invoices, total, has_more]
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+        total:
+          type: integer
+        has_more:
+          type: boolean
+
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        correlation_id:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+tags:
+  - name: Payments
+    description: Payment processing operations
+  - name: Payment Methods
+    description: Payment method management
+  - name: Invoices
+    description: Invoice management
+  - name: Webhooks
+    description: Webhook endpoints

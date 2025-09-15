@@ -1,0 +1,569 @@
+openapi: 3.0.3
+info:
+  title: Subscription API
+  description: Subscription and plan management
+  version: 1.0.0
+
+paths:
+  /plans:
+    get:
+      summary: List available plans
+      operationId: listPlans
+      tags: [Plans]
+      parameters:
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of plans
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanList'
+
+  /plans/{planId}:
+    get:
+      summary: Get plan details
+      operationId: getPlan
+      tags: [Plans]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Plan details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+
+  /subscriptions:
+    get:
+      summary: List organization subscriptions
+      operationId: listSubscriptions
+      tags: [Subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: organization_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionList'
+
+    post:
+      summary: Create subscription
+      operationId: createSubscription
+      tags: [Subscriptions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /subscriptions/{subscriptionId}:
+    get:
+      summary: Get subscription details
+      operationId: getSubscription
+      tags: [Subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+    patch:
+      summary: Update subscription
+      operationId: updateSubscription
+      tags: [Subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /subscriptions/{subscriptionId}/cancel:
+    post:
+      summary: Cancel subscription
+      operationId: cancelSubscription
+      tags: [Subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /subscriptions/{subscriptionId}/reactivate:
+    post:
+      summary: Reactivate canceled subscription
+      operationId: reactivateSubscription
+      tags: [Subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Subscription reactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /subscriptions/{subscriptionId}/usage:
+    get:
+      summary: Get subscription usage
+      operationId: getSubscriptionUsage
+      tags: [Usage]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Usage statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageReport'
+
+    post:
+      summary: Record usage
+      operationId: recordUsage
+      tags: [Usage]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordUsageRequest'
+      responses:
+        '201':
+          description: Usage recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageRecord'
+
+components:
+  schemas:
+    Plan:
+      type: object
+      required: [id, name, amount, currency, interval]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Professional Plan"
+        stripe_price_id:
+          type: string
+        amount:
+          type: integer
+          description: Amount in cents
+          example: 2900
+        currency:
+          type: string
+          enum: [usd, eur, gbp]
+        interval:
+          type: string
+          enum: [month, year]
+        interval_count:
+          type: integer
+          default: 1
+        trial_period_days:
+          type: integer
+        features:
+          $ref: '#/components/schemas/PlanFeatures'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    PlanFeatures:
+      type: object
+      properties:
+        max_users:
+          type: integer
+          example: 25
+        max_organizations:
+          type: integer
+          example: 5
+        api_calls_per_month:
+          type: integer
+          example: 100000
+        storage_gb:
+          type: integer
+          example: 100
+        support_level:
+          type: string
+          enum: [email, priority, dedicated]
+        custom_integrations:
+          type: boolean
+        advanced_analytics:
+          type: boolean
+        sso_enabled:
+          type: boolean
+        audit_logs:
+          type: boolean
+
+    PlanList:
+      type: object
+      required: [plans]
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+
+    CreateSubscriptionRequest:
+      type: object
+      required: [organization_id, plan_id]
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+          format: uuid
+        payment_method_id:
+          type: string
+          format: uuid
+          description: Required unless plan has trial period
+        trial_end:
+          type: string
+          format: date
+          description: Override default trial period
+        coupon_code:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    Subscription:
+      type: object
+      required: [id, organization_id, plan, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        plan:
+          $ref: '#/components/schemas/Plan'
+        stripe_subscription_id:
+          type: string
+        status:
+          type: string
+          enum: [trialing, active, past_due, canceled, unpaid]
+        current_period_start:
+          type: string
+          format: date
+        current_period_end:
+          type: string
+          format: date
+        trial_start:
+          type: string
+          format: date
+        trial_end:
+          type: string
+          format: date
+        canceled_at:
+          type: string
+          format: date-time
+        cancel_at_period_end:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SubscriptionList:
+      type: object
+      required: [subscriptions]
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+
+    UpdateSubscriptionRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          format: uuid
+          description: Change to different plan
+        payment_method_id:
+          type: string
+          format: uuid
+          description: Update payment method
+        cancel_at_period_end:
+          type: boolean
+          description: Schedule cancellation
+
+    CancelSubscriptionRequest:
+      type: object
+      properties:
+        cancel_at_period_end:
+          type: boolean
+          default: true
+          description: Cancel immediately or at period end
+        cancellation_reason:
+          type: string
+          enum: [customer_service, low_quality, missing_features, other]
+        feedback:
+          type: string
+          description: Optional cancellation feedback
+
+    RecordUsageRequest:
+      type: object
+      required: [metric_name, quantity]
+      properties:
+        metric_name:
+          type: string
+          enum: [api_calls, storage_gb, users, organizations]
+        quantity:
+          type: number
+          format: decimal
+          minimum: 0
+        usage_date:
+          type: string
+          format: date
+          description: Defaults to current date
+        idempotency_key:
+          type: string
+          description: Prevent duplicate usage records
+
+    UsageRecord:
+      type: object
+      required: [id, subscription_id, metric_name, quantity, usage_date]
+      properties:
+        id:
+          type: string
+          format: uuid
+        subscription_id:
+          type: string
+          format: uuid
+        metric_name:
+          type: string
+        quantity:
+          type: number
+          format: decimal
+        usage_date:
+          type: string
+          format: date
+        recorded_at:
+          type: string
+          format: date-time
+
+    UsageReport:
+      type: object
+      required: [subscription_id, period_start, period_end, usage_by_metric]
+      properties:
+        subscription_id:
+          type: string
+          format: uuid
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        usage_by_metric:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/MetricUsage'
+        plan_limits:
+          $ref: '#/components/schemas/PlanFeatures'
+
+    MetricUsage:
+      type: object
+      required: [current_usage, plan_limit]
+      properties:
+        current_usage:
+          type: number
+          format: decimal
+        plan_limit:
+          type: number
+          format: decimal
+        percentage_used:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+        daily_usage:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyUsage'
+
+    DailyUsage:
+      type: object
+      required: [date, quantity]
+      properties:
+        date:
+          type: string
+          format: date
+        quantity:
+          type: number
+          format: decimal
+
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        correlation_id:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+tags:
+  - name: Plans
+    description: Subscription plan management
+  - name: Subscriptions
+    description: Subscription lifecycle management
+  - name: Usage
+    description: Usage tracking and reporting
