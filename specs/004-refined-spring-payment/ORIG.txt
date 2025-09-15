@@ -1,0 +1,143 @@
+/specify is running… You are an expert full-stack developer and DevOps engineer. Build me a production-ready GitHub repository template for a modular
+micro-SaaS payment management platform. The system should allow users to sign up, log in with social providers, and manage subscriptions and invoices,
+while admins oversee payments, users, and compliance through dashboards and audit trails. It must be secure by design (opaque tokens, RBAC + ABAC, audit
+logging), Stripe-integrated for subscriptions and invoices, and compliance-ready (no raw card handling). The architecture should be modular and
+extensible, with separate but connected components (frontend, backend API, auth server, database) that can evolve independently. The platform should
+deliver a modern user experience (responsive, accessible, dark/light modes) and be observable (metrics, structured logs, monitoring hooks). Most
+importantly, it must embrace a continuous integration approach: every module should be independently testable and deployable, with automated pipelines
+that enforce code quality, security, and deployability, ensuring new features, bug fixes, and patches can ship quickly and reliably.
+
+The system will use Opaque tokens via Spring Authorization Server, make sure the datamodels are compatible
+Make sure we use Grafana for observability,
+We will use spring  boot with modulith architecture, make sure we can convert the main modules from modulith to microservices in the future
+you will create a microservice just for probe of concept for the integration make sure it can communicate with google protobuf internally and json externally
+Use flyway for database versioning
+
+try to simplify the deployment with continues integration , using modern continues integration methodologies,
+make sure we can run the application locally with docker, simple as possible to reduce cost, and have production running in aws.
+
+make sure that the admin application is in spring with thymeleaf and the main application is in react with chadsui for the frontend,
+Doublecheck the modularity on each step of the process ,
+when creating the reac page make sure you split the application in bes organization structure for maintenability  and be able to use vive  coding , with specifications for each module
+
+when planning the architecture make sure to create each module separate , and remember we will only have one node js application with react
+
+Comprehensive Version Management & Multi-Version CI Strategy Added
+Enhanced CI/CD  robust Continuous Integration Security Strategy.
+Code Quality & Linting Standards
+
+Enhanced CI/CD Security Framework
+
+  1. Multi-Stage Security Pipeline
+
+  - 5 Security Stages: Security Analysis → Build/Test → Container Security → DAST → Infrastructure Security
+  - Quality Gates: Each stage must pass before proceeding
+  - Fail-Fast: Security issues block deployment immediately
+
+  2. Security Scanning Tools Integration
+
+  - SAST: CodeQL, SonarQube, PMD, SpotBugs
+  - DAST: OWASP ZAP baseline and full scans
+  - Container Security: Trivy, Docker Scout, Container Structure Tests
+  - Dependency Scanning: OWASP Dependency Check, Snyk
+  - IaC Security: TFSec, Checkov for Terraform
+
+  3. Code Quality & Linting Standards
+
+  Java/Spring Boot:
+
+  - PMD Rules: Custom security rules (no hardcoded secrets, secure endpoints)
+  - Checkstyle: Spring Boot best practices (constructor injection, proper logging)
+  - ArchUnit Tests: Architectural security validation
+
+  React/TypeScript:
+
+  - ESLint Security: Object injection, unsafe regex detection
+  - React Security: No dangerouslySetInnerHTML, secure target blank
+  - Accessibility: WCAG compliance with jsx-a11y
+
+  4. Automated Security Testing
+
+  @ArchTest // Enforces all controllers have security annotations
+  static final ArchRule controllers_should_be_secured =
+      classes().that().areAnnotatedWith(RestController.class)
+      .should().beAnnotatedWith(PreAuthorize.class)
+
+  5. OWASP Top 10 Compliance
+
+  - Weekly Automated Checks: Scheduled compliance validation
+  - Broken Access Control: Verify endpoint security annotations
+  - Cryptographic Failures: Check for weak algorithms
+  - Injection Prevention: SQL injection test verification
+
+  6. Dependency Management
+
+  - Renovate Bot: Automated security updates
+  - Vulnerability Alerts: Immediate notifications for critical CVEs
+  - Staged Updates: 3-day minimum age for stability
+
+  7. Quality Gates
+
+  - Code Coverage: Minimum 80% with JaCoCo
+  - Security Rating: SonarQube "A" rating mandatory
+  - Zero Tolerance: No critical bugs or security hotspots
+
+  8. Blue-Green Deployment Security
+
+  rollback-triggers:
+    - security-alert
+    - compliance-violation
+    - performance-degradation
+
+clarify Opaque tokens via Spring Authorization Server (no JWT exposure)
+
+  High-Impact Fixes
+
+  - Opaque tokens: Use Spring Authorization Server’s built-in opaque token support, not JWT customizers. Replace custom introspection controller and reactive auth provider with standard config:
+      - Resource server: spring.security.oauth2.resourceserver.opaque-token.introspection-uri, ...client-id, ...client-secret.
+      - Authorization Server: rely on OAuth2AuthorizationService storage; don’t stuff “access_token” into claims.
+  - Consistency: Don’t mix reactive and servlet stacks. Pick WebMVC or WebFlux end-to-end. The custom ReactiveAuthenticationProvider + MVC controllers is inconsistent.
+
+  CI/CD Right-Sizing
+
+  - Conditional steps: Guard optional stacks so pipeline isn’t red on missing dirs.
+      - Example: if: ${{ hashFiles('frontend/**') != '' }} for Node steps; same for terraform/**, k8s/**, Dockerfile.
+  - Security scans: Split into daily/nightly workflows; keep PR CI lean. Add concurrency: group: ${{ github.ref }}; cancel-in-progress: true.
+  - Secrets/Integrations: Document required secrets (SONAR_TOKEN, SNYK_TOKEN, AWS creds). Fail gracefully when absent (soft-fail for community forks).
+  - Cache and artifacts: Reuse build artifacts across jobs to cut CI time (upload/download actions).
+
+  Modulith Architecture
+
+  - Prefer Spring Modulith events for intra-module communication over gRPC unless cross-process is required. Limit gRPC to true service boundaries; otherwise adds complexity.
+  - Add ArchUnit rules for module boundaries and forbidden dependencies. Provide examples in tests/architecture/*ArchTest.java.
+
+  Security & OAuth2
+
+  - SPA auth: Consider BFF pattern to avoid tokens in the browser. If keeping SPA tokens, use rotating refresh tokens and token binding where possible; document CORS, SameSite, and cookie settings.
+  - Token storage: Specify hashing (e.g., SHA-256 + salt) and rotation policy for opaque token lookup. Add TTL indexes and revocation strategy.
+  - Introspection caching: Use a caching OpaqueTokenIntrospector to reduce latency under load.
+
+  Testing
+
+  - Map acceptance criteria → test types explicitly. Add a small matrix in spec linking each criterion to Contract/Integration/E2E/Unit.
+  - Spring Modulith testing: Use @ApplicationModuleTest and slice tests per module. Include sample test names and package layout.
+  - Stripe/webhooks: Add idempotency keys, signature verification, and retry strategy to acceptance criteria and tests.
+
+  Observability
+
+  - Define minimum Micrometer meters and log fields (traceId, correlationId, tenantId). Provide example application.yaml for Actuator exposure and Prometheus scrape.
+  - Add log retention and PII policy (GDPR): redact fields, retention windows, and audit trail immutability.
+
+  Versioning & Compatibility
+
+  - Make module-versions.yml schema explicit; validate in CI with a JSON Schema. Add a Maven plugin check that fails on incompatible changes.
+
+  Deployment
+
+  - Parameterize AWS specifics; provide a “local-first” path (docker-compose) with optional cloud deploy. If ECS/Terraform are aspirational, gate them behind labels or tags.
+
+  Spec Hygiene
+
+  - Extract long YAML/GitHub Actions snippets into /.github/workflows/*.yml examples referenced from the spec.
+  - Reduce inline implementation code; keep the spec testable and outcome-focused. Move code samples to examples/ with notes on stack choice.
+

@@ -1,0 +1,35 @@
+You are an expert software architect and DevOps engineer specializing in secure, production-ready SaaS platforms. Your task is to generate a complete specification document for a Spring Boot Modulith + React micro-SaaS payment platform that uses Stripe integration, opaque tokens, and modular boundaries.
+
+Style Requirements
+	•	Write in a specification tone (not a project plan).
+	•	Include all richness and detail typically found in an implementation plan (architecture diagrams, directory structures, CI/CD workflows, testing pyramid, observability, compliance, ADRs, milestones).
+	•	Be self-contained, standards-driven, and production-ready — suitable for direct handoff to a development team.
+	•	Use Markdown with sections, code/config snippets, and diagrams.
+
+Mandatory Sections
+	1.	Executive Summary – purpose, scope, and high-level description.
+	2.	Actors & Roles – end-users, admins, notification service, CI/CD, external integrators.
+	3.	Core Workflows – OAuth2/PKCE flow, subscription lifecycle, payment handling, audit logging.
+	4.	Constraints – opaque tokens (no custom JWT), WebMVC stack only, Spring Modulith events, ArchUnit rules, GDPR logging & retention.
+	5.	Data Entities – user, organization, subscription, invoice, payment, audit event, token metadata.
+	6.	Architecture –
+	•	High-level system diagram (Mermaid).
+	•	Detailed module structure (Spring Modulith with auth, payment, user, audit, shared).
+	•	Directory layout for backend, frontend, admin console, and notification service.
+	•	Module communication (events vs service calls).
+	7.	Authentication & Security – token storage (SHA-256 + salt), introspection caching strategy, webhook signature verification, idempotency handling.
+	8.	CI/CD Pipeline – GitHub Actions with conditional execution, artifact reuse, optional Terraform/K8s/Trivy scans, fail-soft for forks.
+	9.	Testing Strategy – YAML acceptance→test mapping, test layers (unit, module, integration, contract, architecture, e2e), illustrative code snippets.
+	10.	Observability & Compliance – Micrometer metrics, structured JSON logging with correlation & tenant IDs, PII redaction, GDPR retention properties.
+	11.	Architecture Decision Records (ADRs) – e.g., opaque tokens, Spring Modulith, right-sized CI/CD, token caching.
+	12.	Milestones – week-by-week roadmap with validation criteria.
+	13.	Risks & Mitigation – technical and implementation risks (module coupling, OAuth complexity, CI/CD overhead, compliance debt).
+	14.	Success Metrics – technical KPIs (coverage, latency, security) and business KPIs (payment success rate, admin efficiency, compliance reporting speed).
+	15.	Open Decisions – unresolved choices (token caching, CI/CD scope, e2e framework).
+
+Requirements
+	•	Use RFC-compliant OAuth2 flows.
+	•	Enforce module boundaries with ArchUnit.
+	•	Ensure GDPR compliance and security best practices.
+	•	Provide concrete details (configs, SQL schemas, YAML, code snippets) where helpful.
+	•	Produce a long, detailed, professional Markdown spec.
