@@ -1,0 +1,152 @@
+# Security Review Multi-Agent Workflow
+name: "Security Review Workflow"
+description: "Comprehensive security validation with OWASP and PCI DSS compliance"
+version: "1.0.0"
+
+# Constitutional security requirements
+constitutional_compliance: true
+security_authority: "Security Testing Agent + Constitutional Enforcement Agent"
+
+phases:
+  - name: "Security Assessment Initiation"
+    order: 1
+    agents:
+      - "development/constitutional-enforcement-agent.md"
+      - "testing/security-testing-agent.md"
+    tasks:
+      - "Validate constitutional security requirements"
+      - "Initialize comprehensive security assessment"
+      - "Define security testing scope and criteria"
+    outputs:
+      - "security_assessment_scope"
+      - "constitutional_security_requirements"
+
+  - name: "OWASP Top 10 Validation"
+    order: 2
+    agents:
+      - "security/owasp-compliance-agent.md"
+    dependencies: ["Security Assessment Initiation"]
+    tasks:
+      - "Execute OWASP Top 10 compliance check"
+      - "Identify and categorize security vulnerabilities"
+      - "Generate vulnerability remediation plan"
+    validation:
+      - "No critical OWASP vulnerabilities"
+      - "High vulnerabilities: < 3"
+      - "Medium vulnerabilities documented"
+    outputs:
+      - "owasp_compliance_report"
+      - "vulnerability_assessment"
+
+  - name: "PCI DSS Compliance Validation"
+    order: 3
+    agents:
+      - "security/pci-dss-compliance-agent.md"
+    dependencies: ["OWASP Top 10 Validation"]
+    tasks:
+      - "Validate PCI DSS requirements compliance"
+      - "Assess cardholder data protection"
+      - "Verify payment processing security"
+    validation:
+      - "PCI DSS compliance: REQUIRED"
+      - "Cardholder data protection: VALIDATED"
+      - "Payment security: COMPLIANT"
+    outputs:
+      - "pci_dss_compliance_report"
+      - "cardholder_data_assessment"
+
+  - name: "Constitutional Security Enforcement"
+    order: 4
+    agents:
+      - "development/constitutional-enforcement-agent.md"
+      - "testing/security-testing-agent.md"
+    dependencies: ["PCI DSS Compliance Validation"]
+    tasks:
+      - "Enforce constitutional security principles"
+      - "Validate opaque token implementation"
+      - "Ensure GDPR compliance in security measures"
+    coordination_pattern: "sequential"
+    validation:
+      - "Constitutional security principles: ENFORCED"
+      - "Opaque tokens only: VERIFIED"
+      - "GDPR compliance: MAINTAINED"
+    outputs:
+      - "constitutional_security_validation"
+      - "gdpr_compliance_confirmation"
+
+  - name: "Penetration Testing"
+    order: 5
+    agents:
+      - "testing/security-testing-agent.md"
+      - "testing/playwright-e2e-agent.md"
+    dependencies: ["Constitutional Security Enforcement"]
+    tasks:
+      - "Execute automated penetration testing"
+      - "Perform E2E security testing scenarios"
+      - "Test authentication and authorization flows"
+    coordination_pattern: "parallel"
+    outputs:
+      - "penetration_test_results"
+      - "security_flow_validation"
+
+# Critical security validations
+critical_validations:
+  constitutional_compliance:
+    - "OAuth2/PKCE with opaque tokens (NO JWT)"
+    - "Event-driven module communication"
+    - "GDPR data protection compliance"
+    - "PII redaction in audit logs"
+
+  owasp_requirements:
+    - "Injection protection validated"
+    - "Broken authentication prevented"
+    - "Sensitive data exposure eliminated"
+    - "Security misconfiguration resolved"
+
+  pci_dss_requirements:
+    - "Cardholder data protection verified"
+    - "Strong access control implemented"
+    - "Network security validated"
+    - "Vulnerability management active"
+
+# Security testing protocols
+testing_protocols:
+  automated_scanning:
+    tools: ["OWASP ZAP", "Semgrep", "Trivy"]
+    frequency: "Every workflow execution"
+    thresholds:
+      critical: 0
+      high: 3
+      medium: 10
+
+  manual_validation:
+    constitutional_review: "Required for all security changes"
+    pci_dss_assessment: "Payment-related features only"
+    gdpr_compliance: "Data handling features only"
+
+# Escalation procedures
+escalation:
+  critical_vulnerability:
+    action: "IMMEDIATE_STOP"
+    authority: "Constitutional Enforcement Agent"
+    notification: "Platform team + Security team"
+    timeline: "< 1 hour response required"
+
+  constitutional_violation:
+    action: "WORKFLOW_HALT"
+    authority: "Constitutional Enforcement Agent"
+    rollback: "Automatic to compliant state"
+    timeline: "Immediate"
+
+  pci_dss_failure:
+    action: "PAYMENT_FEATURE_BLOCK"
+    authority: "PCI DSS Compliance Agent"
+    impact: "Payment processing disabled"
+    timeline: "< 2 hours resolution required"
+
+success_criteria:
+  - "Constitutional security compliance: 100%"
+  - "OWASP Top 10: No critical vulnerabilities"
+  - "PCI DSS compliance: VALIDATED"
+  - "Penetration testing: PASSED"
+  - "Security audit trail: COMPLETE"

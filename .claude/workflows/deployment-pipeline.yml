@@ -1,0 +1,252 @@
+# Deployment Pipeline Multi-Agent Workflow
+name: "Deployment Pipeline Workflow"
+description: "Constitutional-compliant deployment with automated quality gates"
+version: "1.0.0"
+
+# Constitutional deployment requirements
+constitutional_compliance: true
+deployment_authority: "CI/CD Agent + Constitutional Enforcement Agent"
+
+phases:
+  - name: "Pre-Deployment Constitutional Check"
+    order: 1
+    agents:
+      - "development/constitutional-enforcement-agent.md"
+      - "testing/tdd-compliance-agent.md"
+    tasks:
+      - "Validate constitutional compliance before deployment"
+      - "Verify TDD compliance and test coverage"
+      - "Check for any constitutional violations"
+    validation:
+      - "Constitutional compliance: 100%"
+      - "TDD compliance: COMPLETE"
+      - "Test coverage: > 80%"
+    outputs:
+      - "constitutional_deployment_clearance"
+      - "tdd_compliance_report"
+
+  - name: "Security Gate Validation"
+    order: 2
+    agents:
+      - "security/owasp-compliance-agent.md"
+      - "security/pci-dss-compliance-agent.md"
+      - "testing/security-testing-agent.md"
+    dependencies: ["Pre-Deployment Constitutional Check"]
+    tasks:
+      - "Execute security scanning and validation"
+      - "Verify OWASP and PCI DSS compliance"
+      - "Validate payment security requirements"
+    coordination_pattern: "parallel"
+    validation:
+      - "Security vulnerabilities: 0 critical, < 3 high"
+      - "PCI DSS compliance: VALIDATED"
+      - "Payment security: COMPLIANT"
+    outputs:
+      - "security_gate_clearance"
+      - "compliance_validation_report"
+
+  - name: "Infrastructure Preparation"
+    order: 3
+    agents:
+      - "devops/infrastructure-agent.md"
+      - "devops/ci-cd-agent.md"
+    dependencies: ["Security Gate Validation"]
+    tasks:
+      - "Validate infrastructure readiness"
+      - "Prepare deployment environment"
+      - "Configure CI/CD pipeline"
+    coordination_pattern: "sequential"
+    outputs:
+      - "infrastructure_readiness_report"
+      - "deployment_environment_config"
+
+  - name: "Performance and Load Testing"
+    order: 4
+    agents:
+      - "architecture/performance-architect-agent.md"
+      - "testing/playwright-e2e-agent.md"
+    dependencies: ["Infrastructure Preparation"]
+    tasks:
+      - "Execute performance testing suite"
+      - "Validate load handling capabilities"
+      - "Test user journey performance"
+    coordination_pattern: "parallel"
+    validation:
+      - "Response time: < 200ms (p95)"
+      - "Throughput: > 1000 TPS"
+      - "Error rate: < 0.1%"
+    outputs:
+      - "performance_test_results"
+      - "load_testing_report"
+
+  - name: "Blue-Green Deployment Execution"
+    order: 5
+    agents:
+      - "devops/ci-cd-agent.md"
+      - "devops/infrastructure-agent.md"
+    dependencies: ["Performance and Load Testing"]
+    tasks:
+      - "Deploy to green environment"
+      - "Execute smoke tests on green"
+      - "Validate green environment health"
+    coordination_pattern: "orchestrated"
+    validation:
+      - "Green deployment: SUCCESSFUL"
+      - "Smoke tests: PASSED"
+      - "Health checks: ALL PASSING"
+    outputs:
+      - "green_deployment_status"
+      - "smoke_test_results"
+
+  - name: "Traffic Switch and Monitoring"
+    order: 6
+    agents:
+      - "devops/ci-cd-agent.md"
+      - "architecture/performance-architect-agent.md"
+    dependencies: ["Blue-Green Deployment Execution"]
+    tasks:
+      - "Switch traffic to green environment"
+      - "Monitor deployment metrics"
+      - "Validate production performance"
+    coordination_pattern: "sequential"
+    monitoring_duration: "30 minutes"
+    outputs:
+      - "traffic_switch_confirmation"
+      - "production_monitoring_report"
+
+  - name: "Post-Deployment Validation"
+    order: 7
+    agents:
+      - "development/constitutional-enforcement-agent.md"
+      - "testing/security-testing-agent.md"
+      - "modules/audit-module-agent.md"
+    dependencies: ["Traffic Switch and Monitoring"]
+    tasks:
+      - "Validate constitutional compliance in production"
+      - "Execute production security tests"
+      - "Generate deployment audit trail"
+    coordination_pattern: "parallel"
+    validation:
+      - "Production constitutional compliance: 100%"
+      - "Security posture: MAINTAINED"
+      - "Audit trail: COMPLETE"
+    outputs:
+      - "production_compliance_report"
+      - "deployment_audit_trail"
+
+  - name: "Blue Environment Cleanup"
+    order: 8
+    agents:
+      - "devops/ci-cd-agent.md"
+      - "devops/infrastructure-agent.md"
+    dependencies: ["Post-Deployment Validation"]
+    tasks:
+      - "Scale down blue environment"
+      - "Clean up old deployment artifacts"
+      - "Update deployment documentation"
+    outputs:
+      - "cleanup_completion_report"
+      - "deployment_documentation_update"
+
+# Deployment quality gates
+quality_gates:
+  constitutional_gate:
+    agent: "development/constitutional-enforcement-agent.md"
+    criteria:
+      - "Constitutional compliance: 100%"
+      - "No constitutional violations"
+      - "Constitutional principles enforced"
+    failure_action: "BLOCK_DEPLOYMENT"
+
+  security_gate:
+    agents:
+      - "security/owasp-compliance-agent.md"
+      - "security/pci-dss-compliance-agent.md"
+    criteria:
+      - "No critical vulnerabilities"
+      - "PCI DSS compliance validated"
+      - "Security tests passed"
+    failure_action: "BLOCK_DEPLOYMENT"
+
+  performance_gate:
+    agent: "architecture/performance-architect-agent.md"
+    criteria:
+      - "Response time < 200ms (p95)"
+      - "Error rate < 0.1%"
+      - "Throughput > 1000 TPS"
+    failure_action: "WARN_AND_CONTINUE"
+
+  testing_gate:
+    agent: "testing/tdd-compliance-agent.md"
+    criteria:
+      - "All tests passing"
+      - "Test coverage > 80%"
+      - "TDD compliance verified"
+    failure_action: "BLOCK_DEPLOYMENT"
+
+# Rollback procedures
+rollback_procedures:
+  automatic_rollback:
+    triggers:
+      - "Constitutional violation detected"
+      - "Critical security vulnerability"
+      - "Performance degradation > 50%"
+      - "Error rate > 5%"
+    agents:
+      - "devops/ci-cd-agent.md"
+      - "development/constitutional-enforcement-agent.md"
+    timeline: "< 5 minutes"
+
+  manual_rollback:
+    triggers:
+      - "Business decision"
+      - "Operational issues"
+      - "Customer impact"
+    approval_required: true
+    agents:
+      - "devops/ci-cd-agent.md"
+    timeline: "< 15 minutes"
+
+# Monitoring and alerting
+monitoring:
+  deployment_metrics:
+    - "Deployment success rate"
+    - "Deployment duration"
+    - "Rollback frequency"
+    - "Quality gate pass rate"
+
+  constitutional_metrics:
+    - "Constitutional compliance score"
+    - "Constitutional violations count"
+    - "Constitutional enforcement actions"
+
+  performance_metrics:
+    - "Response time percentiles"
+    - "Throughput rates"
+    - "Error rates"
+    - "Resource utilization"
+
+# Success criteria
+success_criteria:
+  - "Constitutional compliance: MAINTAINED"
+  - "Security posture: VALIDATED"
+  - "Performance requirements: MET"
+  - "Zero downtime deployment: ACHIEVED"
+  - "Quality gates: ALL PASSED"
+  - "Audit trail: COMPLETE"
+
+# Environment-specific configurations
+environments:
+  staging:
+    approval_required: false
+    performance_thresholds:
+      response_time: 500 # ms
+      error_rate: 1.0 # %
+
+  production:
+    approval_required: true
+    performance_thresholds:
+      response_time: 200 # ms
+      error_rate: 0.1 # %
+    constitutional_enforcement: "STRICT"
+    security_validation: "COMPREHENSIVE"
