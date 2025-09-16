@@ -45,12 +45,8 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
                                                                          @Param("startDate") Instant startDate,
                                                                          @Param("endDate") Instant endDate);
 
-    // Spring Data might be trying to create this method - add it explicitly
-    @Query("SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId AND ae.ipAddress = :ipAddress AND ae.createdAt BETWEEN :startDate AND :endDate ORDER BY ae.createdAt DESC")
-    List<AuditEvent> findByOrganizationIdAndIpAddressAndTimestampBetween(@Param("organizationId") UUID organizationId,
-                                                                         @Param("ipAddress") String ipAddress,
-                                                                         @Param("startDate") Instant startDate,
-                                                                         @Param("endDate") Instant endDate);
+    // This method name was causing issues - removing duplicate
+    // Use findByOrganizationIdAndIpAddressAndCreatedAtBetween instead
 
     @Query("SELECT COUNT(ae) FROM AuditEvent ae WHERE ae.organizationId = :organizationId AND ae.action = :action AND ae.createdAt >= :since")
     long countByOrganizationIdAndActionAndCreatedAtAfter(@Param("organizationId") UUID organizationId,
