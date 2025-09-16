@@ -1,16 +1,4 @@
 import {
-  Provider_default,
-  ReactReduxContext,
-  batch,
-  shallowEqual,
-  useDispatch,
-  useSelector,
-  useStore
-} from "./chunk-ZIXP5V4Y.js";
-import {
-  require_react
-} from "./chunk-RLJ2RCJQ.js";
-import {
   SHOULD_AUTOBATCH,
   applyPatches,
   combineReducers,
@@ -37,7 +25,19 @@ import {
   produce,
   produceWithPatches,
   weakMapMemoize
-} from "./chunk-OXFSGQ77.js";
+} from "./chunk-WEOLYUOT.js";
+import {
+  Provider_default,
+  ReactReduxContext,
+  batch,
+  shallowEqual,
+  useDispatch,
+  useSelector,
+  useStore
+} from "./chunk-LCUBMTZP.js";
+import {
+  require_react
+} from "./chunk-TWJRYSII.js";
 import {
   __publicField,
   __toESM
