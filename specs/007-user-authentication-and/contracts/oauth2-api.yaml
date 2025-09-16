@@ -1,0 +1,462 @@
+openapi: 3.0.3
+info:
+  title: OAuth2 Authentication API
+  description: OAuth2/PKCE authentication system for Spring Boot Modulith payment platform
+  version: 1.2.0
+  contact:
+    name: Payment Platform Team
+    email: dev@paymentplatform.com
+  license:
+    name: Proprietary
+    url: https://paymentplatform.com/license
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.paymentplatform.com/api/v1
+    description: Production server
+
+paths:
+  /auth/oauth2/providers:
+    get:
+      summary: List available OAuth2 providers
+      description: Get list of configured and enabled OAuth2 authentication providers
+      operationId: getOAuth2Providers
+      tags:
+        - OAuth2 Authentication
+      responses:
+        '200':
+          description: List of available OAuth2 providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2ProvidersResponse'
+              example:
+                providers:
+                  - name: google
+                    displayName: Google
+                    authorizationUrl: https://accounts.google.com/oauth/authorize
+                    scopes: ["openid", "email", "profile"]
+                  - name: github
+                    displayName: GitHub
+                    authorizationUrl: https://github.com/login/oauth/authorize
+                    scopes: ["read:user", "user:email"]
+                  - name: microsoft
+                    displayName: Microsoft
+                    authorizationUrl: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+                    scopes: ["openid", "email", "profile"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/oauth2/authorize/{provider}:
+    get:
+      summary: Initiate OAuth2 authorization flow
+      description: Redirect to OAuth2 provider authorization endpoint with PKCE parameters
+      operationId: initiateOAuth2Flow
+      tags:
+        - OAuth2 Authentication
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth2 provider name (google, github, microsoft)
+          schema:
+            type: string
+            enum: [google, github, microsoft]
+        - name: redirect_uri
+          in: query
+          required: false
+          description: Optional redirect URI after successful authentication
+          schema:
+            type: string
+            format: uri
+            maxLength: 2048
+        - name: state
+          in: query
+          required: false
+          description: Optional state parameter for CSRF protection
+          schema:
+            type: string
+            maxLength: 255
+      responses:
+        '302':
+          description: Redirect to OAuth2 provider authorization endpoint
+          headers:
+            Location:
+              description: OAuth2 provider authorization URL with PKCE parameters
+              schema:
+                type: string
+                format: uri
+        '400':
+          description: Invalid provider or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: OAuth2 provider not found or disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/oauth2/callback/{provider}:
+    get:
+      summary: Handle OAuth2 authorization callback
+      description: Process OAuth2 provider callback and complete authentication flow
+      operationId: handleOAuth2Callback
+      tags:
+        - OAuth2 Authentication
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth2 provider name (google, github, microsoft)
+          schema:
+            type: string
+            enum: [google, github, microsoft]
+        - name: code
+          in: query
+          required: true
+          description: OAuth2 authorization code from provider
+          schema:
+            type: string
+            maxLength: 2048
+        - name: state
+          in: query
+          required: true
+          description: State parameter for CSRF protection
+          schema:
+            type: string
+            maxLength: 255
+        - name: code_verifier
+          in: query
+          required: true
+          description: PKCE code verifier
+          schema:
+            type: string
+            minLength: 43
+            maxLength: 128
+        - name: error
+          in: query
+          required: false
+          description: OAuth2 error code (if authorization failed)
+          schema:
+            type: string
+        - name: error_description
+          in: query
+          required: false
+          description: Human-readable error description
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Successful authentication, redirect to application
+          headers:
+            Location:
+              description: Redirect to application dashboard or intended destination
+              schema:
+                type: string
+                format: uri
+            Set-Cookie:
+              description: Secure session cookie
+              schema:
+                type: string
+        '400':
+          description: Invalid callback parameters or OAuth2 error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2ErrorResponse'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2ErrorResponse'
+        '404':
+          description: OAuth2 provider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/oauth2/logout:
+    post:
+      summary: Terminate OAuth2 session
+      description: Logout user and terminate OAuth2 session with provider
+      operationId: logoutOAuth2User
+      tags:
+        - OAuth2 Authentication
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                terminateProviderSession:
+                  type: boolean
+                  description: Whether to also terminate session with OAuth2 provider
+                  default: false
+      responses:
+        '200':
+          description: Successful logout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/oauth2/session:
+    get:
+      summary: Get current OAuth2 session information
+      description: Retrieve current user session and OAuth2 provider information
+      operationId: getOAuth2Session
+      tags:
+        - OAuth2 Authentication
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Current session information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2SessionResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: HTTP session cookie for authenticated requests
+
+  schemas:
+    OAuth2ProvidersResponse:
+      type: object
+      required:
+        - providers
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/OAuth2Provider'
+          description: List of available OAuth2 providers
+
+    OAuth2Provider:
+      type: object
+      required:
+        - name
+        - displayName
+        - authorizationUrl
+        - scopes
+      properties:
+        name:
+          type: string
+          description: Provider identifier
+          enum: [google, github, microsoft]
+          example: google
+        displayName:
+          type: string
+          description: Human-readable provider name
+          example: Google
+        authorizationUrl:
+          type: string
+          format: uri
+          description: OAuth2 authorization endpoint URL
+          example: https://accounts.google.com/oauth/authorize
+        scopes:
+          type: array
+          items:
+            type: string
+          description: OAuth2 scopes requested from provider
+          example: ["openid", "email", "profile"]
+
+    OAuth2SessionResponse:
+      type: object
+      required:
+        - userId
+        - provider
+        - email
+        - name
+        - expiresAt
+        - sessionId
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Platform user identifier
+          example: 123e4567-e89b-12d3-a456-426614174000
+        provider:
+          type: string
+          description: OAuth2 provider used for authentication
+          enum: [google, github, microsoft]
+          example: google
+        email:
+          type: string
+          format: email
+          description: User email from OAuth2 provider
+          example: user@example.com
+        name:
+          type: string
+          description: User full name from OAuth2 provider
+          example: John Doe
+        picture:
+          type: string
+          format: uri
+          description: User profile picture URL from OAuth2 provider
+          example: https://lh3.googleusercontent.com/a/default-user
+        expiresAt:
+          type: string
+          format: date-time
+          description: Session expiration timestamp
+          example: 2025-01-16T15:30:00Z
+        sessionId:
+          type: string
+          description: Opaque session identifier
+          example: abc123def456
+        scopes:
+          type: array
+          items:
+            type: string
+          description: OAuth2 scopes granted in session
+          example: ["openid", "email", "profile"]
+
+    LogoutResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether logout was successful
+          example: true
+        message:
+          type: string
+          description: Logout confirmation message
+          example: Successfully logged out
+        providerLogoutUrl:
+          type: string
+          format: uri
+          description: OAuth2 provider logout URL (if requested)
+          example: https://accounts.google.com/logout
+
+    OAuth2ErrorResponse:
+      type: object
+      required:
+        - error
+        - errorDescription
+        - timestamp
+        - requestId
+      properties:
+        error:
+          type: string
+          description: OAuth2 error code
+          enum:
+            - invalid_request
+            - unauthorized_client
+            - access_denied
+            - unsupported_response_type
+            - invalid_scope
+            - server_error
+            - temporarily_unavailable
+            - invalid_grant
+            - unsupported_grant_type
+          example: access_denied
+        errorDescription:
+          type: string
+          description: Human-readable error description
+          example: User denied authorization request
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence timestamp
+          example: 2025-01-15T10:30:00Z
+        requestId:
+          type: string
+          description: Unique request identifier for tracing
+          example: req_123abc456def
+        providerError:
+          type: string
+          description: Original provider error (if applicable)
+          example: user_denied
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+        - requestId
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+          example: PROVIDER_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable error message
+          example: OAuth2 provider 'facebook' is not configured or enabled
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence timestamp
+          example: 2025-01-15T10:30:00Z
+        requestId:
+          type: string
+          description: Unique request identifier for tracing
+          example: req_123abc456def
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+          example:
+            availableProviders: ["google", "github", "microsoft"]
+
+tags:
+  - name: OAuth2 Authentication
+    description: OAuth2/PKCE authentication endpoints for secure user login

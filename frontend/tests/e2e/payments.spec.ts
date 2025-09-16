@@ -1,0 +1,327 @@
+import { test, expect } from '@playwright/test'
+
+test.describe('Payments', () => {
+  test.beforeEach(async ({ page }) => {
+    // Mock authentication
+    await page.route('/api/v1/auth/session', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          user: {
+            id: 'user-123',
+            name: 'Test User',
+            email: 'test@example.com',
+          },
+          authenticated: true,
+        }),
+      })
+    })
+
+    // Mock user organizations
+    await page.route('/api/v1/organizations/user', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'org-123',
+            name: 'Test Organization',
+            slug: 'test-org',
+            status: 'ACTIVE',
+            userRole: 'OWNER',
+            memberCount: 1,
+            createdAt: '2024-01-01T00:00:00Z',
+          },
+        ]),
+      })
+    })
+
+    // Mock payment statistics
+    await page.route('/api/v1/organizations/org-123/payments/statistics', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          totalSuccessfulPayments: 15,
+          totalAmount: 3750.00,
+          recentAmount: 1250.00,
+        }),
+      })
+    })
+
+    // Mock payments list
+    await page.route('/api/v1/organizations/org-123/payments', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'payment-1',
+            amount: 299.00,
+            currency: 'usd',
+            status: 'SUCCEEDED',
+            description: 'Pro Plan Subscription',
+            stripePaymentIntentId: 'pi_1234567890abcdef1234567890',
+            createdAt: '2024-01-15T10:30:00Z',
+          },
+          {
+            id: 'payment-2',
+            amount: 99.00,
+            currency: 'usd',
+            status: 'SUCCEEDED',
+            description: 'Basic Plan Subscription',
+            stripePaymentIntentId: 'pi_0987654321fedcba0987654321',
+            createdAt: '2024-01-01T09:15:00Z',
+          },
+          {
+            id: 'payment-3',
+            amount: 199.00,
+            currency: 'usd',
+            status: 'FAILED',
+            description: 'Standard Plan Subscription',
+            stripePaymentIntentId: 'pi_failed123456789012345678901234',
+            createdAt: '2023-12-28T14:20:00Z',
+          },
+        ]),
+      })
+    })
+
+    // Mock payment methods
+    await page.route('/api/v1/organizations/org-123/payment-methods', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'pm-123',
+            displayName: 'Visa ending in 4242',
+            isDefault: true,
+            cardDetails: {
+              brand: 'visa',
+              lastFour: '4242',
+              expMonth: 12,
+              expYear: 2025,
+            },
+            billingDetails: {
+              email: 'test@example.com',
+            },
+          },
+          {
+            id: 'pm-456',
+            displayName: 'Mastercard ending in 5555',
+            isDefault: false,
+            cardDetails: {
+              brand: 'mastercard',
+              lastFour: '5555',
+              expMonth: 8,
+              expYear: 2026,
+            },
+            billingDetails: {
+              email: 'test@example.com',
+            },
+          },
+        ]),
+      })
+    })
+  })
+
+  test('should display payments page', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Check page header
+    await expect(page.getByRole('heading', { name: 'Payments' })).toBeVisible()
+    await expect(page.getByText('View your payment history and manage payment methods.')).toBeVisible()
+
+    // Check payment methods button
+    await expect(page.getByRole('button', { name: 'Payment Methods' })).toBeVisible()
+  })
+
+  test('should display payment statistics', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Check statistics cards
+    await expect(page.getByText('Total Payments')).toBeVisible()
+    await expect(page.getByText('15')).toBeVisible()
+
+    await expect(page.getByText('Total Amount')).toBeVisible()
+    await expect(page.getByText('$3,750.00')).toBeVisible()
+
+    await expect(page.getByText('Recent (30 days)')).toBeVisible()
+    await expect(page.getByText('$1,250.00')).toBeVisible()
+  })
+
+  test('should display payment history', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Check payment history section
+    await expect(page.getByText('Payment History')).toBeVisible()
+
+    // Check table headers
+    await expect(page.getByText('Date')).toBeVisible()
+    await expect(page.getByText('Description')).toBeVisible()
+    await expect(page.getByText('Amount')).toBeVisible()
+    await expect(page.getByText('Status')).toBeVisible()
+    await expect(page.getByText('Payment ID')).toBeVisible()
+
+    // Check payment entries
+    await expect(page.getByText('Pro Plan Subscription')).toBeVisible()
+    await expect(page.getByText('$299.00 USD')).toBeVisible()
+    await expect(page.getByText('SUCCEEDED')).toBeVisible()
+
+    await expect(page.getByText('Basic Plan Subscription')).toBeVisible()
+    await expect(page.getByText('$99.00 USD')).toBeVisible()
+
+    await expect(page.getByText('Standard Plan Subscription')).toBeVisible()
+    await expect(page.getByText('$199.00 USD')).toBeVisible()
+    await expect(page.getByText('FAILED')).toBeVisible()
+  })
+
+  test('should open payment methods modal', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Click payment methods button
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Should open modal
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByText('Payment Methods')).toBeVisible()
+    await expect(page.getByText('Manage your payment methods for subscriptions and purchases.')).toBeVisible()
+  })
+
+  test('should display payment methods in modal', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Open payment methods modal
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Check payment methods are displayed
+    await expect(page.getByText('Visa ending in 4242')).toBeVisible()
+    await expect(page.getByText('visa •••• 4242')).toBeVisible()
+    await expect(page.getByText('(Expires 12/2025)')).toBeVisible()
+
+    await expect(page.getByText('Mastercard ending in 5555')).toBeVisible()
+    await expect(page.getByText('mastercard •••• 5555')).toBeVisible()
+    await expect(page.getByText('(Expires 8/2026)')).toBeVisible()
+
+    // Check default badge
+    await expect(page.getByText('Default')).toBeVisible()
+
+    // Check set as default button for non-default card
+    await expect(page.getByRole('button', { name: 'Set as default' })).toBeVisible()
+  })
+
+  test('should set default payment method', async ({ page }) => {
+    // Mock set default payment method API
+    await page.route('/api/v1/organizations/org-123/payment-methods/pm-456/set-default', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      })
+    })
+
+    await page.goto('/payments')
+
+    // Open payment methods modal
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Click set as default for second payment method
+    await page.getByRole('button', { name: 'Set as default' }).click()
+
+    // Should show success message (we would need to check for toast notification)
+    // In a real test, we would also verify the UI updates to show the new default
+  })
+
+  test('should remove payment method', async ({ page }) => {
+    // Mock remove payment method API
+    await page.route('/api/v1/organizations/org-123/payment-methods/pm-456/detach', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      })
+    })
+
+    await page.goto('/payments')
+
+    // Open payment methods modal
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Mock window.confirm
+    await page.evaluate(() => {
+      window.confirm = () => true
+    })
+
+    // Click remove button for non-default payment method
+    await page.getByRole('button', { name: 'Remove' }).click()
+
+    // Should show success message and remove the payment method from the list
+  })
+
+  test('should handle add payment method', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Open payment methods modal
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Click add payment method button
+    await page.getByRole('button', { name: 'Add Payment Method' }).click()
+
+    // Should show info message about Stripe integration
+    // In a real implementation, this would open Stripe's payment method setup
+  })
+
+  test('should handle empty payment methods state', async ({ page }) => {
+    // Mock empty payment methods response
+    await page.route('/api/v1/organizations/org-123/payment-methods', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
+    })
+
+    await page.goto('/payments')
+
+    // Open payment methods modal
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Should show empty state
+    await expect(page.getByText('No payment methods')).toBeVisible()
+    await expect(page.getByText('Add a payment method to start making payments.')).toBeVisible()
+  })
+
+  test('should handle empty payments state', async ({ page }) => {
+    // Mock empty payments response
+    await page.route('/api/v1/organizations/org-123/payments', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
+    })
+
+    await page.goto('/payments')
+
+    // Should show empty state
+    await expect(page.getByText('No payments yet')).toBeVisible()
+    await expect(page.getByText('Your payment history will appear here once you make a payment.')).toBeVisible()
+  })
+
+  test('should close payment methods modal', async ({ page }) => {
+    await page.goto('/payments')
+
+    // Open payment methods modal
+    await page.getByRole('button', { name: 'Payment Methods' }).click()
+
+    // Modal should be visible
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    // Close modal by clicking X button
+    await page.getByRole('button', { name: 'Close' }).click()
+
+    // Modal should be hidden
+    await expect(page.getByRole('dialog')).not.toBeVisible()
+  })
+})

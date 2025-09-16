@@ -1,0 +1,125 @@
+groups:
+  - name: payment-platform-alerts
+    rules:
+      # High-level service availability
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+      # Backend application alerts
+      - alert: BackendHighErrorRate
+        expr: rate(http_requests_total{job="payment-platform-backend",status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in backend"
+          description: "Backend error rate is {{ $value }} errors per second."
+
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="payment-platform-backend"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency in backend"
+          description: "95th percentile latency is {{ $value }} seconds."
+
+      - alert: BackendHighMemoryUsage
+        expr: (process_resident_memory_bytes{job="payment-platform-backend"} / 1024 / 1024 / 1024) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in backend"
+          description: "Backend memory usage is {{ $value }}GB."
+
+      # Database alerts
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_database_numbackends{job="payment-platform-postgres"} > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of database connections"
+          description: "Database has {{ $value }} active connections."
+
+      - alert: DatabaseSlowQueries
+        expr: pg_stat_database_tup_fetched{job="payment-platform-postgres"} / pg_stat_database_tup_returned{job="payment-platform-postgres"} > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database slow queries detected"
+          description: "Database query efficiency ratio is {{ $value }}."
+
+      # Redis alerts
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes{job="payment-platform-redis"} / redis_config_maxmemory{job="payment-platform-redis"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}."
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients{job="payment-platform-redis"} > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of Redis connections"
+          description: "Redis has {{ $value }} connected clients."
+
+      # Payment-specific alerts
+      - alert: StripeWebhookFailures
+        expr: rate(stripe_webhook_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Stripe webhook failures detected"
+          description: "Stripe webhook failure rate is {{ $value }} failures per second."
+
+      - alert: FailedPaymentRateHigh
+        expr: rate(payment_attempts_total{status="failed"}[5m]) / rate(payment_attempts_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ $value | humanizePercentage }}."
+
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: (100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}."
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+
+      - alert: DiskSpaceLow
+        expr: node_filesystem_free_bytes / node_filesystem_size_bytes < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanizePercentage }} free on {{ $labels.instance }}."

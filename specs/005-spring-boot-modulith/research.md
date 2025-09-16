@@ -254,6 +254,329 @@
 - Database as integration point for shared data
 - Message queues for async processing (future)
 
+## Frontend OAuth2 Integration Research
+
+### 8. React OAuth2/PKCE Implementation Patterns
+
+**Decision**: React hooks with Redux Toolkit state management and PKCE flow
+
+**Research Summary**:
+- Multiple libraries available for OAuth2 PKCE integration (react-oauth2-code-pkce, react-pkce)
+- Custom hooks pattern preferred for maintainability and control
+- Authorization Code Flow with PKCE is the secure standard for SPAs
+- Token storage security critical - avoid localStorage, prefer secure patterns
+
+**Rationale**:
+- PKCE provides additional security layer for public clients (SPAs)
+- React hooks provide clean, reusable authentication logic
+- Redux Toolkit offers predictable state management for auth flows
+- Industry consensus on avoiding client-side token storage
+
+**Alternatives Considered**:
+- Implicit Flow: Deprecated due to security vulnerabilities
+- Client-side token validation: Insecure, can be bypassed
+- Traditional OAuth2: Lacks PKCE protection for public clients
+- Third-party auth providers only: Reduces flexibility
+
+**Implementation Notes**:
+```typescript
+// Custom useAuth hook pattern
+const useAuth = () => {
+  const dispatch = useAppDispatch()
+  const { isAuthenticated, user, loading } = useAppSelector(state => state.auth)
+
+  const login = useCallback(async (provider: string) => {
+    // Generate PKCE challenge
+    const { code_verifier, code_challenge } = generatePKCE()
+    // Store in Redux for callback handling
+    dispatch(setPKCEChallenge({ code_verifier, code_challenge }))
+    // Redirect to authorization server
+  }, [dispatch])
+
+  return { isAuthenticated, user, loading, login, logout }
+}
+```
+
+### 9. Redux Toolkit State Management for Authentication
+
+**Decision**: RTK Query for API calls with auth slice for local state
+
+**Research Summary**:
+- RTK Query provides excellent error handling and caching for auth endpoints
+- Auth slice manages local authentication state (user, tokens, loading states)
+- Global error handling middleware for consistent UX
+- Automatic token injection via prepareHeaders
+
+**Rationale**:
+- RTK Query reduces boilerplate and provides built-in optimistic updates
+- Centralized error handling improves user experience
+- Token management centralized in Redux store
+- TypeScript integration provides compile-time safety
+
+**Implementation Notes**:
+```typescript
+// Auth slice structure
+interface AuthState {
+  user: User | null
+  isAuthenticated: boolean
+  loading: boolean
+  error: string | null
+  codeVerifier: string | null
+  codeChallenge: string | null
+}
+
+// RTK Query API definition
+const authApi = createApi({
+  reducerPath: 'authApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/v1/auth',
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as RootState).auth.accessToken
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`)
+      }
+      return headers
+    },
+  }),
+  endpoints: (builder) => ({
+    exchangeCodeForToken: builder.mutation({
+      query: ({ code, codeVerifier }) => ({
+        url: '/token',
+        method: 'POST',
+        body: { code, code_verifier: codeVerifier },
+      }),
+    }),
+  }),
+})
+```
+
+### 10. OAuth2 Callback Handling in React
+
+**Decision**: React Router with callback component and error boundaries
+
+**Research Summary**:
+- Callback URL handling requires careful parameter extraction and validation
+- State parameter validation prevents CSRF attacks
+- Error handling for various OAuth2 error scenarios
+- Loading states during token exchange process
+
+**Implementation Notes**:
+```typescript
+// OAuth2 Callback Component
+const OAuth2Callback: React.FC = () => {
+  const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const { codeVerifier, codeChallenge } = useAppSelector(state => state.auth)
+  const [exchangeCode] = useExchangeCodeForTokenMutation()
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const state = urlParams.get('state')
+    const error = urlParams.get('error')
+
+    if (error) {
+      dispatch(setAuthError(error))
+      navigate('/login?error=' + error)
+      return
+    }
+
+    if (code && codeVerifier) {
+      exchangeCode({ code, codeVerifier })
+        .unwrap()
+        .then((result) => {
+          dispatch(setTokens(result))
+          navigate('/dashboard')
+        })
+        .catch((error) => {
+          dispatch(setAuthError(error.message))
+          navigate('/login?error=token_exchange_failed')
+        })
+    }
+  }, [])
+
+  return <LoadingSpinner message="Completing authentication..." />
+}
+```
+
+### 11. Error Handling and User Experience Patterns
+
+**Decision**: Global error middleware with user-friendly error messages
+
+**Research Summary**:
+- RTK Query provides comprehensive error handling capabilities
+- Global middleware intercepts auth failures for consistent handling
+- User-friendly error messages mapped from OAuth2 error codes
+- Automatic retry logic for network failures
+
+**Implementation Notes**:
+```typescript
+// Global error handling middleware
+const authErrorMiddleware: Middleware = (store) => (next) => (action) => {
+  if (isRejectedWithValue(action)) {
+    const error = action.payload
+
+    // Handle auth-specific errors
+    if (error?.status === 401) {
+      store.dispatch(logout())
+      toast.error('Your session has expired. Please log in again.')
+    } else if (error?.status === 403) {
+      toast.error('You do not have permission to access this resource.')
+    } else if (action.type.endsWith('/auth/')) {
+      // OAuth2 specific error handling
+      const oauthError = error?.data?.error
+      const userMessage = mapOAuth2ErrorToUserMessage(oauthError)
+      toast.error(userMessage)
+    }
+  }
+
+  return next(action)
+}
+
+// Error message mapping
+const mapOAuth2ErrorToUserMessage = (error: string): string => {
+  const errorMap = {
+    'invalid_request': 'Authentication request is invalid. Please try again.',
+    'unauthorized_client': 'This application is not authorized. Please contact support.',
+    'access_denied': 'Access was denied. Please try logging in again.',
+    'unsupported_response_type': 'Authentication method not supported.',
+    'invalid_scope': 'Requested permissions are not available.',
+    'server_error': 'Authentication server error. Please try again later.',
+    'temporarily_unavailable': 'Authentication service is temporarily unavailable.',
+  }
+
+  return errorMap[error] || 'An unexpected authentication error occurred.'
+}
+```
+
+### 12. Security Considerations for OAuth2 in SPAs
+
+**Decision**: Backend-for-Frontend (BFF) pattern with secure token handling
+
+**Research Summary**:
+- Never store tokens in localStorage due to XSS vulnerability
+- BFF pattern keeps sensitive tokens server-side
+- HTTP-only cookies with SameSite=strict for maximum security
+- Client-side validation should never be relied upon
+
+**Security Implementation Notes**:
+- **Token Storage**: Use HTTP-only cookies managed by backend
+- **XSS Protection**: Implement CSP headers and input sanitization
+- **CSRF Protection**: Use SameSite=strict and CSRF tokens
+- **Redirect URI Validation**: Strict validation on authorization server
+- **State Parameter**: Always include and validate for CSRF protection
+
+```typescript
+// Secure API configuration
+const secureApi = createApi({
+  reducerPath: 'secureApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/v1',
+    credentials: 'include', // Include HTTP-only cookies
+    prepareHeaders: (headers) => {
+      // Add CSRF token header
+      const csrfToken = getCSRFToken()
+      if (csrfToken) {
+        headers.set('X-CSRF-Token', csrfToken)
+      }
+      return headers
+    },
+  }),
+})
+```
+
+### 13. React Hooks for OAuth2 Flow Management
+
+**Decision**: Custom hooks with TypeScript for type safety
+
+**Available Libraries**:
+- `react-oauth2-code-pkce` (v1.23.2): Provider agnostic, latest 2024
+- `react-pkce` (Uber5): Zero dependencies, minimal implementation
+- `@tasoskakour/react-use-oauth2`: Custom hook implementation
+
+**Custom Hook Pattern**:
+```typescript
+// useOAuth2.ts
+interface OAuth2Config {
+  clientId: string
+  authorizationEndpoint: string
+  tokenEndpoint: string
+  redirectUri: string
+  scope: string[]
+}
+
+export const useOAuth2 = (config: OAuth2Config) => {
+  const dispatch = useAppDispatch()
+  const { isAuthenticated, loading, error } = useAppSelector(state => state.auth)
+
+  const generatePKCE = useCallback(() => {
+    const codeVerifier = generateRandomString(128)
+    const codeChallenge = base64URLEncode(sha256(codeVerifier))
+    return { codeVerifier, codeChallenge }
+  }, [])
+
+  const initiateLogin = useCallback(async (provider?: string) => {
+    const { codeVerifier, codeChallenge } = generatePKCE()
+    const state = generateRandomString(32)
+
+    dispatch(setPKCEData({ codeVerifier, codeChallenge, state }))
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      scope: config.scope.join(' '),
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    })
+
+    window.location.href = `${config.authorizationEndpoint}?${params}`
+  }, [config, dispatch, generatePKCE])
+
+  return {
+    isAuthenticated,
+    loading,
+    error,
+    login: initiateLogin,
+    logout: () => dispatch(logout()),
+  }
+}
+```
+
+### 14. Performance and UX Optimizations
+
+**Optimistic Updates**:
+- Update UI immediately for better perceived performance
+- Rollback changes if server operation fails
+- Show loading states during critical operations
+
+**Caching Strategy**:
+- Use RTK Query automatic caching for user data
+- Implement proper cache invalidation on logout
+- Prefetch user profile data after successful authentication
+
+**Loading States**:
+```typescript
+// Enhanced loading states
+interface AuthUIState {
+  isLoggingIn: boolean
+  isExchangingCode: boolean
+  isRefreshingToken: boolean
+  isLoggingOut: boolean
+}
+
+// Loading component with context
+const AuthLoadingStates: React.FC = () => {
+  const { isLoggingIn, isExchangingCode } = useAppSelector(state => state.authUI)
+
+  if (isLoggingIn) return <LoadingSpinner message="Redirecting to login..." />
+  if (isExchangingCode) return <LoadingSpinner message="Completing authentication..." />
+
+  return null
+}
+```
+
 ---
 
 *Research completed: All NEEDS CLARIFICATION items resolved for implementation planning*

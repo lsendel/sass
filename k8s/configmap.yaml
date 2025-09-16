@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-platform-config
+  namespace: payment-platform
+data:
+  # Database configuration
+  POSTGRES_DB: "paymentplatform"
+  POSTGRES_USER: "paymentuser"
+
+  # Redis configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+
+  # Application configuration
+  SPRING_PROFILES_ACTIVE: "production"
+  SERVER_PORT: "8080"
+
+  # Logging configuration
+  LOGGING_LEVEL_ROOT: "WARN"
+  LOGGING_LEVEL_COM_PLATFORM: "INFO"
+
+  # Actuator configuration
+  ACTUATOR_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "when-authorized"
+
+  # JVM configuration
+  JAVA_OPTS: "-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
