@@ -8,11 +8,11 @@ import org.springframework.modulith.Modulith;
 @Modulith(sharedModules = "shared")
 public final class PaymentPlatformApplication {
 
-  private PaymentPlatformApplication() {
-    // no-op: prevent instantiation
-  }
+    private PaymentPlatformApplication() {
+        // no-op: prevent instantiation
+    }
 
-  public static void main(final String[] args) {
-    SpringApplication.run(PaymentPlatformApplication.class, args);
-  }
+    public static void main(final String[] args) {
+        SpringApplication.run(PaymentPlatformApplication.class, args);
+    }
 }

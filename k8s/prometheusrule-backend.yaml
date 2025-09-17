@@ -1,0 +1,65 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: backend-prometheus-rules
+  namespace: payment-platform
+  labels:
+    app: backend
+    release: prometheus
+spec:
+  groups:
+    - name: backend.rules
+      rules:
+        # Backend target down
+        - alert: BackendTargetDown
+          expr: up{namespace="payment-platform", service="backend-service"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Backend target is down
+            description: Prometheus scraping target for backend-service is down.
+
+        # High error rate (5xx)
+        - alert: BackendHighErrorRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{namespace="payment-platform", outcome="SERVER_ERROR"}[5m]))
+              /
+            sum(rate(http_server_requests_seconds_count{namespace="payment-platform"}[5m]))
+              > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High 5xx error rate in backend
+            description: 5xx error rate exceeded 5% over the last 5 minutes.
+
+        # High latency (P95)
+        - alert: BackendHighLatencyP95
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum by (le) (
+                rate(http_server_requests_seconds_bucket{namespace="payment-platform", uri!~"/actuator/.*", method!="OPTIONS"}[5m])
+              )
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High backend latency (p95 > 1s)
+            description: 95th percentile request latency is above 1s.
+
+        # JVM heap usage high
+        - alert: BackendJvmHeapHigh
+          expr: |
+            (sum(jvm_memory_used_bytes{namespace="payment-platform", area="heap"}) by (namespace)
+            /
+             sum(jvm_memory_max_bytes{namespace="payment-platform", area="heap"}) by (namespace)) > 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: High JVM heap usage (>90%)
+            description: JVM heap usage has exceeded 90% for 10 minutes.
+

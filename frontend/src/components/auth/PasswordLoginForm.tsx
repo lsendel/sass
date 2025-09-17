@@ -8,6 +8,7 @@ import { useAppDispatch } from '../../store/hooks'
 import { setCredentials } from '../../store/slices/authSlice'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import { parseApiError } from '../../utils/apiError'
+import { logger } from '../../utils/logger'
 
 const passwordLoginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -54,7 +55,7 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
       onSuccess?.()
     } catch (err) {
       const parsed = parseApiError(err)
-      console.error('Login failed:', parsed)
+      logger.error('Login failed:', parsed)
       if (parsed.status === 429) {
         onError?.('Too many login attempts. Please try again later.')
         return

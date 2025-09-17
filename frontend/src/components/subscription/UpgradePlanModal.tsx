@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import {
+import { logger } from '../../utils/logger'
   useGetAvailablePlansQuery,
   useCreateSubscriptionMutation,
   useChangeSubscriptionPlanMutation,
@@ -63,7 +64,7 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
       onClose()
     } catch (err) {
       const parsed = parseApiError(err)
-      console.error('Failed to update subscription:', parsed)
+      logger.error('Failed to update subscription:', parsed)
       toast.error(parsed.message || 'Failed to update subscription')
     }
   }

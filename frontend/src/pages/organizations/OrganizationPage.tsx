@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import {
+import { logger } from '../../utils/logger'
   useGetUserOrganizationsQuery,
   useGetOrganizationMembersQuery,
   useInviteUserMutation,
@@ -95,7 +96,7 @@ const OrganizationPage: React.FC = () => {
       refetchMembers()
     } catch (err) {
       const parsed = parseApiError(err)
-      console.error('Failed to invite member:', parsed)
+      logger.error('Failed to invite member:', parsed)
       toast.error(parsed.message || 'Failed to send invitation')
     }
   }
@@ -119,7 +120,7 @@ const OrganizationPage: React.FC = () => {
       refetchMembers()
     } catch (err) {
       const parsed = parseApiError(err)
-      console.error('Failed to remove member:', parsed)
+      logger.error('Failed to remove member:', parsed)
       toast.error(parsed.message || 'Failed to remove member')
     }
   }

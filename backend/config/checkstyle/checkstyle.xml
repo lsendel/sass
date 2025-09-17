@@ -16,8 +16,7 @@
 
     <!-- https://checkstyle.org/config_filters.html#SuppressionFilter -->
     <module name="SuppressionFilter">
-        <property name="file" value="${org.checkstyle.sun.suppressionfilter.config}"
-                  default="checkstyle-suppressions.xml" />
+        <property name="file" value="config/checkstyle/checkstyle-suppressions.xml"/>
         <property name="optional" value="true"/>
     </module>
 

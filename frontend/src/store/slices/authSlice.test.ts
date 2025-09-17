@@ -24,11 +24,10 @@ describe('authSlice', () => {
       createdAt: '2024-01-01T00:00:00Z',
       lastActiveAt: null,
     }
-    const token = 'test-token'
 
-    const actual = authReducer(initialState, setCredentials({ user, token }))
+    const actual = authReducer(initialState, setCredentials({ user }))
     expect(actual.user).toEqual(user)
-    expect(actual.token).toEqual(token)
+    expect(actual.token).toBe(null) // Token is handled via httpOnly cookies now
     expect(actual.isAuthenticated).toBe(true)
     expect(actual.error).toBe(null)
   })

@@ -21,7 +21,7 @@ data:
   LOGGING_LEVEL_COM_PLATFORM: "INFO"
 
   # Actuator configuration
-  ACTUATOR_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
   MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "when-authorized"
 
   # JVM configuration

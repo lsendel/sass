@@ -32,10 +32,10 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User }>
     ) => {
       state.user = action.payload.user
-      state.token = action.payload.token
+      // Token handled via httpOnly cookies, not stored in state
       state.isAuthenticated = true
       state.error = null
     },
@@ -55,8 +55,7 @@ const authSlice = createSlice({
       state.token = null
       state.isAuthenticated = false
       state.error = null
-      // Clear stored auth from localStorage
-      localStorage.removeItem('auth-token')
+      // Token cleared via httpOnly cookie on server
     },
     clearError: state => {
       state.error = null

@@ -36,7 +36,6 @@ const AppContent: React.FC = () => {
       dispatch(
         setCredentials({
           user: sessionData.user,
-          token: localStorage.getItem('auth-token') || '',
         })
       )
     }

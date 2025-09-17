@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import {
+import { logger } from '../../utils/logger'
   useGetCurrentUserQuery,
   useUpdateProfileMutation,
 } from '../../store/api/userApi'
@@ -95,7 +96,7 @@ const SettingsPage: React.FC = () => {
       toast.success('Profile updated successfully')
     } catch (err) {
       const parsed = parseApiError(err)
-      console.error('Failed to update profile:', parsed)
+      logger.error('Failed to update profile:', parsed)
       toast.error(parsed.message || 'Failed to update profile')
     }
   }

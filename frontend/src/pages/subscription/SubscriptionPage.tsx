@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
 import {
+import { logger } from '../../utils/logger'
   useGetOrganizationSubscriptionQuery,
   useGetAvailablePlansQuery,
   useCancelSubscriptionMutation,
@@ -90,7 +91,7 @@ const SubscriptionPage: React.FC = () => {
       toast.success('Subscription scheduled for cancellation')
       refetchSubscription()
     } catch (error) {
-      console.error('Failed to cancel subscription:', error)
+      logger.error('Failed to cancel subscription:', error)
       toast.error('Failed to cancel subscription')
     }
   }
@@ -107,7 +108,7 @@ const SubscriptionPage: React.FC = () => {
       toast.success('Subscription reactivated')
       refetchSubscription()
     } catch (error) {
-      console.error('Failed to reactivate subscription:', error)
+      logger.error('Failed to reactivate subscription:', error)
       toast.error('Failed to reactivate subscription')
     }
   }

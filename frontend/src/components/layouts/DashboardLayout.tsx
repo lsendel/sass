@@ -5,6 +5,7 @@ import { logout, selectCurrentUser } from '../../store/slices/authSlice'
 import type { User } from '../../store/slices/authSlice'
 import { useLogoutMutation } from '../../store/api/authApi'
 import {
+import { logger } from '../../utils/logger'
   HomeIcon,
   BuildingOfficeIcon,
   CreditCardIcon,
@@ -36,7 +37,7 @@ const DashboardLayout: React.FC = () => {
     try {
       await logoutMutation().unwrap()
     } catch (error) {
-      console.error('Logout failed:', error)
+      logger.error('Logout failed:', error)
     } finally {
       dispatch(logout())
     }

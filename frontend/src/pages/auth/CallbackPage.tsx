@@ -10,6 +10,7 @@ import { useHandleCallbackMutation } from '../../store/api/authApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { parseApiError } from '../../utils/apiError'
+import { logger } from '../../utils/logger'
 
 const CallbackPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -48,17 +49,15 @@ const CallbackPage: React.FC = () => {
           state: state || undefined,
         }).unwrap()
 
-        // Store token and set credentials
-        localStorage.setItem('auth-token', result.token)
+        // Set credentials (token handled via httpOnly cookie from server)
         dispatch(
           setCredentials({
             user: result.user,
-            token: result.token,
           })
         )
       } catch (err) {
         const parsed = parseApiError(err)
-        console.error('Callback processing failed:', parsed)
+        logger.error('Callback processing failed:', parsed)
         const message =
           parsed.message || 'Authentication failed. Please try again.'
         setLocalError(message)

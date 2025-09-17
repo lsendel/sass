@@ -77,7 +77,7 @@ dev: ## Start full development environment (recommended)
 	@echo "🔐 Password authentication enabled on backend"
 	@echo ""
 	@echo "Starting backend server..."
-	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew bootRun --args='--spring.profiles.active=test --server.port=$(BACKEND_PORT) --app.auth.password.enabled=true' --console=plain &
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew bootRun --args='--spring.profiles.active=development --server.port=$(BACKEND_PORT) --app.auth.password.enabled=true' --console=plain &
 	@echo "⏳ Waiting for backend to start..."
 	@sleep 10
 	@echo "Starting frontend server..."
@@ -89,7 +89,7 @@ dev: ## Start full development environment (recommended)
 dev-backend: ## Start only backend server
 	@echo "🔧 Starting Spring Boot backend server on port $(BACKEND_PORT)..."
 	@echo "🔐 Password authentication enabled"
-	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew bootRun --args='--spring.profiles.active=test --server.port=$(BACKEND_PORT) --app.auth.password.enabled=true' --console=plain
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew bootRun --args='--spring.profiles.active=development --server.port=$(BACKEND_PORT) --app.auth.password.enabled=true' --console=plain
 
 dev-frontend: ## Start only frontend server
 	@echo "📱 Starting React frontend server on port $(FRONTEND_PORT)..."
@@ -299,4 +299,3 @@ git-clean-lock: ## Clean git lock files
 
 git-clean-lock-force: ## Force clean git lock files
 	@bash scripts/git-clean-lock.sh --force
-

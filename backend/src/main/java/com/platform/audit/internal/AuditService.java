@@ -135,6 +135,7 @@ public class AuditService {
   }
 
   @Async
+  /** Logs a user logout event. Not intended for extension. */
   public CompletableFuture<Void> logUserLogout(
       final UUID userId, final String ipAddress, final String userAgent) {
     return logEvent(
@@ -142,6 +143,7 @@ public class AuditService {
   }
 
   @Async
+  /** Logs a resource access event (read-only). Not intended for extension. */
   public CompletableFuture<Void> logResourceAccess(
       String resourceType, String resourceId, String action, String ipAddress, String userAgent) {
     return logEvent(
@@ -157,6 +159,7 @@ public class AuditService {
   }
 
   @Async
+  /** Logs a data modification event with before/after snapshots. Not intended for extension. */
   public CompletableFuture<Void> logDataModification(
       String resourceType,
       String resourceId,
@@ -178,6 +181,7 @@ public class AuditService {
   }
 
   @Async
+  /** Logs a security-related event. Not intended for extension. */
   public CompletableFuture<Void> logSecurityEvent(
       final String eventType,
       final String description,
@@ -197,6 +201,7 @@ public class AuditService {
   }
 
   @Async
+  /** Logs a payment-related event. Not intended for extension. */
   public CompletableFuture<Void> logPaymentEvent(
       final String eventType,
       final String paymentId,
@@ -209,6 +214,7 @@ public class AuditService {
   }
 
   // Query methods
+  /** Retrieves paged organization audit events ordered by time. */
   @Transactional(readOnly = true)
   public Page<AuditEvent> getOrganizationAuditEvents(
       final UUID organizationId, final int page, final int size) {
@@ -217,6 +223,7 @@ public class AuditService {
     return auditEventRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId, pageable);
   }
 
+  /** Retrieves paged user audit events ordered by time. */
   @Transactional(readOnly = true)
   public Page<AuditEvent> getUserAuditEvents(
       final UUID organizationId, final UUID userId, final int page, final int size) {
@@ -226,6 +233,7 @@ public class AuditService {
         organizationId, userId, pageable);
   }
 
+  /** Retrieves events by event type. */
   @Transactional(readOnly = true)
   public Page<AuditEvent> getAuditEventsByType(
       final UUID organizationId, final String eventType, final int page, final int size) {
@@ -235,6 +243,7 @@ public class AuditService {
         organizationId, eventType, pageable);
   }
 
+  /** Retrieves events within a date range. */
   @Transactional(readOnly = true)
   public Page<AuditEvent> getAuditEventsByDateRange(
       final UUID organizationId,
@@ -248,6 +257,7 @@ public class AuditService {
         organizationId, startDate, endDate, pageable);
   }
 
+  /** Retrieves resource audit trail for a specific resource. */
   @Transactional(readOnly = true)
   public List<AuditEvent> getResourceAuditTrail(
       final UUID organizationId, final String resourceType, final String resourceId) {
@@ -256,6 +266,7 @@ public class AuditService {
         organizationId, resourceType, resourceId);
   }
 
+  /** Searches audit events using a free-text term. */
   @Transactional(readOnly = true)
   public Page<AuditEvent> searchAuditEvents(
       final UUID organizationId, final String searchTerm, final int page, final int size) {
@@ -264,12 +275,19 @@ public class AuditService {
     return auditEventRepository.searchAuditEvents(organizationId, searchTerm, pageable);
   }
 
+  /**
+   * Returns distinct event types available for an organization. Not intended for overriding; use
+   * repository queries to extend.
+   */
   @Transactional(readOnly = true)
   public List<String> getAvailableEventTypes(final UUID organizationId) {
     validateOrganizationAccess(organizationId);
     return auditEventRepository.findDistinctActionsByOrganizationId(organizationId);
   }
 
+  /**
+   * Returns distinct resource types available for an organization. Not intended for overriding.
+   */
   @Transactional(readOnly = true)
   public List<String> getAvailableResourceTypes(final UUID organizationId) {
     validateOrganizationAccess(organizationId);
@@ -277,12 +295,14 @@ public class AuditService {
   }
 
   // Security analysis methods
+  /** Retrieves security events since a given timestamp for an organization. */
   @Transactional(readOnly = true)
   public List<AuditEvent> getSecurityEvents(final UUID organizationId, final Instant since) {
     validateOrganizationAccess(organizationId);
     return auditEventRepository.findSecurityEventsAfter(organizationId, since);
   }
 
+  /** Returns suspicious IP addresses with failed events count since a timestamp. */
   @Transactional(readOnly = true)
   public List<Object[]> getSuspiciousIpAddresses(
       final UUID organizationId, final Instant since, final long failureThreshold) {
@@ -290,6 +310,7 @@ public class AuditService {
     return auditEventRepository.findSuspiciousIpAddresses(organizationId, since, failureThreshold);
   }
 
+  /** Aggregates audit statistics for an organization. */
   @Transactional(readOnly = true)
   public AuditStatistics getAuditStatistics(final UUID organizationId) {
     validateOrganizationAccess(organizationId);
@@ -326,11 +347,11 @@ public class AuditService {
   }
 
   // GDPR compliance methods
-  @Transactional
   /**
    * Deletes audit events older than the configured retention period. Not intended for overriding;
    * behavior relies on service invariants.
    */
+  @Transactional
   public int deleteExpiredAuditEvents() {
     Instant cutoffDate = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
     int deletedCount = auditEventRepository.deleteEventsOlderThan(cutoffDate);
@@ -338,11 +359,11 @@ public class AuditService {
     return deletedCount;
   }
 
-  @Transactional
   /**
    * Deletes all audit events for the given organization. Not intended for overriding; use
    * repository extension points instead.
    */
+  @Transactional
   public int deleteOrganizationAuditEvents(final UUID organizationId) {
     validateOrganizationAccess(organizationId);
     int deletedCount = auditEventRepository.deleteByOrganizationId(organizationId);
@@ -350,60 +371,60 @@ public class AuditService {
     return deletedCount;
   }
 
-  @Transactional
   /**
    * Deletes all audit events for the given user. Not intended for overriding; use repository
    * extension points instead.
    */
+  @Transactional
   public int deleteUserAuditEvents(final UUID userId) {
     int deletedCount = auditEventRepository.deleteByActorId(userId);
     logger.info("Deleted {} audit events for user: {}", deletedCount, userId);
     return deletedCount;
   }
 
-  @Transactional
   /**
    * Redacts PII for the given user across all audit data. Not intended for overriding; behavior
    * must remain consistent.
    */
+  @Transactional
   public int redactUserAuditData(final UUID userId) {
     int redactedCount = auditEventRepository.redactUserData(userId, REDACTED_PLACEHOLDER);
     logger.info("Redacted audit data for {} events for user: {}", redactedCount, userId);
     return redactedCount;
   }
 
-  // Helper methods
-  private String redactPii(final String data) {
-    if (data == null || data.trim().isEmpty()) {
-      return data;
+    // Helper methods
+    private String redactPii(final String data) {
+        if (data == null || data.trim().isEmpty()) {
+            return data;
+        }
+
+        String redacted = data;
+        redacted = EMAIL_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
+        redacted = PHONE_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
+        redacted = SSN_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
+        redacted = CREDIT_CARD_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
+
+        return redacted;
     }
 
-    String redacted = data;
-    redacted = EMAIL_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
-    redacted = PHONE_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
-    redacted = SSN_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
-    redacted = CREDIT_CARD_PATTERN.matcher(redacted).replaceAll(REDACTED_PLACEHOLDER);
+    private void validateOrganizationAccess(final UUID organizationId) {
+        UUID currentUserId = TenantContext.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new SecurityException("Authentication required");
+        }
 
-    return redacted;
-  }
-
-  private void validateOrganizationAccess(final UUID organizationId) {
-    UUID currentUserId = TenantContext.getCurrentUserId();
-    if (currentUserId == null) {
-      throw new SecurityException("Authentication required");
+        UUID currentOrganizationId = TenantContext.getCurrentOrganizationId();
+        if (currentOrganizationId != null && !currentOrganizationId.equals(organizationId)) {
+            throw new SecurityException("Access denied - organization mismatch");
+        }
     }
 
-    UUID currentOrganizationId = TenantContext.getCurrentOrganizationId();
-    if (currentOrganizationId != null && !currentOrganizationId.equals(organizationId)) {
-      throw new SecurityException("Access denied - organization mismatch");
-    }
-  }
-
-  public record AuditStatistics(
-      long totalEvents,
-      long recentEvents,
-      long weeklyEvents,
-      long dailyEvents,
-      int uniqueEventTypes,
-      int uniqueResourceTypes) {}
+    public record AuditStatistics(
+            long totalEvents,
+            long recentEvents,
+            long weeklyEvents,
+            long dailyEvents,
+            int uniqueEventTypes,
+            int uniqueResourceTypes) {}
 }

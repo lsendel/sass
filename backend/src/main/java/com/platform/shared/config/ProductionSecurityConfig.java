@@ -144,19 +144,23 @@ public class ProductionSecurityConfig {
                     .requestMatchers("/api/v1/webhooks/stripe")
                     .permitAll()
 
-                    // Health checks (no sensitive data)
-                    .requestMatchers("/actuator/health/liveness")
-                    .permitAll()
-                    .requestMatchers("/actuator/health/readiness")
-                    .permitAll()
+                // Health checks (no sensitive data)
+                .requestMatchers("/actuator/health/liveness")
+                .permitAll()
+                .requestMatchers("/actuator/health/readiness")
+                .permitAll()
+
+                // Metrics endpoint for Prometheus Operator scraping
+                .requestMatchers("/actuator/prometheus")
+                .permitAll()
 
                     // Protected API endpoints
                     .requestMatchers("/api/v1/**")
                     .authenticated()
 
-                    // Admin endpoints (require ADMIN role)
-                    .requestMatchers("/actuator/**")
-                    .hasRole("ADMIN")
+                // Admin endpoints (require ADMIN role)
+                .requestMatchers("/actuator/**")
+                .hasRole("ADMIN")
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
 

@@ -28,6 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.platform.auth.internal.OpaqueTokenStore;
 import com.platform.shared.security.CustomOAuth2UserService;
 import com.platform.shared.security.OAuth2AuthenticationSuccessHandler;
+import com.platform.shared.security.SecurityHeadersFilter;
 import com.platform.shared.security.TenantContextFilter;
 
 /**
@@ -161,6 +162,7 @@ public class SecurityConfig {
                     .successHandler(successHandler))
 
         // Add custom filters
+        .addFilterBefore(securityHeadersFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(tenantContextFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterAfter(
             opaqueTokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
@@ -215,5 +217,10 @@ public class SecurityConfig {
   @Bean
   public OpaqueTokenAuthenticationFilter opaqueTokenAuthenticationFilter() {
     return new OpaqueTokenAuthenticationFilter(tokenStore);
+  }
+
+  @Bean
+  public SecurityHeadersFilter securityHeadersFilter() {
+    return new SecurityHeadersFilter();
   }
 }

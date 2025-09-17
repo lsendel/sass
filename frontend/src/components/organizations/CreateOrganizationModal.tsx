@@ -6,6 +6,7 @@ import { useCreateOrganizationMutation } from '../../store/api/organizationApi'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { parseApiError } from '../../utils/apiError'
 import { toast } from 'react-hot-toast'
+import { logger } from '../../utils/logger'
 
 const createOrganizationSchema = z.object({
   name: z
@@ -84,7 +85,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
       onClose()
     } catch (err) {
       const parsed = parseApiError(err)
-      console.error('Failed to create organization:', parsed)
+      logger.error('Failed to create organization:', parsed)
       toast.error(parsed.message || 'Failed to create organization')
     }
   }

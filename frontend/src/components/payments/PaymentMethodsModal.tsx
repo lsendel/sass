@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+import { logger } from '../../utils/logger'
   useGetOrganizationPaymentMethodsQuery,
   useSetDefaultPaymentMethodMutation,
   useDetachPaymentMethodMutation,
@@ -46,7 +47,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
       toast.success('Default payment method updated')
       refetch()
     } catch (error) {
-      console.error('Failed to set default payment method:', error)
+      logger.error('Failed to set default payment method:', error)
       toast.error('Failed to update default payment method')
     }
   }
@@ -65,7 +66,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
       toast.success('Payment method removed')
       refetch()
     } catch (error) {
-      console.error('Failed to remove payment method:', error)
+      logger.error('Failed to remove payment method:', error)
       toast.error('Failed to remove payment method')
     }
   }
