@@ -6,9 +6,13 @@ import org.springframework.modulith.Modulith;
 
 @SpringBootApplication
 @Modulith(sharedModules = "shared")
-public class PaymentPlatformApplication {
+public final class PaymentPlatformApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(PaymentPlatformApplication.class, args);
-    }
+  private PaymentPlatformApplication() {
+    // no-op: prevent instantiation
+  }
+
+  public static void main(final String[] args) {
+    SpringApplication.run(PaymentPlatformApplication.class, args);
+  }
 }

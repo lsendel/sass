@@ -85,9 +85,9 @@ spring:
             user-name-attribute: sub
 
 server:
-  port: 8080
+  port: 8082
   servlet:
-    context-path: /api/v1
+    context-path: /
 
 management:
   endpoints:
@@ -110,6 +110,44 @@ logging:
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
+  # Password Authentication Configuration
+  auth:
+    password:
+      enabled: ${ENABLE_PASSWORD_AUTH:false}
+      policy:
+        min-length: ${PASSWORD_MIN_LENGTH:12}
+        require-uppercase: ${PASSWORD_REQUIRE_UPPERCASE:true}
+        require-lowercase: ${PASSWORD_REQUIRE_LOWERCASE:true}
+        require-numbers: ${PASSWORD_REQUIRE_NUMBERS:true}
+        require-symbols: ${PASSWORD_REQUIRE_SYMBOLS:true}
+        max-age-days: ${PASSWORD_MAX_AGE_DAYS:0} # 0 = no expiration
+        prevent-reuse-count: ${PASSWORD_PREVENT_REUSE:5}
+      lockout:
+        max-attempts: ${PASSWORD_MAX_ATTEMPTS:5}
+        lockout-durations: # Exponential backoff in minutes
+          - 1
+          - 2
+          - 4
+          - 8
+          - 16
+          - 32
+        max-lockout-duration: ${PASSWORD_MAX_LOCKOUT_MINUTES:1440} # 24 hours
+      tokens:
+        reset-expiry-hours: ${PASSWORD_RESET_EXPIRY_HOURS:24}
+        verification-expiry-hours: ${EMAIL_VERIFICATION_EXPIRY_HOURS:72}
+
+  # Email Configuration for Password Reset/Verification
+  email:
+    smtp:
+      host: ${SMTP_HOST:}
+      port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME:}
+      password: ${SMTP_PASSWORD:}
+      auth: ${SMTP_AUTH:true}
+      starttls: ${SMTP_STARTTLS:true}
+    from-address: ${EMAIL_FROM_ADDRESS:noreply@platform.com}
+    from-name: ${EMAIL_FROM_NAME:Payment Platform}
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY:}

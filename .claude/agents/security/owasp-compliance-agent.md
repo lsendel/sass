@@ -22,7 +22,7 @@ context_files:
   - "src/main/java/**/*.java"
   - "src/test/java/**/*SecurityTest.java"
   - "frontend/src/**/*.tsx"
-  - "security/"
+  - "security/**"
 ---
 
 # OWASP Compliance Agent

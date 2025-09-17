@@ -22,7 +22,7 @@ context_files:
   - "src/main/java/com/platform/payment/**/*.java"
   - "src/test/java/**/*SecurityTest.java"
   - "frontend/src/**/*.tsx"
-  - "compliance/"
+  - "compliance/**"
 ---
 
 # PCI DSS Compliance Agent

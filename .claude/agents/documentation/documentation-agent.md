@@ -24,8 +24,8 @@ tools:
 context_files:
   - ".claude/context/project-constitution.md"
   - ".claude/context/documentation-standards.md"
-  - "README.md"
-  - "CHANGELOG.md"
+  - "README.*"
+  - "CHANGELOG.*"
   - "docs/**/*.md"
   - "src/**/*.java"
   - "src/**/*.py"

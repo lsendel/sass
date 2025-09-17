@@ -53,7 +53,7 @@ const uiSlice = createSlice({
       // Persist theme to localStorage
       localStorage.setItem('theme', action.payload)
     },
-    toggleSidebar: (state) => {
+    toggleSidebar: state => {
       state.sidebarOpen = !state.sidebarOpen
     },
     setSidebarOpen: (state, action: PayloadAction<boolean>) => {
@@ -62,10 +62,17 @@ const uiSlice = createSlice({
     setGlobalLoading: (state, action: PayloadAction<boolean>) => {
       state.loading.global = action.payload
     },
-    setComponentLoading: (state, action: PayloadAction<{ component: string; loading: boolean }>) => {
-      state.loading.components[action.payload.component] = action.payload.loading
+    setComponentLoading: (
+      state,
+      action: PayloadAction<{ component: string; loading: boolean }>
+    ) => {
+      state.loading.components[action.payload.component] =
+        action.payload.loading
     },
-    addNotification: (state, action: PayloadAction<Omit<Notification, 'id'>>) => {
+    addNotification: (
+      state,
+      action: PayloadAction<Omit<Notification, 'id'>>
+    ) => {
       const notification: Notification = {
         ...action.payload,
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -73,9 +80,11 @@ const uiSlice = createSlice({
       state.notifications.push(notification)
     },
     removeNotification: (state, action: PayloadAction<string>) => {
-      state.notifications = state.notifications.filter(n => n.id !== action.payload)
+      state.notifications = state.notifications.filter(
+        n => n.id !== action.payload
+      )
     },
-    clearNotifications: (state) => {
+    clearNotifications: state => {
       state.notifications = []
     },
     openModal: (state, action: PayloadAction<keyof UiState['modals']>) => {
@@ -84,7 +93,7 @@ const uiSlice = createSlice({
     closeModal: (state, action: PayloadAction<keyof UiState['modals']>) => {
       state.modals[action.payload] = false
     },
-    closeAllModals: (state) => {
+    closeAllModals: state => {
       Object.keys(state.modals).forEach(key => {
         state.modals[key as keyof UiState['modals']] = false
       })
@@ -110,9 +119,13 @@ export default uiSlice.reducer
 
 // Selectors
 export const selectTheme = (state: { ui: UiState }) => state.ui.theme
-export const selectSidebarOpen = (state: { ui: UiState }) => state.ui.sidebarOpen
-export const selectGlobalLoading = (state: { ui: UiState }) => state.ui.loading.global
-export const selectComponentLoading = (component: string) =>
-  (state: { ui: UiState }) => state.ui.loading.components[component] || false
-export const selectNotifications = (state: { ui: UiState }) => state.ui.notifications
+export const selectSidebarOpen = (state: { ui: UiState }) =>
+  state.ui.sidebarOpen
+export const selectGlobalLoading = (state: { ui: UiState }) =>
+  state.ui.loading.global
+export const selectComponentLoading =
+  (component: string) => (state: { ui: UiState }) =>
+    state.ui.loading.components[component] || false
+export const selectNotifications = (state: { ui: UiState }) =>
+  state.ui.notifications
 export const selectModals = (state: { ui: UiState }) => state.ui.modals

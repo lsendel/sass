@@ -22,7 +22,7 @@ context_files:
   - ".claude/context/technical-debt-registry.md"
   - "src/main/java/**/*.java"
   - "src/test/java/**/*.java"
-  - "build.gradle"
+  - "build.gradle*"
 ---
 
 # Refactoring Agent

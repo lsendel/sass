@@ -21,7 +21,7 @@ context_files:
   - ".claude/context/frontend-guidelines.md"
   - "frontend/src/**/*.ts"
   - "frontend/src/**/*.tsx"
-  - "frontend/tsconfig.json"
+  - "frontend/**/tsconfig.json"
   - "frontend/src/types/**/*.ts"
 ---
 

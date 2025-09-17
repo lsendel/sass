@@ -30,7 +30,10 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ user: User; token: string }>) => {
+    setCredentials: (
+      state,
+      action: PayloadAction<{ user: User; token: string }>
+    ) => {
       state.user = action.payload.user
       state.token = action.payload.token
       state.isAuthenticated = true
@@ -47,7 +50,7 @@ const authSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload
     },
-    logout: (state) => {
+    logout: state => {
       state.user = null
       state.token = null
       state.isAuthenticated = false
@@ -55,7 +58,7 @@ const authSlice = createSlice({
       // Clear stored auth from localStorage
       localStorage.removeItem('auth-token')
     },
-    clearError: (state) => {
+    clearError: state => {
       state.error = null
     },
   },
@@ -67,7 +70,7 @@ export const {
   setLoading,
   setError,
   logout,
-  clearError
+  clearError,
 } = authSlice.actions
 
 export default authSlice.reducer
@@ -75,6 +78,8 @@ export default authSlice.reducer
 // Selectors
 export const selectCurrentUser = (state: { auth: AuthState }) => state.auth.user
 export const selectToken = (state: { auth: AuthState }) => state.auth.token
-export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated
-export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.isLoading
+export const selectIsAuthenticated = (state: { auth: AuthState }) =>
+  state.auth.isAuthenticated
+export const selectAuthLoading = (state: { auth: AuthState }) =>
+  state.auth.isLoading
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error

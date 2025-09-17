@@ -1,137 +1,35 @@
-# Testing Workflow Multi-Agent Orchestration
-name: "Testing Workflow"
-description: "Comprehensive multi-agent testing workflow with constitutional compliance"
-version: "1.0.0"
-
-# Constitutional compliance and testing authority
-constitutional_compliance: true
-testing_authority: "TDD Compliance Agent + Contract Testing Agent"
-
-# Agent definitions for testing workflow
+name: Testing Workflow
+description: Enforces test hierarchy contract → integration → e2e → unit.
 agents:
-  - "testing/contract-testing-agent.md"
-  - "testing/integration-testing-agent.md"
-  - "testing/playwright-e2e-agent.md"
-  - "testing/tdd-compliance-agent.md"
-  - "testing/security-testing-agent.md"
-  - "development/constitutional-enforcement-agent.md"
-
-# Workflow execution steps
-steps:
-  - name: "Constitutional Test Planning"
-    order: 1
-    agent: "development/constitutional-enforcement-agent.md"
-    tasks:
-      - "Validate constitutional compliance requirements for tests"
-      - "Ensure TDD methodology adherence"
-      - "Check test hierarchy compliance"
-    validation:
-      - "Constitutional compliance: 100%"
-      - "TDD requirements: VERIFIED"
-    outputs:
-      - "constitutional_test_requirements"
-
-  - name: "Contract Test Development"
-    order: 2
-    agent: "testing/contract-testing-agent.md"
-    dependencies: ["Constitutional Test Planning"]
-    tasks:
-      - "Design OpenAPI contract tests"
-      - "Validate API schema compliance"
-      - "Create consumer-driven contract tests"
-    validation:
-      - "Contract tests: PASSING"
-      - "API schemas: VALIDATED"
-    outputs:
-      - "contract_test_suite"
-
-  - name: "Integration Test Implementation"
-    order: 3
-    agent: "testing/integration-testing-agent.md"
-    dependencies: ["Contract Test Development"]
-    tasks:
-      - "Create TestContainers-based integration tests"
-      - "Test cross-module communication"
-      - "Validate event-driven interactions"
-    coordination: "parallel"
-    validation:
-      - "Integration tests: PASSING"
-      - "Real dependencies: TESTED"
-    outputs:
-      - "integration_test_suite"
-
-  - name: "End-to-End Test Automation"
-    order: 4
-    agents:
-      - "testing/playwright-e2e-agent.md"
-      - "testing/security-testing-agent.md"
-    dependencies: ["Integration Test Implementation"]
-    coordination: "parallel"
-    tasks:
-      - "Implement complete user journey tests"
-      - "Validate accessibility compliance"
-      - "Execute security penetration tests"
-    validation:
-      - "E2E tests: PASSING"
-      - "User journeys: VALIDATED"
-      - "Security tests: PASSED"
-    outputs:
-      - "e2e_test_suite"
-      - "security_test_report"
-
-  - name: "Unit Test Validation"
-    order: 5
-    agent: "testing/tdd-compliance-agent.md"
-    dependencies: ["End-to-End Test Automation"]
-    tasks:
-      - "Validate unit test coverage"
-      - "Ensure TDD compliance"
-      - "Generate test quality report"
-    validation:
-      - "Unit test coverage: > 80%"
-      - "TDD compliance: COMPLETE"
-    outputs:
-      - "test_coverage_report"
-      - "tdd_compliance_validation"
-
-# Coordination patterns
+  - "contract testing"
+  - "integration testing"
+  - "playwright e2e"
+  - "tdd compliance"
 coordination:
-  test_hierarchy: "Contract → Integration → E2E → Unit"
-  parallel_execution: "E2E and Security tests run in parallel"
-  constitutional_gates: "All phases require constitutional validation"
-
-# Error handling and rollback
-error_handling:
-  test_failure:
-    severity: "HIGH"
-    action: "STOP_AND_ANALYZE"
-    authority: "TDD Compliance Agent"
-    rollback: "Phase rollback to last passing state"
-
-  constitutional_violation:
-    severity: "CRITICAL"
-    action: "IMMEDIATE_STOP"
-    authority: "Constitutional Enforcement Agent"
-    rollback: "Full workflow rollback"
-
-# Performance requirements
-performance_requirements:
-  contract_test_execution: "< 30 seconds"
-  integration_test_execution: "< 5 minutes"
-  e2e_test_execution: "< 15 minutes"
-  total_test_suite: "< 30 minutes"
-
-# Monitoring and observability
+  pattern: sequential
+steps:
+  - name: contract
+    run: 'Task: "contract tests"'
+    mode: sequential
+    note: constitutional compliance check for contracts
+  - name: integration
+    run: 'Task: "integration tests"'
+    mode: sequential
+  - name: e2e
+    run: 'Task: "e2e tests"'
+    mode: parallel
+  - name: unit
+    run: 'Task: "unit tests and compliance"'
+    mode: sequential
+    monitoring:
+      - logging
+      - metrics
+    error_handling:
+      - error
+      - retry
 monitoring:
-  test_execution_tracking: true
-  coverage_metrics: true
-  performance_monitoring: true
-  failure_analysis: true
-
-# Success criteria
-success_criteria:
-  - "All test types: PASSING"
-  - "Constitutional compliance: 100%"
-  - "Test coverage: > 80%"
-  - "Performance targets: MET"
-  - "Security validation: PASSED"
+  - monitoring
+  - logging
+  - metrics
+performance:
+  timeout: 15

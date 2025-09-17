@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { logout, selectCurrentUser } from '../../store/slices/authSlice'
+import type { User } from '../../store/slices/authSlice'
 import { useLogoutMutation } from '../../store/api/authApi'
 import {
   HomeIcon,
@@ -44,11 +45,16 @@ const DashboardLayout: React.FC = () => {
   return (
     <div className="h-screen flex bg-gray-100">
       {/* Mobile sidebar */}
-      <div className={clsx(
-        'fixed inset-0 flex z-40 md:hidden',
-        sidebarOpen ? 'block' : 'hidden'
-      )}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
+      <div
+        className={clsx(
+          'fixed inset-0 flex z-40 md:hidden',
+          sidebarOpen ? 'block' : 'hidden'
+        )}
+      >
+        <div
+          className="fixed inset-0 bg-gray-600 bg-opacity-75"
+          onClick={() => setSidebarOpen(false)}
+        />
         <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
           <div className="absolute top-0 right-0 -mr-12 pt-2">
             <button
@@ -59,14 +65,22 @@ const DashboardLayout: React.FC = () => {
               <XMarkIcon className="h-6 w-6 text-white" />
             </button>
           </div>
-          <SidebarContent onLogout={handleLogout} currentPath={location.pathname} user={user} />
+          <SidebarContent
+            onLogout={handleLogout}
+            currentPath={location.pathname}
+            user={user}
+          />
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 bg-white border-r border-gray-200">
-          <SidebarContent onLogout={handleLogout} currentPath={location.pathname} user={user} />
+          <SidebarContent
+            onLogout={handleLogout}
+            currentPath={location.pathname}
+            user={user}
+          />
         </div>
       </div>
 
@@ -83,7 +97,9 @@ const DashboardLayout: React.FC = () => {
               <Bars3Icon className="h-6 w-6" />
             </button>
             <div className="flex-1 px-4 flex justify-between items-center">
-              <h1 className="text-lg font-semibold text-gray-900">Payment Platform</h1>
+              <h1 className="text-lg font-semibold text-gray-900">
+                Payment Platform
+              </h1>
               {user && (
                 <div className="flex items-center space-x-3">
                   <span className="text-sm text-gray-700">{user.name}</span>
@@ -110,10 +126,14 @@ const DashboardLayout: React.FC = () => {
 type SidebarContentProps = {
   onLogout: () => void
   currentPath: string
-  user: any
+  user: User | null
 }
 
-const SidebarContent: React.FC<SidebarContentProps> = ({ onLogout, currentPath, user }) => {
+const SidebarContent: React.FC<SidebarContentProps> = ({
+  onLogout,
+  currentPath,
+  user,
+}) => {
   return (
     <>
       {/* Logo */}
@@ -122,15 +142,18 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onLogout, currentPath, 
           <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
             <span className="text-sm font-bold text-white">P</span>
           </div>
-          <span className="ml-3 text-lg font-semibold text-gray-900">Payment Platform</span>
+          <span className="ml-3 text-lg font-semibold text-gray-900">
+            Payment Platform
+          </span>
         </div>
       </div>
 
       {/* Navigation */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         <nav className="flex-1 px-2 py-4 space-y-1">
-          {navigation.map((item) => {
-            const isActive = currentPath === item.href ||
+          {navigation.map(item => {
+            const isActive =
+              currentPath === item.href ||
               (item.href !== '/dashboard' && currentPath.startsWith(item.href))
 
             return (
@@ -146,7 +169,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onLogout, currentPath, 
               >
                 <item.icon
                   className={clsx(
-                    isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500',
+                    isActive
+                      ? 'text-primary-500'
+                      : 'text-gray-400 group-hover:text-gray-500',
                     'mr-3 flex-shrink-0 h-5 w-5'
                   )}
                 />

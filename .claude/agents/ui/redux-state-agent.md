@@ -22,7 +22,7 @@ context_files:
   - "frontend/src/store/**/*.ts"
   - "frontend/src/features/**/*Slice.ts"
   - "frontend/src/features/**/api/*.ts"
-  - "frontend/package.json"
+  - "frontend/*"
 ---
 
 # Redux State Agent

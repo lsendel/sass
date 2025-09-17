@@ -1,206 +1,230 @@
 package com.platform.user.internal;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Organization entity for multi-tenant isolation and team management.
- */
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
+
+/** Organization entity for multi-tenant isolation and team management. */
 @Entity
-@Table(name = "organizations", indexes = {
-    @Index(name = "idx_organizations_slug", columnList = "slug", unique = true),
-    @Index(name = "idx_organizations_owner", columnList = "owner_id"),
-    @Index(name = "idx_organizations_deleted_at", columnList = "deleted_at")
-})
+@Table(
+    name = "organizations",
+    indexes = {
+      @Index(name = "idx_organizations_slug", columnList = "slug", unique = true),
+      @Index(name = "idx_organizations_owner", columnList = "owner_id"),
+      @Index(name = "idx_organizations_deleted_at", columnList = "deleted_at")
+    })
 public class Organization {
 
-    @Id
-    @UuidGenerator
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+  @Id
+  @UuidGenerator
+  @Column(name = "id", updatable = false, nullable = false)
+  private UUID id;
 
-    @NotBlank
-    @Size(max = 255)
-    @Column(name = "name", nullable = false)
-    private String name;
+  @NotBlank
+  @Size(max = 255)
+  @Column(name = "name", nullable = false)
+  private String name;
 
-    @NotBlank
-    @Size(max = 100)
-    @Pattern(regexp = "^[a-z0-9-]+$", message = "Slug must contain only lowercase letters, numbers, and hyphens")
-    @Column(name = "slug", nullable = false, unique = true, length = 100)
-    private String slug;
+  @NotBlank
+  @Size(max = 100)
+  @Pattern(
+      regexp = "^[a-z0-9-]+$",
+      message = "Slug must contain only lowercase letters, numbers, and hyphens")
+  @Column(name = "slug", nullable = false, unique = true, length = 100)
+  private String slug;
 
-    @Column(name = "owner_id")
-    private UUID ownerId;
+  @Column(name = "owner_id")
+  private UUID ownerId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private Status status = Status.ACTIVE;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false)
+  private Status status = Status.ACTIVE;
 
-    @Column(name = "settings")
-    @Convert(converter = MapToJsonConverter.class)
-    private Map<String, Object> settings = Map.of();
+  @Column(name = "settings")
+  @Convert(converter = MapToJsonConverter.class)
+  private Map<String, Object> settings = Map.of();
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @CreationTimestamp
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    @Column(name = "deleted_at")
-    private Instant deletedAt;
+  @Column(name = "deleted_at")
+  private Instant deletedAt;
 
-    @Version
-    private Long version;
+  @Version private Long version;
 
-    // Constructors
-    protected Organization() {
-        // JPA constructor
+  // Constructors
+  protected Organization() {
+    // JPA constructor
+  }
+
+  public Organization(String name, String slug, UUID ownerId) {
+    this.name = name;
+    this.slug = validateAndNormalizeSlug(slug);
+    this.ownerId = ownerId;
+  }
+
+  // Convenience constructor for testing (no owner required initially)
+  public Organization(String name, String slug, String description) {
+    this.name = name;
+    this.slug = validateAndNormalizeSlug(slug);
+    // Description can be stored in settings
+    if (description != null) {
+      this.settings = Map.of("description", description);
+    }
+  }
+
+  // Business methods
+  public boolean isDeleted() {
+    return deletedAt != null;
+  }
+
+  public void markAsDeleted() {
+    this.deletedAt = Instant.now();
+  }
+
+  public void updateDetails(String name, Map<String, Object> settings) {
+    this.name = name;
+    this.settings = settings != null ? Map.copyOf(settings) : Map.of();
+  }
+
+  public void updateSettings(Map<String, Object> settings) {
+    this.settings = settings != null ? Map.copyOf(settings) : Map.of();
+  }
+
+  public void changeOwner(UUID newOwnerId) {
+    this.ownerId = newOwnerId;
+  }
+
+  private String validateAndNormalizeSlug(String slug) {
+    if (slug == null || slug.trim().isEmpty()) {
+      throw new IllegalArgumentException("Organization slug cannot be null or empty");
     }
 
-    public Organization(String name, String slug, UUID ownerId) {
-        this.name = name;
-        this.slug = validateAndNormalizeSlug(slug);
-        this.ownerId = ownerId;
+    String normalized = slug.trim().toLowerCase();
+    if (!normalized.matches("^[a-z0-9-]+$")) {
+      throw new IllegalArgumentException(
+          "Slug must contain only lowercase letters, numbers, and hyphens");
     }
 
-    // Business methods
-    public boolean isDeleted() {
-        return deletedAt != null;
+    if (normalized.length() > 100) {
+      throw new IllegalArgumentException("Slug cannot be longer than 100 characters");
     }
 
-    public void markAsDeleted() {
-        this.deletedAt = Instant.now();
-    }
+    return normalized;
+  }
 
-    public void updateDetails(String name, Map<String, Object> settings) {
-        this.name = name;
-        this.settings = settings != null ? Map.copyOf(settings) : Map.of();
-    }
+  // Settings helper methods
+  @SuppressWarnings("unchecked")
+  public <T> T getSetting(String key, T defaultValue) {
+    return (T) settings.getOrDefault(key, defaultValue);
+  }
 
-    public void updateSettings(Map<String, Object> settings) {
-        this.settings = settings != null ? Map.copyOf(settings) : Map.of();
-    }
+  public void setSetting(String key, Object value) {
+    var updatedSettings = new java.util.HashMap<>(settings);
+    updatedSettings.put(key, value);
+    this.settings = Map.copyOf(updatedSettings);
+  }
 
-    public void changeOwner(UUID newOwnerId) {
-        this.ownerId = newOwnerId;
-    }
+  // Getters
+  public UUID getId() {
+    return id;
+  }
 
-    private String validateAndNormalizeSlug(String slug) {
-        if (slug == null || slug.trim().isEmpty()) {
-            throw new IllegalArgumentException("Organization slug cannot be null or empty");
-        }
+  public String getName() {
+    return name;
+  }
 
-        String normalized = slug.trim().toLowerCase();
-        if (!normalized.matches("^[a-z0-9-]+$")) {
-            throw new IllegalArgumentException("Slug must contain only lowercase letters, numbers, and hyphens");
-        }
+  public String getSlug() {
+    return slug;
+  }
 
-        if (normalized.length() > 100) {
-            throw new IllegalArgumentException("Slug cannot be longer than 100 characters");
-        }
+  public UUID getOwnerId() {
+    return ownerId;
+  }
 
-        return normalized;
-    }
+  public Status getStatus() {
+    return status;
+  }
 
-    // Settings helper methods
-    @SuppressWarnings("unchecked")
-    public <T> T getSetting(String key, T defaultValue) {
-        return (T) settings.getOrDefault(key, defaultValue);
-    }
+  public void setStatus(Status status) {
+    this.status = status;
+  }
 
-    public void setSetting(String key, Object value) {
-        var updatedSettings = new java.util.HashMap<>(settings);
-        updatedSettings.put(key, value);
-        this.settings = Map.copyOf(updatedSettings);
-    }
+  public Map<String, Object> getSettings() {
+    return Map.copyOf(settings);
+  }
 
-    // Getters
-    public UUID getId() {
-        return id;
-    }
+  // Convenience accessor expected by some tests
+  public String getDescription() {
+    Object desc = settings != null ? settings.get("description") : null;
+    return desc != null ? String.valueOf(desc) : null;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
 
-    public String getSlug() {
-        return slug;
-    }
+  public Instant getUpdatedAt() {
+    return updatedAt;
+  }
 
-    public UUID getOwnerId() {
-        return ownerId;
-    }
+  public Instant getDeletedAt() {
+    return deletedAt;
+  }
 
-    public Status getStatus() {
-        return status;
-    }
+  public Long getVersion() {
+    return version;
+  }
 
-    public void setStatus(Status status) {
-        this.status = status;
-    }
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (!(obj instanceof Organization other)) return false;
+    return id != null && id.equals(other.id);
+  }
 
-    public Map<String, Object> getSettings() {
-        return Map.copyOf(settings);
-    }
+  @Override
+  public int hashCode() {
+    return getClass().hashCode();
+  }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+  @Override
+  public String toString() {
+    return "Organization{"
+        + "id="
+        + id
+        + ", name='"
+        + name
+        + '\''
+        + ", slug='"
+        + slug
+        + '\''
+        + ", ownerId="
+        + ownerId
+        + ", createdAt="
+        + createdAt
+        + '}';
+  }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public Instant getDeletedAt() {
-        return deletedAt;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof Organization other)) return false;
-        return id != null && id.equals(other.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "Organization{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", slug='" + slug + '\'' +
-                ", ownerId=" + ownerId +
-                ", createdAt=" + createdAt +
-                '}';
-    }
-
-    /**
-     * Organization status enumeration
-     */
-    public enum Status {
-        ACTIVE,
-        INACTIVE,
-        SUSPENDED,
-        PENDING
-    }
+  /** Organization status enumeration */
+  public enum Status {
+    ACTIVE,
+    INACTIVE,
+    SUSPENDED,
+    PENDING
+  }
 }

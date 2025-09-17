@@ -22,7 +22,7 @@ context_files:
   - ".claude/context/system-patterns.md"
   - "src/main/java/**/*Application.java"
   - "src/main/java/**/config/*.java"
-  - "archunit.properties"
+  - "archunit.properties*"
 ---
 
 # System Architect Agent

@@ -10,7 +10,7 @@ type LoadingSpinnerProps = {
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'md',
   className,
-  color = 'primary'
+  color = 'primary',
 }) => {
   return (
     <div

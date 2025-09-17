@@ -1,0 +1,545 @@
+openapi: 3.0.3
+info:
+  title: Documentation System API
+  description: API for managing project documentation content and metadata
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/docs
+    description: Local development server
+  - url: https://docs.platform.com/api
+    description: Production documentation server
+
+paths:
+  /pages:
+    get:
+      summary: List documentation pages
+      description: Retrieve a list of documentation pages with optional filtering
+      parameters:
+        - name: section
+          in: query
+          description: Filter by documentation section
+          schema:
+            type: string
+        - name: audience
+          in: query
+          description: Filter by target audience
+          schema:
+            type: string
+            enum: [developer, operator, stakeholder, all]
+        - name: status
+          in: query
+          description: Filter by page status
+          schema:
+            type: string
+            enum: [draft, review, published, deprecated, archived]
+        - name: version
+          in: query
+          description: Documentation version
+          schema:
+            type: string
+            pattern: '^\\d+\\.\\d+\\.\\d+$'
+      responses:
+        '200':
+          description: List of documentation pages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentationPageSummary'
+                  totalCount:
+                    type: integer
+                  currentPage:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      summary: Create new documentation page
+      description: Create a new documentation page from template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePageRequest'
+      responses:
+        '201':
+          description: Page created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentationPage'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pages/{pageId}:
+    get:
+      summary: Get documentation page
+      description: Retrieve a specific documentation page by ID
+      parameters:
+        - name: pageId
+          in: path
+          required: true
+          description: Unique page identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Documentation page details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentationPage'
+        '404':
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update documentation page
+      description: Update an existing documentation page
+      parameters:
+        - name: pageId
+          in: path
+          required: true
+          description: Unique page identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePageRequest'
+      responses:
+        '200':
+          description: Page updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentationPage'
+        '404':
+          description: Page not found
+        '409':
+          description: Conflict - concurrent modification detected
+
+    delete:
+      summary: Delete documentation page
+      description: Delete a documentation page (move to archived status)
+      parameters:
+        - name: pageId
+          in: path
+          required: true
+          description: Unique page identifier
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Page deleted successfully
+        '404':
+          description: Page not found
+
+  /search:
+    get:
+      summary: Search documentation
+      description: Full-text search across documentation content
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+            minLength: 2
+        - name: section
+          in: query
+          description: Limit search to specific section
+          schema:
+            type: string
+        - name: audience
+          in: query
+          description: Filter by audience
+          schema:
+            type: string
+            enum: [developer, operator, stakeholder, all]
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /sections:
+    get:
+      summary: Get documentation sections
+      description: Retrieve navigation structure and sections
+      responses:
+        '200':
+          description: Documentation sections tree
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentationSection'
+
+  /templates:
+    get:
+      summary: List documentation templates
+      description: Get available templates for creating new documentation
+      responses:
+        '200':
+          description: Available templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentationTemplate'
+
+  /templates/{templateName}:
+    get:
+      summary: Get template details
+      description: Retrieve specific template with structure and examples
+      parameters:
+        - name: templateName
+          in: path
+          required: true
+          description: Template name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentationTemplate'
+
+  /validate:
+    post:
+      summary: Validate documentation content
+      description: Validate page content against templates and requirements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationRequest'
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+
+  /versions:
+    get:
+      summary: List documentation versions
+      description: Get all available documentation versions
+      responses:
+        '200':
+          description: Available versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentationVersion'
+
+components:
+  schemas:
+    DocumentationPage:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - filePath
+      properties:
+        id:
+          type: string
+          description: Unique page identifier
+        title:
+          type: string
+          description: Page title
+        content:
+          type: string
+          description: Markdown content
+        frontMatter:
+          type: object
+          properties:
+            description:
+              type: string
+            keywords:
+              type: array
+              items:
+                type: string
+            lastUpdated:
+              type: string
+              format: date-time
+            author:
+              type: string
+            version:
+              type: string
+            audience:
+              type: string
+              enum: [developer, operator, stakeholder, all]
+            status:
+              type: string
+              enum: [draft, review, published, deprecated, archived]
+        filePath:
+          type: string
+          description: Source file path
+        parentSection:
+          type: string
+          description: Parent navigation section
+        crossReferences:
+          type: array
+          items:
+            type: string
+          description: Related page links
+
+    DocumentationPageSummary:
+      type: object
+      required:
+        - id
+        - title
+        - status
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, review, published, deprecated, archived]
+        lastUpdated:
+          type: string
+          format: date-time
+        author:
+          type: string
+        section:
+          type: string
+
+    DocumentationSection:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        order:
+          type: integer
+        audience:
+          type: string
+          enum: [developer, operator, stakeholder, all]
+        pages:
+          type: array
+          items:
+            type: string
+        subsections:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentationSection'
+        icon:
+          type: string
+
+    DocumentationTemplate:
+      type: object
+      required:
+        - name
+        - contentType
+        - contentStructure
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        contentType:
+          type: string
+          enum: [adr, api, feature, guide, troubleshooting]
+        frontMatterSchema:
+          type: object
+          description: JSON Schema for front matter validation
+        contentStructure:
+          type: string
+          description: Markdown template content
+        exampleContent:
+          type: string
+        validationRules:
+          type: array
+          items:
+            type: string
+
+    DocumentationVersion:
+      type: object
+      required:
+        - version
+        - releaseDate
+        - status
+      properties:
+        version:
+          type: string
+          pattern: '^\\d+\\.\\d+\\.\\d+$'
+        releaseDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [current, supported, deprecated, archived]
+        changeLog:
+          type: array
+          items:
+            type: string
+        branchRef:
+          type: string
+
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              pageId:
+                type: string
+              title:
+                type: string
+              excerpt:
+                type: string
+              section:
+                type: string
+              relevanceScore:
+                type: number
+                minimum: 0
+                maximum: 1
+        totalResults:
+          type: integer
+        searchTime:
+          type: number
+          description: Search execution time in milliseconds
+
+    CreatePageRequest:
+      type: object
+      required:
+        - title
+        - templateName
+        - section
+      properties:
+        title:
+          type: string
+        templateName:
+          type: string
+        section:
+          type: string
+        initialContent:
+          type: string
+        frontMatter:
+          type: object
+
+    UpdatePageRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        frontMatter:
+          type: object
+        version:
+          type: string
+          description: Version for optimistic locking
+
+    ValidationRequest:
+      type: object
+      required:
+        - content
+        - templateName
+      properties:
+        content:
+          type: string
+          description: Markdown content to validate
+        templateName:
+          type: string
+        frontMatter:
+          type: object
+
+    ValidationResponse:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [syntax, schema, link, template, completeness]
+              message:
+                type: string
+              line:
+                type: integer
+              column:
+                type: integer
+        warnings:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              message:
+                type: string
+              line:
+                type: integer
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object

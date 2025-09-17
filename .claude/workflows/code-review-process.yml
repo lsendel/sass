@@ -1,177 +1,36 @@
-# Code Review Process Multi-Agent Workflow
-name: "Code Review Process Workflow"
-description: "Comprehensive code review with constitutional compliance and quality gates"
-version: "1.0.0"
-
-# Constitutional compliance and authority
-constitutional_compliance: true
-review_authority: "Code Review Agent + Constitutional Enforcement Agent"
-
-# Agent definitions for this workflow
+name: Code Review Process
+description: Multi-agent review with security_check and architecture_review, including constitutional compliance.
 agents:
-  - "development/constitutional-enforcement-agent.md"
-  - "development/code-review-agent.md"
-  - "testing/tdd-compliance-agent.md"
-  - "architecture/spring-boot-modulith-architect.md"
-  - "security/payment-security-agent.md"
-  - "security/owasp-compliance-agent.md"
-  - "security/pci-dss-compliance-agent.md"
-  - "architecture/performance-architect-agent.md"
-
-# Workflow execution steps
-steps:
-  - name: "Constitutional Compliance Pre-Review"
-    order: 1
-    agent: "development/constitutional-enforcement-agent.md"
-    tasks:
-      - "Validate constitutional compliance of proposed changes"
-      - "Check for constitutional violations in code changes"
-      - "Ensure adherence to non-negotiable principles"
-    validation:
-      - "Constitutional compliance: 100%"
-      - "No constitutional violations"
-    outputs:
-      - "constitutional_compliance_report"
-
-  - name: "TDD Compliance Review"
-    order: 2
-    agent: "testing/tdd-compliance-agent.md"
-    dependencies: ["Constitutional Compliance Pre-Review"]
-    tasks:
-      - "Verify test-first development approach"
-      - "Validate test hierarchy compliance"
-      - "Check test coverage and quality"
-    validation:
-      - "TDD compliance: VERIFIED"
-      - "Test coverage: > 80%"
-      - "Test hierarchy: FOLLOWED"
-    outputs:
-      - "tdd_compliance_assessment"
-
-  - name: "Security Code Review"
-    order: 3
-    agents:
-      - "security/owasp-compliance-agent.md"
-      - "security/pci-dss-compliance-agent.md"
-    dependencies: ["TDD Compliance Review"]
-    coordination: "parallel"
-    tasks:
-      - "OWASP Top 10 vulnerability assessment"
-      - "PCI DSS compliance validation"
-      - "Security best practices verification"
-    validation:
-      - "Security vulnerabilities: 0 critical"
-      - "PCI DSS compliance: MAINTAINED"
-      - "Security standards: MET"
-    outputs:
-      - "security_assessment_report"
-
-  - name: "Code Quality and Architecture Review"
-    order: 4
-    agents:
-      - "architecture/code-review-agent.md"
-      - "architecture/performance-architect-agent.md"
-    dependencies: ["Security Code Review"]
-    coordination: "parallel"
-    tasks:
-      - "Code quality assessment"
-      - "Architecture pattern compliance"
-      - "Performance impact analysis"
-    validation:
-      - "Code quality: ACCEPTABLE"
-      - "Architecture compliance: VERIFIED"
-      - "Performance impact: MINIMAL"
-    outputs:
-      - "code_quality_report"
-      - "architecture_review_report"
-
-  - name: "Final Review Synthesis"
-    order: 5
-    agent: "architecture/code-review-agent.md"
-    dependencies: ["Code Quality and Architecture Review"]
-    tasks:
-      - "Synthesize all review findings"
-      - "Generate comprehensive review report"
-      - "Provide recommendations and approval status"
-    outputs:
-      - "comprehensive_review_report"
-      - "approval_recommendation"
-
-# Coordination patterns
+  - "code review"
+  - "payment security"
+  - "tdd compliance"
+  - "spring boot modulith architect"
 coordination:
-  sequential_reviews: "Constitutional → TDD → Security → Quality"
-  parallel_execution: "Security agents run in parallel"
-  final_synthesis: "Single agent synthesizes all findings"
-
-# Review quality gates
-quality_gates:
-  constitutional_gate:
-    required: true
-    blocker: true
-    agent: "development/constitutional-enforcement-agent.md"
-
-  security_gate:
-    required: true
-    blocker: true
-    agents: ["security/owasp-compliance-agent.md", "security/pci-dss-compliance-agent.md"]
-
-  quality_gate:
-    required: true
-    blocker: false
-    agents: ["architecture/code-review-agent.md"]
-
-# Error handling and rollback
-error_handling:
-  constitutional_violation:
-    severity: "CRITICAL"
-    action: "IMMEDIATE_STOP"
-    authority: "Constitutional Enforcement Agent"
-    rollback: "Full workflow rollback"
-    recovery: "Constitutional remediation required"
-
-  security_failure:
-    severity: "HIGH"
-    action: "STOP_AND_REVIEW"
-    authority: "Security Testing Agent"
-    rollback: "Phase rollback to last secure state"
-    recovery: "Security vulnerability remediation"
-
-  quality_failure:
-    severity: "MEDIUM"
-    action: "RETRY_WITH_FIXES"
-    authority: "Code Review Agent"
-    rollback: "Step rollback to previous version"
-    recovery: "Code quality improvements required"
-
-# Rollback capabilities
-rollback_strategies:
-  full_rollback:
-    description: "Complete workflow state restoration"
-    triggers: ["constitutional_violation", "critical_security_failure"]
-    authority: "Constitutional Enforcement Agent"
-
-  phase_rollback:
-    description: "Rollback to previous workflow phase"
-    triggers: ["security_failure", "architecture_violation"]
-    authority: "Responsible phase agent"
-
-  step_rollback:
-    description: "Undo last step within current phase"
-    triggers: ["quality_failure", "test_failure"]
-    authority: "Step execution agent"
-
-# Monitoring and observability
+  pattern: sequential
+steps:
+  - name: analysis
+    run: 'Task: "static analysis"'
+    mode: sequential
+  - name: security_check
+    run: 'Task: "security compliance"'
+    mode: sequential
+  - name: architecture_review
+    run: 'Task: "architecture validation"'
+    mode: sequential
+  - name: approval
+    run: 'Task: "final approval"'
+    mode: sequential
+    error_handling:
+      - error
+      - retry
+    performance:
+      timeout: 20
+    rollback:
+      - rollback
+      - revert
 monitoring:
-  review_progress_tracking: true
-  agent_performance_metrics: true
-  quality_gate_monitoring: true
-  constitutional_compliance_tracking: true
-  real_time_error_reporting: true
-
-# Success criteria
-success_criteria:
-  - "Constitutional compliance: 100%"
-  - "Security review: PASSED"
-  - "TDD compliance: VERIFIED"
-  - "Code quality: ACCEPTABLE"
-  - "Review consensus: APPROVED"
+  - monitoring
+  - logging
+  - metrics
+performance:
+  timeout: 20

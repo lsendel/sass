@@ -40,9 +40,7 @@ const renderWithProviders = (component: React.ReactElement) => {
   const store = createMockStore()
   return render(
     <Provider store={store}>
-      <BrowserRouter>
-        {component}
-      </BrowserRouter>
+      <BrowserRouter>{component}</BrowserRouter>
     </Provider>
   )
 }
@@ -52,19 +50,29 @@ describe('LoginPage', () => {
     renderWithProviders(<LoginPage />)
 
     expect(screen.getByText('Sign in to your account')).toBeInTheDocument()
-    expect(screen.getByText('Choose your preferred authentication method')).toBeInTheDocument()
+    expect(
+      screen.getByText('Choose your preferred authentication method')
+    ).toBeInTheDocument()
   })
 
   it('shows no providers available when providers fail to load', () => {
     renderWithProviders(<LoginPage />)
 
-    expect(screen.getByText('No authentication providers available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No authentication providers available')
+    ).toBeInTheDocument()
   })
 
   it('shows OAuth security message', () => {
     renderWithProviders(<LoginPage />)
 
-    expect(screen.getByText('Secure authentication powered by OAuth 2.0')).toBeInTheDocument()
-    expect(screen.getByText('By signing in, you agree to our Terms of Service and Privacy Policy.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Secure authentication powered by OAuth 2.0')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'By signing in, you agree to our Terms of Service and Privacy Policy.'
+      )
+    ).toBeInTheDocument()
   })
 })

@@ -1,8 +1,13 @@
 import React, { useState } from 'react'
-import { useGetAvailablePlansQuery, useCreateSubscriptionMutation, useChangeSubscriptionPlanMutation } from '../../store/api/subscriptionApi'
+import {
+  useGetAvailablePlansQuery,
+  useCreateSubscriptionMutation,
+  useChangeSubscriptionPlanMutation,
+} from '../../store/api/subscriptionApi'
 import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import LoadingSpinner from '../ui/LoadingSpinner'
+import { parseApiError } from '../../utils/apiError'
 import { clsx } from 'clsx'
 
 type UpgradePlanModalProps = {
@@ -18,18 +23,20 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   onClose,
   currentPlanId,
   organizationId,
-  subscriptionId
+  subscriptionId,
 }) => {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const { data: plans, isLoading } = useGetAvailablePlansQuery(undefined, {
-    skip: !isOpen
+    skip: !isOpen,
   })
 
-  const [createSubscription, { isLoading: isCreating }] = useCreateSubscriptionMutation()
-  const [changeSubscriptionPlan, { isLoading: isChanging }] = useChangeSubscriptionPlanMutation()
+  const [createSubscription, { isLoading: isCreating }] =
+    useCreateSubscriptionMutation()
+  const [changeSubscriptionPlan, { isLoading: isChanging }] =
+    useChangeSubscriptionPlanMutation()
 
   const handlePlanSelection = async () => {
-    if (!selectedPlanId || !organizationId) return
+    if (!selectedPlanId || !organizationId) {return}
 
     try {
       if (subscriptionId) {
@@ -38,7 +45,7 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
           subscriptionId,
           organizationId,
           newPlanId: selectedPlanId,
-          prorationBehavior: true
+          prorationBehavior: true,
         }).unwrap()
 
         toast.success('Subscription plan updated successfully')
@@ -47,29 +54,37 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
         await createSubscription({
           organizationId,
           planId: selectedPlanId,
-          trialEligible: true
+          trialEligible: true,
         }).unwrap()
 
         toast.success('Subscription created successfully')
       }
 
       onClose()
-    } catch (error: any) {
-      console.error('Failed to update subscription:', error)
-      toast.error(error?.data?.message || 'Failed to update subscription')
+    } catch (err) {
+      const parsed = parseApiError(err)
+      console.error('Failed to update subscription:', parsed)
+      toast.error(parsed.message || 'Failed to update subscription')
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen) {return null}
 
-  const sortedPlans = plans ? [...plans].sort((a, b) => a.amount - b.amount) : []
+  const sortedPlans = plans
+    ? [...plans].sort((a, b) => a.amount - b.amount)
+    : []
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={onClose}
+        />
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">
+          &#8203;
+        </span>
 
         <div className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
           <div className="absolute top-0 right-0 pt-4 pr-4">
@@ -102,7 +117,7 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
               ) : (
                 <div className="mt-6">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {sortedPlans.map((plan) => {
+                    {sortedPlans.map(plan => {
                       const isCurrentPlan = plan.id === currentPlanId
                       const isSelected = plan.id === selectedPlanId
 
@@ -114,10 +129,12 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                             isCurrentPlan
                               ? 'border-gray-300 bg-gray-50'
                               : isSelected
-                              ? 'border-primary-500 bg-primary-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-gray-200 hover:border-gray-300'
                           )}
-                          onClick={() => !isCurrentPlan && setSelectedPlanId(plan.id)}
+                          onClick={() =>
+                            !isCurrentPlan && setSelectedPlanId(plan.id)
+                          }
                         >
                           {isCurrentPlan && (
                             <span className="absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
@@ -153,18 +170,23 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                             </p>
                           )}
 
-                          {plan.features && Object.keys(plan.features).length > 0 && (
-                            <ul className="mt-4 space-y-2">
-                              {Object.entries(plan.features).slice(0, 3).map(([key, value]) => (
-                                <li key={key} className="flex items-start">
-                                  <CheckIcon className="flex-shrink-0 h-4 w-4 text-green-500 mt-0.5" />
-                                  <span className="ml-2 text-sm text-gray-700">
-                                    {typeof value === 'boolean' ? key.replace(/_/g, ' ') : `${key}: ${value}`}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                          {plan.features &&
+                            Object.keys(plan.features).length > 0 && (
+                              <ul className="mt-4 space-y-2">
+                                {Object.entries(plan.features)
+                                  .slice(0, 3)
+                                  .map(([key, value]) => (
+                                    <li key={key} className="flex items-start">
+                                      <CheckIcon className="flex-shrink-0 h-4 w-4 text-green-500 mt-0.5" />
+                                      <span className="ml-2 text-sm text-gray-700">
+                                        {typeof value === 'boolean'
+                                          ? key.replace(/_/g, ' ')
+                                          : `${key}: ${value}`}
+                                      </span>
+                                    </li>
+                                  ))}
+                              </ul>
+                            )}
                         </div>
                       )
                     })}
@@ -181,12 +203,21 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                     <button
                       type="button"
                       onClick={handlePlanSelection}
-                      disabled={!selectedPlanId || selectedPlanId === currentPlanId || isCreating || isChanging}
+                      disabled={
+                        !selectedPlanId ||
+                        selectedPlanId === currentPlanId ||
+                        isCreating ||
+                        isChanging
+                      }
                       className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isCreating || isChanging ? (
                         <>
-                          <LoadingSpinner size="sm" className="mr-2" color="white" />
+                          <LoadingSpinner
+                            size="sm"
+                            className="mr-2"
+                            color="white"
+                          />
                           Processing...
                         </>
                       ) : subscriptionId ? (

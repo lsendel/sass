@@ -1,76 +1,73 @@
 package com.platform.shared.types;
 
+import java.util.Objects;
+
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-import java.util.Objects;
-
-/**
- * Email value object with validation and normalization.
- */
+/** Email value object with validation and normalization. */
 @Embeddable
 public class Email {
 
-    private static final String EMAIL_REGEX =
-        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+  private static final String EMAIL_REGEX = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
 
-    @NotBlank(message = "Email cannot be blank")
-    @Pattern(regexp = EMAIL_REGEX, message = "Invalid email format")
-    private String value;
+  @NotBlank(message = "Email cannot be blank")
+  @Pattern(regexp = EMAIL_REGEX, message = "Invalid email format")
+  private String value;
 
-    // JPA constructor
-    protected Email() {}
+  // JPA constructor
+  protected Email() {}
 
-    public Email(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email cannot be null or empty");
-        }
-
-        String normalized = normalize(value);
-        if (!isValid(normalized)) {
-            throw new IllegalArgumentException("Invalid email format: " + value);
-        }
-
-        this.value = normalized;
+  public Email(String value) {
+    if (value == null || value.trim().isEmpty()) {
+      throw new IllegalArgumentException("Email cannot be null or empty");
     }
 
-    private String normalize(String email) {
-        return email.trim().toLowerCase();
+    String normalized = normalize(value);
+    if (!isValid(normalized)) {
+      throw new IllegalArgumentException("Invalid email format: " + value);
     }
 
-    private boolean isValid(String email) {
-        return email.matches(EMAIL_REGEX);
-    }
+    this.value = normalized;
+  }
 
-    public String getValue() {
-        return value;
-    }
+  private String normalize(String email) {
+    return email.trim().toLowerCase();
+  }
 
-    public String getDomain() {
-        int atIndex = value.indexOf('@');
-        return atIndex > 0 ? value.substring(atIndex + 1) : "";
-    }
+  private boolean isValid(String email) {
+    return email.matches(EMAIL_REGEX);
+  }
 
-    public String getLocalPart() {
-        int atIndex = value.indexOf('@');
-        return atIndex > 0 ? value.substring(0, atIndex) : value;
-    }
+  public String getValue() {
+    return value;
+  }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof Email other)) return false;
-        return Objects.equals(value, other.value);
-    }
+  public String getDomain() {
+    int atIndex = value.indexOf('@');
+    return atIndex > 0 ? value.substring(atIndex + 1) : "";
+  }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
+  public String getLocalPart() {
+    int atIndex = value.indexOf('@');
+    return atIndex > 0 ? value.substring(0, atIndex) : value;
+  }
 
-    @Override
-    public String toString() {
-        return value;
-    }
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (!(obj instanceof Email other)) return false;
+    return Objects.equals(value, other.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(value);
+  }
+
+  @Override
+  public String toString() {
+    return value;
+  }
 }

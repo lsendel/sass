@@ -1,0 +1,35 @@
+repos:
+  - repo: local
+    hooks:
+      - id: docs-markdownlint
+        name: Lint markdown files
+        entry: bash -c 'cd docs && npx markdownlint-cli'
+        language: system
+        files: '^docs/.*\.md$'
+        pass_filenames: true
+
+      - id: docs-link-check
+        name: Check documentation links
+        entry: bash -c 'cd docs && npx markdown-link-check'
+        language: system
+        files: '^docs/docs/.*\.md$'
+        pass_filenames: true
+
+      - id: docs-prettier
+        name: Format documentation with Prettier
+        entry: bash -c 'cd docs && npx prettier --write'
+        language: system
+        files: '^docs/.*\.(md|js|ts|json)$'
+        pass_filenames: true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        files: '^docs/.*'
+      - id: end-of-file-fixer
+        files: '^docs/.*'
+      - id: check-yaml
+        files: '^docs/.*\.ya?ml$'
+      - id: check-json
+        files: '^docs/.*\.json$'

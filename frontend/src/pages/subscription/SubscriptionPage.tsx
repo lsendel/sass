@@ -5,17 +5,14 @@ import {
   useGetAvailablePlansQuery,
   useCancelSubscriptionMutation,
   useReactivateSubscriptionMutation,
-  useGetOrganizationInvoicesQuery
+  useGetOrganizationInvoicesQuery,
 } from '../../store/api/subscriptionApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import UpgradePlanModal from '../../components/subscription/UpgradePlanModal'
 import {
   DocumentTextIcon,
-  CheckIcon,
-  XMarkIcon,
   ExclamationTriangleIcon,
   ArrowUpIcon,
-  CalendarDaysIcon,
   ReceiptRefundIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
@@ -24,7 +21,8 @@ import { clsx } from 'clsx'
 
 const SubscriptionPage: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const { data: organizations, isLoading: orgsLoading } = useGetUserOrganizationsQuery()
+  const { data: organizations, isLoading: orgsLoading } =
+    useGetUserOrganizationsQuery()
   const { data: availablePlans } = useGetAvailablePlansQuery()
 
   const primaryOrg = organizations?.[0]
@@ -32,17 +30,17 @@ const SubscriptionPage: React.FC = () => {
   const {
     data: subscription,
     isLoading: subLoading,
-    refetch: refetchSubscription
+    refetch: refetchSubscription,
   } = useGetOrganizationSubscriptionQuery(primaryOrg?.id || '', {
-    skip: !primaryOrg?.id
+    skip: !primaryOrg?.id,
   })
 
-  const {
-    data: invoices,
-    isLoading: invoicesLoading
-  } = useGetOrganizationInvoicesQuery(primaryOrg?.id || '', {
-    skip: !primaryOrg?.id
-  })
+  const { data: invoices } = useGetOrganizationInvoicesQuery(
+    primaryOrg?.id || '',
+    {
+      skip: !primaryOrg?.id,
+    }
+  )
 
   const [cancelSubscription] = useCancelSubscriptionMutation()
   const [reactivateSubscription] = useReactivateSubscriptionMutation()
@@ -61,7 +59,9 @@ const SubscriptionPage: React.FC = () => {
     return (
       <div className="text-center py-12">
         <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No organization found</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          No organization found
+        </h3>
         <p className="mt-1 text-sm text-gray-500">
           Please create an organization first to manage subscriptions.
         </p>
@@ -70,9 +70,13 @@ const SubscriptionPage: React.FC = () => {
   }
 
   const handleCancelSubscription = async () => {
-    if (!subscription) return
+    if (!subscription) {return}
 
-    if (!confirm('Are you sure you want to cancel your subscription? It will remain active until the end of the current billing period.')) {
+    if (
+      !confirm(
+        'Are you sure you want to cancel your subscription? It will remain active until the end of the current billing period.'
+      )
+    ) {
       return
     }
 
@@ -80,7 +84,7 @@ const SubscriptionPage: React.FC = () => {
       await cancelSubscription({
         subscriptionId: subscription.id,
         organizationId: primaryOrg.id,
-        immediate: false
+        immediate: false,
       }).unwrap()
 
       toast.success('Subscription scheduled for cancellation')
@@ -92,12 +96,12 @@ const SubscriptionPage: React.FC = () => {
   }
 
   const handleReactivateSubscription = async () => {
-    if (!subscription) return
+    if (!subscription) {return}
 
     try {
       await reactivateSubscription({
         subscriptionId: subscription.id,
-        organizationId: primaryOrg.id
+        organizationId: primaryOrg.id,
       }).unwrap()
 
       toast.success('Subscription reactivated')
@@ -117,14 +121,18 @@ const SubscriptionPage: React.FC = () => {
       UNPAID: { color: 'bg-red-100 text-red-800', label: 'Unpaid' },
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig] ||
-                  { color: 'bg-gray-100 text-gray-800', label: status }
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      color: 'bg-gray-100 text-gray-800',
+      label: status,
+    }
 
     return (
-      <span className={clsx(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        config.color
-      )}>
+      <span
+        className={clsx(
+          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+          config.color
+        )}
+      >
         {config.label}
       </span>
     )
@@ -172,14 +180,24 @@ const SubscriptionPage: React.FC = () => {
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Price</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  ${currentPlan?.amount.toFixed(2)} / {currentPlan?.interval.toLowerCase()}
+                  ${currentPlan?.amount.toFixed(2)} /{' '}
+                  {currentPlan?.interval.toLowerCase()}
                 </dd>
               </div>
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Current Period</dt>
+                <dt className="text-sm font-medium text-gray-500">
+                  Current Period
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {format(new Date(subscription.currentPeriodStart), 'MMM d, yyyy')} - {' '}
-                  {format(new Date(subscription.currentPeriodEnd), 'MMM d, yyyy')}
+                  {format(
+                    new Date(subscription.currentPeriodStart),
+                    'MMM d, yyyy'
+                  )}{' '}
+                  -{' '}
+                  {format(
+                    new Date(subscription.currentPeriodEnd),
+                    'MMM d, yyyy'
+                  )}
                 </dd>
               </div>
               {subscription.cancelAt && (
@@ -231,7 +249,10 @@ const SubscriptionPage: React.FC = () => {
               No Active Subscription
             </h3>
             <div className="mt-2 max-w-xl text-sm text-gray-500">
-              <p>You don't have an active subscription. Choose a plan to get started.</p>
+              <p>
+                You don&apos;t have an active subscription. Choose a plan to get
+                started.
+              </p>
             </div>
             <div className="mt-5">
               <button
@@ -276,7 +297,7 @@ const SubscriptionPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {invoices.map((invoice) => (
+                {invoices.map(invoice => (
                   <tr key={invoice.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {invoice.invoiceNumber}
@@ -285,15 +306,20 @@ const SubscriptionPage: React.FC = () => {
                       {format(new Date(invoice.createdAt), 'MMM d, yyyy')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${invoice.totalAmount.toFixed(2)} {invoice.currency.toUpperCase()}
+                      ${invoice.totalAmount.toFixed(2)}{' '}
+                      {invoice.currency.toUpperCase()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={clsx(
-                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                        invoice.status === 'PAID' ? 'bg-green-100 text-green-800' :
-                        invoice.status === 'OPEN' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      )}>
+                      <span
+                        className={clsx(
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                          invoice.status === 'PAID'
+                            ? 'bg-green-100 text-green-800'
+                            : invoice.status === 'OPEN'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                        )}
+                      >
                         {invoice.status}
                       </span>
                     </td>

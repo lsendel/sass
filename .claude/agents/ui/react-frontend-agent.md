@@ -21,8 +21,8 @@ context_files:
   - ".claude/context/frontend-guidelines.md"
   - "frontend/src/**/*.tsx"
   - "frontend/src/**/*.ts"
-  - "frontend/package.json"
-  - "frontend/tsconfig.json"
+  - "frontend/*"
+  - "frontend/**/tsconfig.json"
 ---
 
 # React Frontend Agent

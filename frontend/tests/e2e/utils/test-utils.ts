@@ -1,4 +1,6 @@
 import { Page } from '@playwright/test'
+import type { Organization } from '@/store/api/organizationApi'
+import type { User } from '@/store/slices/authSlice'
 
 /**
  * Mock authentication for a user
@@ -152,7 +154,11 @@ export async function waitForToast(page: Page, message: string) {
 /**
  * Login as authenticated user with all required mocks
  */
-export async function loginAsUser(page: Page, user?: any, organizations?: any[]) {
+export async function loginAsUser(
+  page: Page,
+  user?: Partial<User>,
+  organizations?: Organization[]
+) {
   await mockAuthentication(page, user)
   await mockOrganizations(page, organizations)
   await mockOAuthProviders(page)

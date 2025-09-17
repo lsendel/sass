@@ -17,7 +17,7 @@ export const store = configureStore({
     [paymentApi.reducerPath]: paymentApi.reducer,
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
   },
-  middleware: (getDefaultMiddleware) =>
+  middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [
@@ -34,7 +34,7 @@ export const store = configureStore({
       .concat(organizationApi.middleware)
       .concat(paymentApi.middleware)
       .concat(subscriptionApi.middleware),
-  devTools: process.env.NODE_ENV !== 'production',
+  devTools: import.meta.env.DEV,
 })
 
 export type RootState = ReturnType<typeof store.getState>

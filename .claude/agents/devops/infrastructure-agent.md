@@ -19,10 +19,10 @@ tools:
 context_files:
   - ".claude/context/project-constitution.md"
   - ".claude/context/infrastructure-guidelines.md"
-  - "terraform/"
-  - "k8s/"
-  - "helm/"
-  - "docker/"
+  - "terraform/**"
+  - "k8s/**"
+  - "helm/**"
+  - "docker/**"
 ---
 
 # Infrastructure Agent

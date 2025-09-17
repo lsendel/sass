@@ -20,9 +20,9 @@ context_files:
   - ".claude/context/project-constitution.md"
   - ".claude/context/deployment-guidelines.md"
   - ".github/workflows/*.yml"
-  - "docker/"
-  - "k8s/"
-  - "terraform/"
+  - "docker/**"
+  - "k8s/**"
+  - "terraform/**"
 ---
 
 # CI/CD Agent

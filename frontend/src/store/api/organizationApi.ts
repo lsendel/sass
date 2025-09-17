@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
 export type Organization = {
   id: string
@@ -80,9 +81,12 @@ export const organizationApi = createApi({
     },
   }),
   tagTypes: ['Organization', 'OrganizationMember', 'Invitation'],
-  endpoints: (builder) => ({
-    createOrganization: builder.mutation<Organization, CreateOrganizationRequest>({
-      query: (body) => ({
+  endpoints: builder => ({
+    createOrganization: builder.mutation<
+      Organization,
+      CreateOrganizationRequest
+    >({
+      query: body => ({
         url: '',
         method: 'POST',
         body,
@@ -91,15 +95,16 @@ export const organizationApi = createApi({
     }),
 
     getOrganization: builder.query<Organization, string>({
-      query: (organizationId) => `/${organizationId}`,
-      providesTags: (result, error, organizationId) => [
-        { type: 'Organization', id: organizationId }
+      query: organizationId => `/${organizationId}`,
+      providesTags: (_result, _error, organizationId) => [
+        { type: 'Organization', id: organizationId },
       ],
     }),
 
     getOrganizationBySlug: builder.query<Organization, string>({
-      query: (slug) => `/slug/${slug}`,
-      providesTags: (result) => result ? [{ type: 'Organization', id: result.id }] : [],
+      query: slug => `/slug/${slug}`,
+      providesTags: result =>
+        result ? [{ type: 'Organization', id: result.id }] : [],
     }),
 
     getUserOrganizations: builder.query<Organization[], void>({
@@ -107,34 +112,40 @@ export const organizationApi = createApi({
       providesTags: ['Organization'],
     }),
 
-    updateOrganization: builder.mutation<Organization, {
-      organizationId: string
-    } & UpdateOrganizationRequest>({
+    updateOrganization: builder.mutation<
+      Organization,
+      {
+        organizationId: string
+      } & UpdateOrganizationRequest
+    >({
       query: ({ organizationId, ...body }) => ({
         url: `/${organizationId}`,
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result, error, { organizationId }) => [
-        { type: 'Organization', id: organizationId }
+      invalidatesTags: (_result, _error, { organizationId }) => [
+        { type: 'Organization', id: organizationId },
       ],
     }),
 
-    updateSettings: builder.mutation<Organization, {
-      organizationId: string
-    } & UpdateSettingsRequest>({
+    updateSettings: builder.mutation<
+      Organization,
+      {
+        organizationId: string
+      } & UpdateSettingsRequest
+    >({
       query: ({ organizationId, ...body }) => ({
         url: `/${organizationId}/settings`,
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result, error, { organizationId }) => [
-        { type: 'Organization', id: organizationId }
+      invalidatesTags: (_result, _error, { organizationId }) => [
+        { type: 'Organization', id: organizationId },
       ],
     }),
 
     deleteOrganization: builder.mutation<void, string>({
-      query: (organizationId) => ({
+      query: organizationId => ({
         url: `/${organizationId}`,
         method: 'DELETE',
       }),
@@ -142,27 +153,30 @@ export const organizationApi = createApi({
     }),
 
     getOrganizationMembers: builder.query<OrganizationMemberInfo[], string>({
-      query: (organizationId) => `/${organizationId}/members`,
-      providesTags: (result, error, organizationId) => [
-        { type: 'OrganizationMember', id: organizationId }
+      query: organizationId => `/${organizationId}/members`,
+      providesTags: (_result, _error, organizationId) => [
+        { type: 'OrganizationMember', id: organizationId },
       ],
     }),
 
-    inviteUser: builder.mutation<Invitation, {
-      organizationId: string
-    } & InviteUserRequest>({
+    inviteUser: builder.mutation<
+      Invitation,
+      {
+        organizationId: string
+      } & InviteUserRequest
+    >({
       query: ({ organizationId, ...body }) => ({
         url: `/${organizationId}/invitations`,
         method: 'POST',
         body,
       }),
-      invalidatesTags: (result, error, { organizationId }) => [
-        { type: 'Invitation', id: organizationId }
+      invalidatesTags: (_result, _error, { organizationId }) => [
+        { type: 'Invitation', id: organizationId },
       ],
     }),
 
     acceptInvitation: builder.mutation<OrganizationMember, string>({
-      query: (token) => ({
+      query: token => ({
         url: `/invitations/${token}/accept`,
         method: 'POST',
       }),
@@ -170,7 +184,7 @@ export const organizationApi = createApi({
     }),
 
     declineInvitation: builder.mutation<void, string>({
-      query: (token) => ({
+      query: token => ({
         url: `/invitations/${token}/decline`,
         method: 'POST',
       }),
@@ -178,44 +192,50 @@ export const organizationApi = createApi({
     }),
 
     getPendingInvitations: builder.query<Invitation[], string>({
-      query: (organizationId) => `/${organizationId}/invitations`,
-      providesTags: (result, error, organizationId) => [
-        { type: 'Invitation', id: organizationId }
+      query: organizationId => `/${organizationId}/invitations`,
+      providesTags: (_result, _error, organizationId) => [
+        { type: 'Invitation', id: organizationId },
       ],
     }),
 
     revokeInvitation: builder.mutation<void, string>({
-      query: (invitationId) => ({
+      query: invitationId => ({
         url: `/invitations/${invitationId}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Invitation'],
     }),
 
-    removeMember: builder.mutation<void, {
-      organizationId: string
-      userId: string
-    }>({
+    removeMember: builder.mutation<
+      void,
+      {
+        organizationId: string
+        userId: string
+      }
+    >({
       query: ({ organizationId, userId }) => ({
         url: `/${organizationId}/members/${userId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, { organizationId }) => [
-        { type: 'OrganizationMember', id: organizationId }
+      invalidatesTags: (_result, _error, { organizationId }) => [
+        { type: 'OrganizationMember', id: organizationId },
       ],
     }),
 
-    updateMemberRole: builder.mutation<OrganizationMember, {
-      organizationId: string
-      userId: string
-    } & UpdateMemberRoleRequest>({
+    updateMemberRole: builder.mutation<
+      OrganizationMember,
+      {
+        organizationId: string
+        userId: string
+      } & UpdateMemberRoleRequest
+    >({
       query: ({ organizationId, userId, ...body }) => ({
         url: `/${organizationId}/members/${userId}/role`,
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result, error, { organizationId }) => [
-        { type: 'OrganizationMember', id: organizationId }
+      invalidatesTags: (_result, _error, { organizationId }) => [
+        { type: 'OrganizationMember', id: organizationId },
       ],
     }),
   }),

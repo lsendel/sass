@@ -6,13 +6,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
-@EnableJpaRepositories(basePackages = {
-    "com.platform.user.internal",
-    "com.platform.auth.internal",
-    "com.platform.payment.internal",
-    "com.platform.subscription.internal",
-    "com.platform.audit.internal"
-})
+@EnableJpaRepositories(
+    basePackages = {
+      "com.platform.user.internal",
+      "com.platform.auth.internal",
+      "com.platform.payment.internal",
+      "com.platform.subscription.internal",
+      "com.platform.audit.internal"
+    })
 @Import(RedisRepositoriesAutoConfiguration.class)
-public class RepositoryConfig {
-}
+public class RepositoryConfig {}

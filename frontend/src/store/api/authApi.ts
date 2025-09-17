@@ -2,7 +2,8 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
 import type { User } from '../slices/authSlice'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
 
 export type OAuth2Provider = {
   name: string
@@ -25,6 +26,23 @@ export type LoginRequest = {
   redirectUri: string
 }
 
+export type PasswordLoginRequest = {
+  email: string
+  password: string
+}
+
+export type PasswordRegisterRequest = {
+  email: string
+  password: string
+  name: string
+}
+
+export type AuthMethodsResponse = {
+  methods: string[]
+  passwordAuthEnabled: boolean
+  oauth2Providers: string[]
+}
+
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
@@ -38,9 +56,33 @@ export const authApi = createApi({
     },
   }),
   tagTypes: ['Session'],
-  endpoints: (builder) => ({
-    getProviders: builder.query<{ providers: OAuth2Provider[] }, void>({
-      query: () => '/providers',
+  endpoints: builder => ({
+    getAuthMethods: builder.query<AuthMethodsResponse, void>({
+      query: () => '/methods',
+    }),
+
+    passwordLogin: builder.mutation<
+      { user: User; token: string },
+      PasswordLoginRequest
+    >({
+      query: credentials => ({
+        url: '/password/login',
+        method: 'POST',
+        body: credentials,
+      }),
+      invalidatesTags: ['Session'],
+    }),
+
+    passwordRegister: builder.mutation<
+      { user: User; token: string },
+      PasswordRegisterRequest
+    >({
+      query: userData => ({
+        url: '/password/register',
+        method: 'POST',
+        body: userData,
+      }),
+      invalidatesTags: ['Session'],
     }),
 
     getAuthUrl: builder.query<{ authUrl: string }, LoginRequest>({
@@ -55,7 +97,10 @@ export const authApi = createApi({
       providesTags: ['Session'],
     }),
 
-    handleCallback: builder.mutation<{ user: User; token: string }, { code: string; state?: string }>({
+    handleCallback: builder.mutation<
+      { user: User; token: string },
+      { code: string; state?: string }
+    >({
       query: ({ code, state }) => ({
         url: '/callback',
         method: 'POST',
@@ -93,7 +138,9 @@ export const authApi = createApi({
 })
 
 export const {
-  useGetProvidersQuery,
+  useGetAuthMethodsQuery,
+  usePasswordLoginMutation,
+  usePasswordRegisterMutation,
   useGetAuthUrlQuery,
   useGetSessionQuery,
   useHandleCallbackMutation,

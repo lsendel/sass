@@ -12,7 +12,11 @@ import {
 import { format } from 'date-fns'
 
 const OrganizationsPage: React.FC = () => {
-  const { data: organizations, isLoading, error } = useGetUserOrganizationsQuery()
+  const {
+    data: organizations,
+    isLoading,
+    error,
+  } = useGetUserOrganizationsQuery()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   if (isLoading) {
@@ -61,7 +65,7 @@ const OrganizationsPage: React.FC = () => {
       {organizations && organizations.length > 0 ? (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {organizations.map((organization) => (
+            {organizations.map(organization => (
               <li key={organization.id}>
                 <Link
                   to={`/organizations/${organization.slug}`}
@@ -86,7 +90,11 @@ const OrganizationsPage: React.FC = () => {
                         <div className="mt-1 flex items-center text-sm text-gray-500">
                           <CalendarDaysIcon className="flex-shrink-0 mr-1.5 h-4 w-4" />
                           <p>
-                            Created {format(new Date(organization.createdAt), 'MMM d, yyyy')}
+                            Created{' '}
+                            {format(
+                              new Date(organization.createdAt),
+                              'MMM d, yyyy'
+                            )}
                           </p>
                         </div>
                       </div>
@@ -97,8 +105,16 @@ const OrganizationsPage: React.FC = () => {
                         <span>Members</span>
                       </div>
                       <div>
-                        <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -111,7 +127,9 @@ const OrganizationsPage: React.FC = () => {
       ) : (
         <div className="text-center py-12">
           <BuildingOfficeIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No organizations</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            No organizations
+          </h3>
           <p className="mt-1 text-sm text-gray-500">
             Get started by creating your first organization.
           </p>

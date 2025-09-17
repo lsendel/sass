@@ -4,16 +4,30 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCreateOrganizationMutation } from '../../store/api/organizationApi'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { parseApiError } from '../../utils/apiError'
 import { toast } from 'react-hot-toast'
 
 const createOrganizationSchema = z.object({
-  name: z.string().min(1, 'Organization name is required').max(100, 'Name must be less than 100 characters'),
-  slug: z.string()
+  name: z
+    .string()
+    .min(1, 'Organization name is required')
+    .max(100, 'Name must be less than 100 characters'),
+  slug: z
+    .string()
     .min(1, 'Slug is required')
     .max(50, 'Slug must be less than 50 characters')
-    .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and dashes')
-    .refine(slug => !slug.startsWith('-') && !slug.endsWith('-'), 'Slug cannot start or end with a dash'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Slug can only contain lowercase letters, numbers, and dashes'
+    )
+    .refine(
+      slug => !slug.startsWith('-') && !slug.endsWith('-'),
+      'Slug cannot start or end with a dash'
+    ),
+  description: z
+    .string()
+    .max(500, 'Description must be less than 500 characters')
+    .optional(),
 })
 
 type CreateOrganizationForm = z.infer<typeof createOrganizationSchema>
@@ -23,7 +37,10 @@ type CreateOrganizationModalProps = {
   onClose: () => void
 }
 
-const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpen, onClose }) => {
+const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
   const [createOrganization, { isLoading }] = useCreateOrganizationMutation()
 
   const {
@@ -57,15 +74,18 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
       await createOrganization({
         name: data.name,
         slug: data.slug,
-        settings: data.description ? { description: data.description } : undefined,
+        settings: data.description
+          ? { description: data.description }
+          : undefined,
       }).unwrap()
 
       toast.success('Organization created successfully!')
       reset()
       onClose()
-    } catch (error: any) {
-      console.error('Failed to create organization:', error)
-      toast.error(error?.data?.message || 'Failed to create organization')
+    } catch (err) {
+      const parsed = parseApiError(err)
+      console.error('Failed to create organization:', parsed)
+      toast.error(parsed.message || 'Failed to create organization')
     }
   }
 
@@ -74,14 +94,19 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
     onClose()
   }
 
-  if (!isOpen) return null
+  if (!isOpen) {return null}
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleClose} />
+        <div
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={handleClose}
+        />
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">
+          &#8203;
+        </span>
 
         <div className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
           <div className="absolute top-0 right-0 pt-4 pr-4">
@@ -101,13 +126,20 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
               </h3>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
-                  Create a new organization to manage your team and subscriptions.
+                  Create a new organization to manage your team and
+                  subscriptions.
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="mt-6 space-y-6"
+              >
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Organization Name
                   </label>
                   <div className="mt-1">
@@ -119,12 +151,17 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
                     />
                   </div>
                   {errors.name && (
-                    <p className="mt-2 text-sm text-red-600">{errors.name.message}</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="slug"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     URL Slug
                   </label>
                   <div className="mt-1 flex rounded-md shadow-sm">
@@ -139,15 +176,21 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
                     />
                   </div>
                   {errors.slug && (
-                    <p className="mt-2 text-sm text-red-600">{errors.slug.message}</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      {errors.slug.message}
+                    </p>
                   )}
                   <p className="mt-2 text-sm text-gray-500">
-                    This will be used in your organization's URL. Only lowercase letters, numbers, and dashes are allowed.
+                    This will be used in your organization&apos;s URL. Only lowercase
+                    letters, numbers, and dashes are allowed.
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Description (Optional)
                   </label>
                   <div className="mt-1">
@@ -159,7 +202,9 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
                     />
                   </div>
                   {errors.description && (
-                    <p className="mt-2 text-sm text-red-600">{errors.description.message}</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      {errors.description.message}
+                    </p>
                   )}
                 </div>
 

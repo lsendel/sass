@@ -1,6 +1,15 @@
 import React from 'react'
-import { useGetOrganizationPaymentMethodsQuery, useSetDefaultPaymentMethodMutation, useDetachPaymentMethodMutation } from '../../store/api/paymentApi'
-import { XMarkIcon, CreditCardIcon, PlusIcon, CheckIcon } from '@heroicons/react/24/outline'
+import {
+  useGetOrganizationPaymentMethodsQuery,
+  useSetDefaultPaymentMethodMutation,
+  useDetachPaymentMethodMutation,
+} from '../../store/api/paymentApi'
+import {
+  XMarkIcon,
+  CreditCardIcon,
+  PlusIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import { clsx } from 'clsx'
@@ -11,9 +20,17 @@ type PaymentMethodsModalProps = {
   organizationId: string
 }
 
-const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClose, organizationId }) => {
-  const { data: paymentMethods, isLoading, refetch } = useGetOrganizationPaymentMethodsQuery(organizationId, {
-    skip: !isOpen
+const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
+  isOpen,
+  onClose,
+  organizationId,
+}) => {
+  const {
+    data: paymentMethods,
+    isLoading,
+    refetch,
+  } = useGetOrganizationPaymentMethodsQuery(organizationId, {
+    skip: !isOpen,
   })
 
   const [setDefaultPaymentMethod] = useSetDefaultPaymentMethodMutation()
@@ -23,7 +40,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClo
     try {
       await setDefaultPaymentMethod({
         paymentMethodId,
-        organizationId
+        organizationId,
       }).unwrap()
 
       toast.success('Default payment method updated')
@@ -42,7 +59,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClo
     try {
       await detachPaymentMethod({
         paymentMethodId,
-        organizationId
+        organizationId,
       }).unwrap()
 
       toast.success('Payment method removed')
@@ -55,17 +72,22 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClo
 
   const handleAddPaymentMethod = () => {
     // In a real app, this would open Stripe's payment method setup
-    toast.info('Stripe payment method setup would open here')
+    toast('Stripe payment method setup would open here')
   }
 
-  if (!isOpen) return null
+  if (!isOpen) {return null}
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={onClose}
+        />
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">
+          &#8203;
+        </span>
 
         <div className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
           <div className="absolute top-0 right-0 pt-4 pr-4">
@@ -96,12 +118,14 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClo
                   </div>
                 ) : paymentMethods && paymentMethods.length > 0 ? (
                   <div className="space-y-3">
-                    {paymentMethods.map((method) => (
+                    {paymentMethods.map(method => (
                       <div
                         key={method.id}
                         className={clsx(
                           'border rounded-lg p-4',
-                          method.isDefault ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                          method.isDefault
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200'
                         )}
                       >
                         <div className="flex items-center justify-between">
@@ -115,9 +139,10 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClo
                               </p>
                               {method.cardDetails && (
                                 <p className="text-sm text-gray-500">
-                                  {method.cardDetails.brand} •••• {method.cardDetails.lastFour}
-                                  {' '}
-                                  (Expires {method.cardDetails.expMonth}/{method.cardDetails.expYear})
+                                  {method.cardDetails.brand} ••••{' '}
+                                  {method.cardDetails.lastFour} (Expires{' '}
+                                  {method.cardDetails.expMonth}/
+                                  {method.cardDetails.expYear})
                                 </p>
                               )}
                               {method.billingDetails?.email && (
@@ -159,7 +184,9 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({ isOpen, onClo
                 ) : (
                   <div className="text-center py-8">
                     <CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No payment methods</h3>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No payment methods
+                    </h3>
                     <p className="mt-1 text-sm text-gray-500">
                       Add a payment method to start making payments.
                     </p>

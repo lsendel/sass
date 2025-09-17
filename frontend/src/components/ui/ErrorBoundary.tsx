@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 interface Props {
@@ -25,7 +25,7 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     })
   }
 
@@ -47,7 +47,8 @@ class ErrorBoundary extends Component<Props, State> {
                 Something went wrong
               </h1>
               <p className="mt-2 text-sm text-gray-600">
-                We're sorry, but something unexpected happened. Please try reloading the page.
+                We&apos;re sorry, but something unexpected happened. Please try
+                reloading the page.
               </p>
             </div>
 
@@ -59,20 +60,26 @@ class ErrorBoundary extends Component<Props, State> {
                 Reload Page
               </button>
 
-              {process.env.NODE_ENV === 'development' && (
+              {import.meta.env.DEV && (
                 <details className="mt-4">
                   <summary className="text-sm text-gray-500 cursor-pointer">
                     Error Details (Development)
                   </summary>
                   <div className="mt-2 p-3 bg-gray-100 rounded text-xs text-gray-700 overflow-auto">
-                    <p><strong>Error:</strong> {this.state.error?.message}</p>
-                    <p><strong>Stack:</strong></p>
+                    <p>
+                      <strong>Error:</strong> {this.state.error?.message}
+                    </p>
+                    <p>
+                      <strong>Stack:</strong>
+                    </p>
                     <pre className="whitespace-pre-wrap">
                       {this.state.error?.stack}
                     </pre>
                     {this.state.errorInfo && (
                       <>
-                        <p className="mt-2"><strong>Component Stack:</strong></p>
+                        <p className="mt-2">
+                          <strong>Component Stack:</strong>
+                        </p>
                         <pre className="whitespace-pre-wrap">
                           {this.state.errorInfo.componentStack}
                         </pre>

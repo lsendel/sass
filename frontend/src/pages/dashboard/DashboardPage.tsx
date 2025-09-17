@@ -17,23 +17,20 @@ import { format } from 'date-fns'
 
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
-  const { data: organizations, isLoading: orgsLoading } = useGetUserOrganizationsQuery()
+  const { data: organizations, isLoading: orgsLoading } =
+    useGetUserOrganizationsQuery()
 
   // Get statistics for the first organization (primary org)
   const primaryOrg = organizations?.[0]
-  const {
-    data: paymentStats,
-    isLoading: paymentStatsLoading
-  } = useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
-    skip: !primaryOrg?.id
-  })
+  const { data: paymentStats, isLoading: paymentStatsLoading } =
+    useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
+      skip: !primaryOrg?.id,
+    })
 
-  const {
-    data: subscriptionStats,
-    isLoading: subscriptionStatsLoading
-  } = useGetSubscriptionStatisticsQuery(primaryOrg?.id || '', {
-    skip: !primaryOrg?.id
-  })
+  const { data: subscriptionStats, isLoading: subscriptionStatsLoading } =
+    useGetSubscriptionStatisticsQuery(primaryOrg?.id || '', {
+      skip: !primaryOrg?.id,
+    })
 
   if (orgsLoading) {
     return (
@@ -67,7 +64,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       name: 'Subscription Status',
-      value: subscriptionStats?.status || 'None',
+      value: String(subscriptionStats?.status ?? 'None'),
       icon: DocumentTextIcon,
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-100',
@@ -82,13 +79,13 @@ const DashboardPage: React.FC = () => {
           Welcome back, {user?.name}!
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Here's what's happening with your account today.
+          Here&apos;s what&apos;s happening with your account today.
         </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {stats.map(stat => (
           <div
             key={stat.name}
             className="relative bg-white pt-5 px-4 pb-12 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
@@ -105,7 +102,8 @@ const DashboardPage: React.FC = () => {
               <p className="text-2xl font-semibold text-gray-900">
                 {stat.name === 'Total Payments' && paymentStatsLoading ? (
                   <LoadingSpinner size="sm" />
-                ) : stat.name === 'Subscription Status' && subscriptionStatsLoading ? (
+                ) : stat.name === 'Subscription Status' &&
+                  subscriptionStatsLoading ? (
                   <LoadingSpinner size="sm" />
                 ) : (
                   stat.value
@@ -166,12 +164,19 @@ const DashboardPage: React.FC = () => {
                         <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                           <div>
                             <p className="text-sm text-gray-500">
-                              Organization <span className="font-medium text-gray-900">{primaryOrg.name}</span> created
+                              Organization{' '}
+                              <span className="font-medium text-gray-900">
+                                {primaryOrg.name}
+                              </span>{' '}
+                              created
                             </p>
                           </div>
                           <div className="text-right text-sm whitespace-nowrap text-gray-500">
                             <time dateTime={primaryOrg.createdAt}>
-                              {format(new Date(primaryOrg.createdAt), 'MMM d, yyyy')}
+                              {format(
+                                new Date(primaryOrg.createdAt),
+                                'MMM d, yyyy'
+                              )}
                             </time>
                           </div>
                         </div>
@@ -179,7 +184,7 @@ const DashboardPage: React.FC = () => {
                     </div>
                   </li>
 
-                  {subscriptionStats?.status && subscriptionStats.status !== 'None' && (
+                  {!!subscriptionStats?.status && (
                     <li>
                       <div className="relative pb-8">
                         <div className="relative flex space-x-3">
@@ -191,7 +196,10 @@ const DashboardPage: React.FC = () => {
                           <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                             <div>
                               <p className="text-sm text-gray-500">
-                                Subscription status: <span className="font-medium text-gray-900">{subscriptionStats.status}</span>
+                                Subscription status:{' '}
+                                <span className="font-medium text-gray-900">
+                                  {subscriptionStats.status}
+                                </span>
                               </p>
                             </div>
                             <div className="text-right text-sm whitespace-nowrap text-gray-500">
@@ -219,7 +227,12 @@ type QuickActionCardProps = {
   icon: React.ComponentType<{ className?: string }>
 }
 
-const QuickActionCard: React.FC<QuickActionCardProps> = ({ title, description, href, icon: Icon }) => {
+const QuickActionCard: React.FC<QuickActionCardProps> = ({
+  title,
+  description,
+  href,
+  icon: Icon,
+}) => {
   return (
     <div className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
       <div>
@@ -234,9 +247,7 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({ title, description, h
             {title}
           </a>
         </h3>
-        <p className="mt-2 text-sm text-gray-500">
-          {description}
-        </p>
+        <p className="mt-2 text-sm text-gray-500">{description}</p>
       </div>
       <span
         className="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"

@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
 export type SubscriptionStatus =
   | 'ACTIVE'
@@ -106,10 +107,13 @@ export const subscriptionApi = createApi({
     },
   }),
   tagTypes: ['Subscription', 'Plan', 'Invoice', 'SubscriptionStatistics'],
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     // Subscription endpoints
-    createSubscription: builder.mutation<Subscription, CreateSubscriptionRequest>({
-      query: (body) => ({
+    createSubscription: builder.mutation<
+      Subscription,
+      CreateSubscriptionRequest
+    >({
+      query: body => ({
         url: '/subscriptions',
         method: 'POST',
         body,
@@ -118,15 +122,18 @@ export const subscriptionApi = createApi({
     }),
 
     getOrganizationSubscription: builder.query<Subscription, string>({
-      query: (organizationId) => `/subscriptions/organizations/${organizationId}`,
-      providesTags: (result, error, organizationId) => [
-        { type: 'Subscription', id: organizationId }
+      query: organizationId => `/subscriptions/organizations/${organizationId}`,
+      providesTags: (_result, _error, organizationId) => [
+        { type: 'Subscription', id: organizationId },
       ],
     }),
 
-    changeSubscriptionPlan: builder.mutation<Subscription, {
-      subscriptionId: string
-    } & ChangePlanRequest>({
+    changeSubscriptionPlan: builder.mutation<
+      Subscription,
+      {
+        subscriptionId: string
+      } & ChangePlanRequest
+    >({
       query: ({ subscriptionId, ...body }) => ({
         url: `/subscriptions/${subscriptionId}/plan`,
         method: 'PUT',
@@ -135,9 +142,12 @@ export const subscriptionApi = createApi({
       invalidatesTags: ['Subscription', 'SubscriptionStatistics'],
     }),
 
-    cancelSubscription: builder.mutation<Subscription, {
-      subscriptionId: string
-    } & CancelSubscriptionRequest>({
+    cancelSubscription: builder.mutation<
+      Subscription,
+      {
+        subscriptionId: string
+      } & CancelSubscriptionRequest
+    >({
       query: ({ subscriptionId, ...body }) => ({
         url: `/subscriptions/${subscriptionId}/cancel`,
         method: 'POST',
@@ -146,9 +156,12 @@ export const subscriptionApi = createApi({
       invalidatesTags: ['Subscription', 'SubscriptionStatistics'],
     }),
 
-    reactivateSubscription: builder.mutation<Subscription, {
-      subscriptionId: string
-    } & ReactivateSubscriptionRequest>({
+    reactivateSubscription: builder.mutation<
+      Subscription,
+      {
+        subscriptionId: string
+      } & ReactivateSubscriptionRequest
+    >({
       query: ({ subscriptionId, ...body }) => ({
         url: `/subscriptions/${subscriptionId}/reactivate`,
         method: 'POST',
@@ -158,16 +171,18 @@ export const subscriptionApi = createApi({
     }),
 
     getSubscriptionStatistics: builder.query<SubscriptionStatistics, string>({
-      query: (organizationId) => `/subscriptions/organizations/${organizationId}/statistics`,
-      providesTags: (result, error, organizationId) => [
-        { type: 'SubscriptionStatistics', id: organizationId }
+      query: organizationId =>
+        `/subscriptions/organizations/${organizationId}/statistics`,
+      providesTags: (_result, _error, organizationId) => [
+        { type: 'SubscriptionStatistics', id: organizationId },
       ],
     }),
 
     getOrganizationInvoices: builder.query<Invoice[], string>({
-      query: (organizationId) => `/subscriptions/organizations/${organizationId}/invoices`,
-      providesTags: (result, error, organizationId) => [
-        { type: 'Invoice', id: organizationId }
+      query: organizationId =>
+        `/subscriptions/organizations/${organizationId}/invoices`,
+      providesTags: (_result, _error, organizationId) => [
+        { type: 'Invoice', id: organizationId },
       ],
     }),
 
@@ -178,13 +193,13 @@ export const subscriptionApi = createApi({
     }),
 
     getPlansByInterval: builder.query<Plan[], PlanInterval>({
-      query: (interval) => `/plans/interval/${interval}`,
+      query: interval => `/plans/interval/${interval}`,
       providesTags: ['Plan'],
     }),
 
     getPlanBySlug: builder.query<Plan, string>({
-      query: (slug) => `/plans/slug/${slug}`,
-      providesTags: (result) => result ? [{ type: 'Plan', id: result.id }] : [],
+      query: slug => `/plans/slug/${slug}`,
+      providesTags: result => (result ? [{ type: 'Plan', id: result.id }] : []),
     }),
   }),
 })

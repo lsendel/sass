@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Constitutional End-to-End Tests - RED Phase (Must Fail Initially)
 Tests complete constitutional compliance workflows from user request to production deployment.

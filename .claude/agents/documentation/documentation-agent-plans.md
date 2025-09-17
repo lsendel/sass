@@ -1,3 +1,17 @@
+---
+name: "Documentation Agent Plans"
+model: "claude-haiku"
+description: "Plans and options for documentation agent implementations"
+triggers:
+  - "documentation plans"
+  - "docs agent"
+tools:
+  - Read
+  - Grep
+context_files:
+  - ".claude/context/project-constitution.md"
+---
+
 # Documentation Agent - Implementation Plans Analysis
 
 ## Current Gap Analysis

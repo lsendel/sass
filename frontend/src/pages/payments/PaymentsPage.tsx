@@ -1,39 +1,39 @@
 import React, { useState } from 'react'
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
-import { useGetOrganizationPaymentsQuery, useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
+import {
+  useGetOrganizationPaymentsQuery,
+  useGetPaymentStatisticsQuery,
+} from '../../store/api/paymentApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import PaymentMethodsModal from '../../components/payments/PaymentMethodsModal'
 import {
   CreditCardIcon,
-  ChartBarIcon,
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
-  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
 
 const PaymentsPage: React.FC = () => {
   const [showPaymentMethods, setShowPaymentMethods] = useState(false)
-  const { data: organizations, isLoading: orgsLoading } = useGetUserOrganizationsQuery()
+  const { data: organizations, isLoading: orgsLoading } =
+    useGetUserOrganizationsQuery()
 
   // Get the primary organization
   const primaryOrg = organizations?.[0]
 
-  const {
-    data: payments,
-    isLoading: paymentsLoading
-  } = useGetOrganizationPaymentsQuery(primaryOrg?.id || '', {
-    skip: !primaryOrg?.id
-  })
+  const { data: payments, isLoading: paymentsLoading } =
+    useGetOrganizationPaymentsQuery(primaryOrg?.id || '', {
+      skip: !primaryOrg?.id,
+    })
 
-  const {
-    data: statistics,
-    isLoading: statsLoading
-  } = useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
-    skip: !primaryOrg?.id
-  })
+  const { data: statistics } = useGetPaymentStatisticsQuery(
+    primaryOrg?.id || '',
+    {
+      skip: !primaryOrg?.id,
+    }
+  )
 
   if (orgsLoading || paymentsLoading) {
     return (
@@ -47,7 +47,9 @@ const PaymentsPage: React.FC = () => {
     return (
       <div className="text-center py-12">
         <CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No organization found</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          No organization found
+        </h3>
         <p className="mt-1 text-sm text-gray-500">
           Please create an organization first to manage payments.
         </p>
@@ -79,10 +81,13 @@ const PaymentsPage: React.FC = () => {
     }
 
     return (
-      <span className={clsx(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'
-      )}>
+      <span
+        className={clsx(
+          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+          statusStyles[status as keyof typeof statusStyles] ||
+            'bg-gray-100 text-gray-800'
+        )}
+      >
         {status}
       </span>
     )
@@ -181,7 +186,7 @@ const PaymentsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment) => (
+                {payments.map(payment => (
                   <tr key={payment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {format(new Date(payment.createdAt), 'MMM d, yyyy')}
@@ -190,7 +195,8 @@ const PaymentsPage: React.FC = () => {
                       {payment.description || 'Payment'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${payment.amount.toFixed(2)} {payment.currency.toUpperCase()}
+                      ${payment.amount.toFixed(2)}{' '}
+                      {payment.currency.toUpperCase()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -211,7 +217,9 @@ const PaymentsPage: React.FC = () => {
         ) : (
           <div className="text-center py-12">
             <CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No payments yet</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              No payments yet
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
               Your payment history will appear here once you make a payment.
             </p>

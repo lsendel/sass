@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { setCredentials, setError, selectIsAuthenticated } from '../../store/slices/authSlice'
+import {
+  setCredentials,
+  setError,
+  selectIsAuthenticated,
+} from '../../store/slices/authSlice'
 import { useHandleCallbackMutation } from '../../store/api/authApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { parseApiError } from '../../utils/apiError'
 
 const CallbackPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -38,17 +43,24 @@ const CallbackPage: React.FC = () => {
 
       try {
         // Exchange code for user session
-        const result = await handleCallback({ code, state: state || undefined }).unwrap()
+        const result = await handleCallback({
+          code,
+          state: state || undefined,
+        }).unwrap()
 
         // Store token and set credentials
         localStorage.setItem('auth-token', result.token)
-        dispatch(setCredentials({
-          user: result.user,
-          token: result.token,
-        }))
-      } catch (err: any) {
-        console.error('Callback processing failed:', err)
-        const message = err?.data?.message || 'Authentication failed. Please try again.'
+        dispatch(
+          setCredentials({
+            user: result.user,
+            token: result.token,
+          })
+        )
+      } catch (err) {
+        const parsed = parseApiError(err)
+        console.error('Callback processing failed:', parsed)
+        const message =
+          parsed.message || 'Authentication failed. Please try again.'
         setLocalError(message)
         dispatch(setError(message))
       }
@@ -78,14 +90,12 @@ const CallbackPage: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">
                 Authentication Failed
               </h3>
-              <p className="mt-2 text-sm text-gray-600">
-                {error}
-              </p>
+              <p className="mt-2 text-sm text-gray-600">{error}</p>
             </div>
 
             <div className="mt-6">
               <button
-                onClick={() => window.location.href = '/auth/login'}
+                onClick={() => (window.location.href = '/auth/login')}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 Try Again

@@ -2,7 +2,11 @@ import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAppDispatch, useAppSelector } from './store/hooks'
-import { setCredentials, selectIsAuthenticated, selectAuthLoading } from './store/slices/authSlice'
+import {
+  setCredentials,
+  selectIsAuthenticated,
+  selectAuthLoading,
+} from './store/slices/authSlice'
 import { useGetSessionQuery } from './store/api/authApi'
 import AuthLayout from './components/layouts/AuthLayout'
 import DashboardLayout from './components/layouts/DashboardLayout'
@@ -23,16 +27,18 @@ const AppContent: React.FC = () => {
   const authLoading = useAppSelector(selectAuthLoading)
 
   // Try to restore session on app load
-  const { data: sessionData, error: sessionError } = useGetSessionQuery(undefined, {
+  const { data: sessionData } = useGetSessionQuery(undefined, {
     skip: isAuthenticated,
   })
 
   useEffect(() => {
     if (sessionData) {
-      dispatch(setCredentials({
-        user: sessionData.user,
-        token: localStorage.getItem('auth-token') || '',
-      }))
+      dispatch(
+        setCredentials({
+          user: sessionData.user,
+          token: localStorage.getItem('auth-token') || '',
+        })
+      )
     }
   }, [sessionData, dispatch])
 
@@ -79,7 +85,7 @@ const AppContent: React.FC = () => {
         path="*"
         element={
           <Navigate
-            to={isAuthenticated ? "/dashboard" : "/auth/login"}
+            to={isAuthenticated ? '/dashboard' : '/auth/login'}
             replace
           />
         }
@@ -102,7 +108,8 @@ const App: React.FC = () => {
               color: '#374151',
               border: '1px solid #e5e7eb',
               borderRadius: '0.5rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              boxShadow:
+                '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
             },
             success: {
               iconTheme: {

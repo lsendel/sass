@@ -25,9 +25,7 @@ const AuthLayout: React.FC = () => {
       </div>
 
       <footer className="mt-8 text-center text-xs text-gray-500">
-        <p>
-          &copy; 2024 Payment Platform. All rights reserved.
-        </p>
+        <p>&copy; 2024 Payment Platform. All rights reserved.</p>
       </footer>
     </div>
   )

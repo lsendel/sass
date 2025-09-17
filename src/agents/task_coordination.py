@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from enum import Enum
 import logging
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -37,14 +37,8 @@ class AgentTask:
     agent: str
     task: str
     priority: int = 0
-    dependencies: List[str] = None
-    context: Dict[str, Any] = None
-
-    def __post_init__(self):
-        if self.dependencies is None:
-            self.dependencies = []
-        if self.context is None:
-            self.context = {}
+    dependencies: List[str] = field(default_factory=list)
+    context: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -54,11 +48,7 @@ class CoordinationResult:
     agent_results: Dict[str, Any]
     execution_order: List[str]
     constitutional_compliant: bool
-    errors: List[str] = None
-
-    def __post_init__(self):
-        if self.errors is None:
-            self.errors = []
+    errors: List[str] = field(default_factory=list)
 
 
 class TaskCoordinationAgent:

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import path from 'path'
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -15,9 +16,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['html', { outputFolder: path.join('test-results', 'report'), open: 'never' }],
+    ['json', { outputFile: path.join('test-results', 'results.json') }],
+    ['junit', { outputFile: path.join('test-results', 'results.xml') }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -25,14 +26,22 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    // Always collect trace for evidence
+    trace: 'on',
 
     /* Take screenshot on failure */
-    screenshot: 'only-on-failure',
+    // Always capture end-of-test screenshots
+    screenshot: 'on',
 
     /* Record video on failure */
-    video: 'retain-on-failure',
+    // Record video for every test
+    video: 'on',
+
+    // Note: reporters above handle their own output locations
   },
+
+  // Global output directory for attachments (screenshots, videos, traces)
+  outputDir: path.join('test-results', 'evidence'),
 
   /* Configure projects for major browsers */
   projects: [

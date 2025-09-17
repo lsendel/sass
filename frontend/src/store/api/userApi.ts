@@ -2,7 +2,8 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
 import type { User } from '../slices/authSlice'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
 export type UpdateProfileRequest = {
   name: string
@@ -42,19 +43,19 @@ export const userApi = createApi({
     },
   }),
   tagTypes: ['User', 'UserProfile'],
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getCurrentUser: builder.query<User, void>({
       query: () => '/me',
       providesTags: ['UserProfile'],
     }),
 
     getUserById: builder.query<User, string>({
-      query: (userId) => `/${userId}`,
-      providesTags: (result, error, userId) => [{ type: 'User', id: userId }],
+      query: userId => `/${userId}`,
+      providesTags: (_result, _error, userId) => [{ type: 'User', id: userId }],
     }),
 
     updateProfile: builder.mutation<User, UpdateProfileRequest>({
-      query: (body) => ({
+      query: body => ({
         url: '/me/profile',
         method: 'PUT',
         body,
@@ -63,7 +64,7 @@ export const userApi = createApi({
     }),
 
     updatePreferences: builder.mutation<User, UpdatePreferencesRequest>({
-      query: (body) => ({
+      query: body => ({
         url: '/me/preferences',
         method: 'PUT',
         body,
@@ -80,20 +81,28 @@ export const userApi = createApi({
     }),
 
     searchUsers: builder.query<User[], string>({
-      query: (name) => ({
+      query: name => ({
         url: '/search',
         params: { name },
       }),
       providesTags: ['User'],
     }),
 
-    getAllUsers: builder.query<PagedUserResponse, {
-      page?: number
-      size?: number
-      sortBy?: string
-      sortDirection?: 'asc' | 'desc'
-    }>({
-      query: ({ page = 0, size = 20, sortBy = 'createdAt', sortDirection = 'desc' }) => ({
+    getAllUsers: builder.query<
+      PagedUserResponse,
+      {
+        page?: number
+        size?: number
+        sortBy?: string
+        sortDirection?: 'asc' | 'desc'
+      }
+    >({
+      query: ({
+        page = 0,
+        size = 20,
+        sortBy = 'createdAt',
+        sortDirection = 'desc',
+      }) => ({
         url: '',
         params: { page, size, sortBy, sortDirection },
       }),
@@ -101,7 +110,7 @@ export const userApi = createApi({
     }),
 
     getRecentUsers: builder.query<User[], string>({
-      query: (since) => ({
+      query: since => ({
         url: '/recent',
         params: { since },
       }),
@@ -119,12 +128,12 @@ export const userApi = createApi({
     }),
 
     getUsersByProvider: builder.query<User[], string>({
-      query: (provider) => `/providers/${provider}`,
+      query: provider => `/providers/${provider}`,
       providesTags: ['User'],
     }),
 
     restoreUser: builder.mutation<User, string>({
-      query: (userId) => ({
+      query: userId => ({
         url: `/${userId}/restore`,
         method: 'POST',
       }),

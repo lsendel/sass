@@ -1,32 +1,27 @@
 import React, { useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { useGetUserOrganizationsQuery, useGetOrganizationMembersQuery, useUpdateOrganizationMutation, useInviteUserMutation, useRemoveMemberMutation } from '../../store/api/organizationApi'
+import {
+  useGetUserOrganizationsQuery,
+  useGetOrganizationMembersQuery,
+  useInviteUserMutation,
+  useRemoveMemberMutation,
+} from '../../store/api/organizationApi'
 import { useGetOrganizationSubscriptionQuery } from '../../store/api/subscriptionApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import CreateOrganizationModal from '../../components/organizations/CreateOrganizationModal'
-import {
-  BuildingOfficeIcon,
-  UserPlusIcon,
-  Cog6ToothIcon,
-  UsersIcon,
-  EnvelopeIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  CheckIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline'
+import { UserPlusIcon, UsersIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
 import { clsx } from 'clsx'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { parseApiError } from '../../utils/apiError'
 
 const inviteMemberSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   role: z.enum(['OWNER', 'ADMIN', 'MEMBER'], {
-    required_error: 'Please select a role',
+    message: 'Please select a role',
   }),
 })
 
@@ -36,26 +31,28 @@ const OrganizationPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showInviteForm, setShowInviteForm] = useState(false)
-  const [editingOrg, setEditingOrg] = useState(false)
+  // const [editingOrg, setEditingOrg] = useState(false)
 
-  const { data: organizations, isLoading: orgsLoading } = useGetUserOrganizationsQuery()
+  const { data: organizations, isLoading: orgsLoading } =
+    useGetUserOrganizationsQuery()
   const organization = organizations?.find(org => org.slug === slug)
 
   const {
     data: members,
     isLoading: membersLoading,
-    refetch: refetchMembers
+    refetch: refetchMembers,
   } = useGetOrganizationMembersQuery(organization?.id || '', {
-    skip: !organization?.id
+    skip: !organization?.id,
   })
 
-  const {
-    data: subscription
-  } = useGetOrganizationSubscriptionQuery(organization?.id || '', {
-    skip: !organization?.id
-  })
+  const { data: subscription } = useGetOrganizationSubscriptionQuery(
+    organization?.id || '',
+    {
+      skip: !organization?.id,
+    }
+  )
 
-  const [updateOrganization, { isLoading: isUpdating }] = useUpdateOrganizationMutation()
+  // const [updateOrganization, { isLoading: isUpdating }] = useUpdateOrganizationMutation()
   const [inviteUser, { isLoading: isInviting }] = useInviteUserMutation()
   const [removeMember] = useRemoveMemberMutation()
 
@@ -96,28 +93,34 @@ const OrganizationPage: React.FC = () => {
       reset()
       setShowInviteForm(false)
       refetchMembers()
-    } catch (error: any) {
-      console.error('Failed to invite member:', error)
-      toast.error(error?.data?.message || 'Failed to send invitation')
+    } catch (err) {
+      const parsed = parseApiError(err)
+      console.error('Failed to invite member:', parsed)
+      toast.error(parsed.message || 'Failed to send invitation')
     }
   }
 
-  const handleRemoveMember = async (memberId: string, memberEmail: string) => {
-    if (!confirm(`Are you sure you want to remove ${memberEmail} from this organization?`)) {
+  const handleRemoveMember = async (userId: string, memberEmail: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to remove ${memberEmail} from this organization?`
+      )
+    ) {
       return
     }
 
     try {
       await removeMember({
         organizationId: organization.id,
-        memberId,
+        userId,
       }).unwrap()
 
       toast.success('Member removed successfully')
       refetchMembers()
-    } catch (error: any) {
-      console.error('Failed to remove member:', error)
-      toast.error(error?.data?.message || 'Failed to remove member')
+    } catch (err) {
+      const parsed = parseApiError(err)
+      console.error('Failed to remove member:', parsed)
+      toast.error(parsed.message || 'Failed to remove member')
     }
   }
 
@@ -129,31 +132,19 @@ const OrganizationPage: React.FC = () => {
     }
 
     return (
-      <span className={clsx(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        roleStyles[role as keyof typeof roleStyles] || 'bg-gray-100 text-gray-800'
-      )}>
+      <span
+        className={clsx(
+          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+          roleStyles[role as keyof typeof roleStyles] ||
+            'bg-gray-100 text-gray-800'
+        )}
+      >
         {role}
       </span>
     )
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusStyles = {
-      ACTIVE: 'bg-green-100 text-green-800',
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      INACTIVE: 'bg-gray-100 text-gray-800',
-    }
-
-    return (
-      <span className={clsx(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'
-      )}>
-        {status}
-      </span>
-    )
-  }
+  // Status badge omitted; OrganizationMemberInfo does not include status
 
   return (
     <div className="space-y-6">
@@ -203,35 +194,45 @@ const OrganizationPage: React.FC = () => {
                 {organization.slug}
               </dd>
             </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Status</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {getStatusBadge(organization.status)}
-              </dd>
-            </div>
+            {/* Status not available on Organization type; omit display or derive if available */}
             <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500">Created</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {format(new Date(organization.createdAt), 'MMM d, yyyy')}
               </dd>
             </div>
-            {organization.settings?.description && (
+            {(
+              (organization.settings as { description?: string } | undefined)
+                ?.description
+            ) && (
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Description</dt>
+                <dt className="text-sm font-medium text-gray-500">
+                  Description
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {organization.settings.description}
+                  {
+                    (
+                      organization.settings as { description?: string }
+                    ).description as string
+                  }
                 </dd>
               </div>
             )}
             {subscription && (
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Subscription</dt>
+                <dt className="text-sm font-medium text-gray-500">
+                  Subscription
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Active
                   </span>
                   <span className="ml-2 text-sm text-gray-500">
-                    Next billing: {format(new Date(subscription.currentPeriodEnd), 'MMM d, yyyy')}
+                    Next billing:{' '}
+                    {format(
+                      new Date(subscription.currentPeriodEnd),
+                      'MMM d, yyyy'
+                    )}
                   </span>
                 </dd>
               </div>
@@ -262,43 +263,40 @@ const OrganizationPage: React.FC = () => {
           </div>
         ) : members && members.length > 0 ? (
           <ul className="divide-y divide-gray-200">
-            {members.map((member) => (
-              <li key={member.id} className="px-4 py-4 sm:px-6">
+            {members.map(member => (
+              <li key={member.userId} className="px-4 py-4 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-700">
-                          {member.user?.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
+                          {(member.userName || member.userEmail)
+                            .charAt(0)
+                            .toUpperCase()}
                         </span>
                       </div>
                     </div>
                     <div className="ml-4">
                       <div className="flex items-center">
                         <p className="text-sm font-medium text-gray-900">
-                          {member.user?.name || member.email}
+                          {member.userName || member.userEmail}
                         </p>
-                        <div className="ml-2">
-                          {getRoleBadge(member.role)}
-                        </div>
+                        <div className="ml-2">{getRoleBadge(member.role)}</div>
                       </div>
                       <div className="flex items-center mt-1">
-                        <p className="text-sm text-gray-500">{member.email}</p>
-                        <div className="ml-2">
-                          {getStatusBadge(member.status)}
-                        </div>
-                      </div>
-                      {member.invitedAt && member.status === 'PENDING' && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Invited {format(new Date(member.invitedAt), 'MMM d, yyyy')}
+                        <p className="text-sm text-gray-500">
+                          {member.userEmail}
                         </p>
-                      )}
+                      </div>
+                      {/* No status/invitedAt on OrganizationMemberInfo; omit */}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     {member.role !== 'OWNER' && (
                       <button
-                        onClick={() => handleRemoveMember(member.id, member.email)}
+                        onClick={() =>
+                          handleRemoveMember(member.userId, member.userEmail)
+                        }
                         className="text-red-600 hover:text-red-500"
                       >
                         <TrashIcon className="h-5 w-5" />
@@ -312,7 +310,9 @@ const OrganizationPage: React.FC = () => {
         ) : (
           <div className="text-center py-12">
             <UsersIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No members</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              No members
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
               Start by inviting team members to this organization.
             </p>
@@ -330,9 +330,15 @@ const OrganizationPage: React.FC = () => {
             <div className="mt-2 max-w-xl text-sm text-gray-500">
               <p>Send an invitation to join this organization.</p>
             </div>
-            <form onSubmit={handleSubmit(handleInviteMember)} className="mt-5 space-y-4">
+            <form
+              onSubmit={handleSubmit(handleInviteMember)}
+              className="mt-5 space-y-4"
+            >
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Email address
                 </label>
                 <div className="mt-1">
@@ -344,12 +350,17 @@ const OrganizationPage: React.FC = () => {
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-2 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="role"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Role
                 </label>
                 <div className="mt-1">
@@ -364,7 +375,9 @@ const OrganizationPage: React.FC = () => {
                   </select>
                 </div>
                 {errors.role && (
-                  <p className="mt-2 text-sm text-red-600">{errors.role.message}</p>
+                  <p className="mt-2 text-sm text-red-600">
+                    {errors.role.message}
+                  </p>
                 )}
               </div>
 

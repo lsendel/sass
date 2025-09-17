@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { loginAsUser, mockApiError, waitForToast, checkBasicAccessibility } from './utils/test-utils'
+import { test, expect } from './fixtures'
+import { loginAsUser, mockApiError, checkBasicAccessibility } from './utils/test-utils'
 
 test.describe('Complete User Journey', () => {
   test('should complete full user onboarding and subscription flow', async ({ page }) => {

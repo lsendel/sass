@@ -1,6 +1,10 @@
 import React, { useState } from 'react'
-import { useGetCurrentUserQuery, useUpdateProfileMutation } from '../../store/api/userApi'
+import {
+  useGetCurrentUserQuery,
+  useUpdateProfileMutation,
+} from '../../store/api/userApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { parseApiError } from '../../utils/apiError'
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -15,15 +19,20 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 const profileSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be less than 100 characters'),
   email: z.string().email('Please enter a valid email address'),
   timezone: z.string().optional(),
   language: z.string().optional(),
-  notifications: z.object({
-    email: z.boolean(),
-    push: z.boolean(),
-    sms: z.boolean(),
-  }).optional(),
+  notifications: z
+    .object({
+      email: z.boolean(),
+      push: z.boolean(),
+      sms: z.boolean(),
+    })
+    .optional(),
 })
 
 type ProfileForm = z.infer<typeof profileSchema>
@@ -37,20 +46,27 @@ const SettingsPage: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    values: profile ? {
-      name: profile.name || '',
-      email: profile.email || '',
-      timezone: profile.preferences?.timezone || 'UTC',
-      language: profile.preferences?.language || 'en',
-      notifications: {
-        email: profile.preferences?.notifications?.email ?? true,
-        push: profile.preferences?.notifications?.push ?? true,
-        sms: profile.preferences?.notifications?.sms ?? false,
-      },
-    } : undefined,
+    values: profile
+      ? (() => {
+          const prefs = (profile.preferences ?? {}) as Record<string, unknown>
+          const notif = (prefs['notifications'] as
+            | Record<string, unknown>
+            | undefined) ?? {}
+          return {
+            name: profile.name || '',
+            email: profile.email || '',
+            timezone: String(prefs['timezone'] ?? 'UTC'),
+            language: String(prefs['language'] ?? 'en'),
+            notifications: {
+              email: Boolean(notif['email'] ?? true),
+              push: Boolean(notif['push'] ?? true),
+              sms: Boolean(notif['sms'] ?? false),
+            },
+          }
+        })()
+      : undefined,
   })
 
   if (isLoading) {
@@ -77,9 +93,10 @@ const SettingsPage: React.FC = () => {
       }).unwrap()
 
       toast.success('Profile updated successfully')
-    } catch (error: any) {
-      console.error('Failed to update profile:', error)
-      toast.error(error?.data?.message || 'Failed to update profile')
+    } catch (err) {
+      const parsed = parseApiError(err)
+      console.error('Failed to update profile:', parsed)
+      toast.error(parsed.message || 'Failed to update profile')
     }
   }
 
@@ -108,7 +125,7 @@ const SettingsPage: React.FC = () => {
         {/* Tabs */}
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-            {tabs.map((tab) => {
+            {tabs.map(tab => {
               const Icon = tab.icon
               return (
                 <button
@@ -143,7 +160,10 @@ const SettingsPage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Full Name
                   </label>
                   <div className="mt-1">
@@ -155,12 +175,17 @@ const SettingsPage: React.FC = () => {
                     />
                   </div>
                   {errors.name && (
-                    <p className="mt-2 text-sm text-red-600">{errors.name.message}</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Email Address
                   </label>
                   <div className="mt-1">
@@ -173,12 +198,16 @@ const SettingsPage: React.FC = () => {
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500">
-                    Email cannot be changed. Contact support if you need to update it.
+                    Email cannot be changed. Contact support if you need to
+                    update it.
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="timezone"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Timezone
                   </label>
                   <div className="mt-1">
@@ -199,7 +228,10 @@ const SettingsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="language" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="language"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Language
                   </label>
                   <div className="mt-1">
@@ -244,7 +276,10 @@ const SettingsPage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <label htmlFor="email-notifications" className="text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="email-notifications"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Email Notifications
                       </label>
                       <p className="text-sm text-gray-500">
@@ -260,7 +295,10 @@ const SettingsPage: React.FC = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <label htmlFor="push-notifications" className="text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="push-notifications"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Push Notifications
                       </label>
                       <p className="text-sm text-gray-500">
@@ -276,7 +314,10 @@ const SettingsPage: React.FC = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <label htmlFor="sms-notifications" className="text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="sms-notifications"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         SMS Notifications
                       </label>
                       <p className="text-sm text-gray-500">
@@ -324,7 +365,8 @@ const SettingsPage: React.FC = () => {
                         OAuth Authentication
                       </h4>
                       <p className="text-sm text-gray-500">
-                        You're signed in with OAuth. Manage your authentication providers in your OAuth provider settings.
+                        You&apos;re signed in with OAuth. Manage your authentication
+                        providers in your OAuth provider settings.
                       </p>
                     </div>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -388,7 +430,8 @@ const SettingsPage: React.FC = () => {
                         Delete Account
                       </h4>
                       <p className="text-sm text-red-700">
-                        Permanently delete your account and all associated data. This action cannot be undone.
+                        Permanently delete your account and all associated data.
+                        This action cannot be undone.
                       </p>
                     </div>
                     <button className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
