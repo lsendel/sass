@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
 
 export type SubscriptionStatus =
   | 'ACTIVE'

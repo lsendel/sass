@@ -40,9 +40,6 @@ Create `.env.production` file with the following variables:
 POSTGRES_PASSWORD=your_secure_db_password
 REDIS_PASSWORD=your_secure_redis_password
 
-# Security
-JWT_SECRET=your_256_bit_jwt_secret
-
 # Stripe
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...

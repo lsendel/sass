@@ -12,28 +12,28 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface OAuth2ProviderRepository extends JpaRepository<OAuth2Provider, Long> {
 
-  /** Find a provider by its name (registration ID) */
-  Optional<OAuth2Provider> findByName(String name);
+    /** Find a provider by its name (registration ID) */
+    Optional<OAuth2Provider> findByName(String name);
 
-  /** Find a provider by name if it's enabled */
-  Optional<OAuth2Provider> findByNameAndEnabledTrue(String name);
+    /** Find a provider by name if it's enabled */
+    Optional<OAuth2Provider> findByNameAndEnabledTrue(String name);
 
-  /** Find all enabled providers ordered by sort order */
-  List<OAuth2Provider> findByEnabledTrueOrderBySortOrderAscNameAsc();
+    /** Find all enabled providers ordered by sort order */
+    List<OAuth2Provider> findByEnabledTrueOrderBySortOrderAscNameAsc();
 
-  /** Check if a provider exists and is enabled */
-  boolean existsByNameAndEnabledTrue(String name);
+    /** Check if a provider exists and is enabled */
+    boolean existsByNameAndEnabledTrue(String name);
 
-  /** Count enabled providers */
-  long countByEnabledTrue();
+    /** Count enabled providers */
+    long countByEnabledTrue();
 
-  /** Find providers by client ID */
-  Optional<OAuth2Provider> findByClientId(String clientId);
+    /** Find providers by client ID */
+    Optional<OAuth2Provider> findByClientId(String clientId);
 
-  /** Find all providers that have a specific scope */
-  @Query("SELECT DISTINCT p FROM OAuth2Provider p JOIN p.scopes s WHERE s = :scope")
-  List<OAuth2Provider> findByScope(@Param("scope") String scope);
+    /** Find all providers that have a specific scope */
+    @Query("SELECT DISTINCT p FROM OAuth2Provider p JOIN p.scopes s WHERE s = :scope")
+    List<OAuth2Provider> findByScope(@Param("scope") String scope);
 
-  /** Find all providers ordered by sort order */
-  List<OAuth2Provider> findAllByOrderBySortOrderAscNameAsc();
+    /** Find all providers ordered by sort order */
+    List<OAuth2Provider> findAllByOrderBySortOrderAscNameAsc();
 }

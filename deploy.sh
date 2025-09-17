@@ -143,7 +143,7 @@ fi
 print_status "Running pre-deployment checks..."
 
 # Check if required environment variables are set
-required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "STRIPE_SECRET_KEY" "JWT_SECRET")
+required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "STRIPE_SECRET_KEY")
 for var in "${required_vars[@]}"; do
     if [ -z "${!var}" ]; then
         print_error "Required environment variable $var is not set"

@@ -54,6 +54,13 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
       - name: Cache Gradle packages
         uses: actions/cache@v4
         with:
@@ -86,6 +93,14 @@ jobs:
           SPRING_REDIS_PORT: 6379
         run: |
           ./gradlew clean test jacocoTestReport checkstyleMain checkstyleTest
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend unit tests with coverage
+        working-directory: ./frontend
+        run: npm run test:coverage
 
       - name: SonarQube analysis
         working-directory: ./backend

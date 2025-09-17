@@ -5,7 +5,6 @@ plugins {
     id 'checkstyle'
     id 'jacoco'
     id 'org.sonarqube' version '4.4.1.3373'
-    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.platform'
@@ -92,6 +91,25 @@ jacocoTestReport {
     }
 }
 
+// Enforce minimum coverage (lines >= 80%)
+jacocoTestCoverageVerification {
+    dependsOn test
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
+}
+
 checkstyle {
     toolVersion = '10.20.1'
     configFile = file("config/checkstyle/checkstyle.xml")
@@ -105,15 +123,6 @@ checkstyleTest {
     source = 'src/test/java'
 }
 
-spotless {
-    java {
-        target 'src/**/*.java'
-        googleJavaFormat('1.17.0')
-        toggleOffOn()
-        importOrder('java', 'javax', 'jakarta', 'org', 'com')
-        removeUnusedImports()
-    }
-}
 
 sonar {
     properties {

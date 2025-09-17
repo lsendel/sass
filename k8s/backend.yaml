@@ -58,11 +58,6 @@ spec:
             configMapKeyRef:
               name: payment-platform-config
               key: SERVER_PORT
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: payment-platform-secrets
-              key: JWT_SECRET
         - name: STRIPE_SECRET_KEY
           valueFrom:
             secretKeyRef:
