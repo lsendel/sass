@@ -1,7 +1,15 @@
+# ==============================================
+# Project-wide .gitignore for Spring Boot Modulith Payment Platform
+# ==============================================
+
 ### IntelliJ IDEA ###
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+*.iml
+*.ipr
+*.iws
+.idea/
 
 ### Eclipse ###
 .apt_generated
@@ -24,23 +32,134 @@ bin/
 
 ### VS Code ###
 .vscode/
+*.code-workspace
 
 ### Mac OS ###
 .DS_Store
-
-### General ###
-*.iml
-.idea/
+Thumbs.db
+Desktop.ini
 
 ### Backend (Gradle / Spring) ###
 backend/build/
 backend/.gradle/
+backend/bin/
+backend/out/
+backend/target/
+backend/*.jar
+backend/*.war
+backend/*.log
+backend/logs/
+backend/test-results/
+backend/test-output/
+backend/jacoco/
+backend/reports/
 
 ### Frontend (Node / Vite) ###
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+frontend/.vite/
+frontend/*.local
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+frontend/playwright/.cache/
+frontend/.nyc_output/
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+
+# Frontend evidence and test artifacts
+frontend/evidence-*.png
+frontend/*.screenshot.png
+frontend/test-evidence/
+frontend/**/evidence/
+frontend/*.cjs
+frontend/demo-*.js
+frontend/show-*.js
+frontend/validate-*.js
+frontend/test-*.js
+frontend/debug-*.js
+frontend/navigate-*.js
+frontend/working-*.js
+frontend/final-*.js
+frontend/*.png
+frontend/*.jpg
+!frontend/public/*.png
+!frontend/public/*.jpg
+!frontend/src/assets/*.png
+!frontend/src/assets/*.jpg
+
+### Documentation ###
+docs/node_modules/
+docs/.docusaurus/
+docs/build/
+docs/.cache-loader/
+
+### Kubernetes ###
+k8s/**/*.backup
+k8s/**/*.tmp
+k8s/secrets/
+k8s/local-values.yaml
 
 ### Python ###
 __pycache__/
 .pytest_cache/
 .venv/
+
+### Environment Files ###
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+### Archives ###
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+### Temporary Files ###
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.tmp/
+.temp/
+tmp/
+temp/
+
+### Cache Files ###
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.cache/
+
+### Logs ###
+*.log
+logs/
+*.log.*
+
+### Certificates ###
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+### Database Files ###
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+
+### Backup Files ###
+*.backup
+*.bak
+*.old
