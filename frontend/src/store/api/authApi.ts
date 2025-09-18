@@ -29,6 +29,7 @@ export type LoginRequest = {
 export type PasswordLoginRequest = {
   email: string
   password: string
+  organizationId: string
 }
 
 export type PasswordRegisterRequest = {
@@ -66,7 +67,7 @@ export const authApi = createApi({
       PasswordLoginRequest
     >({
       query: credentials => ({
-        url: '/password/login',
+        url: '/mock-login',
         method: 'POST',
         body: credentials,
       }),
@@ -78,7 +79,7 @@ export const authApi = createApi({
       PasswordRegisterRequest
     >({
       query: userData => ({
-        url: '/password/register',
+        url: '/register',
         method: 'POST',
         body: userData,
       }),

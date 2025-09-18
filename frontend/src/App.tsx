@@ -11,6 +11,7 @@ import { useGetSessionQuery } from './store/api/authApi'
 import AuthLayout from './components/layouts/AuthLayout'
 import DashboardLayout from './components/layouts/DashboardLayout'
 import LoginPage from './pages/auth/LoginPage'
+import MockLoginPage from './pages/auth/MockLoginPage'
 import CallbackPage from './pages/auth/CallbackPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import OrganizationsPage from './pages/organizations/OrganizationsPage'
@@ -54,7 +55,7 @@ const AppContent: React.FC = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/auth" element={<AuthLayout />}>
-        <Route path="login" element={<LoginPage />} />
+        <Route path="login" element={<MockLoginPage />} />
         <Route path="callback" element={<CallbackPage />} />
         <Route index element={<Navigate to="/auth/login" replace />} />
       </Route>

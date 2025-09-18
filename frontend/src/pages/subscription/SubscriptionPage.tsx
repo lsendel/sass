@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
-import {
 import { logger } from '../../utils/logger'
+import {
   useGetOrganizationSubscriptionQuery,
   useGetAvailablePlansQuery,
   useCancelSubscriptionMutation,

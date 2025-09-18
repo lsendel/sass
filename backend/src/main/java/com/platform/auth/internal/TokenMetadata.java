@@ -31,6 +31,14 @@ import org.hibernate.annotations.UuidGenerator;
         })
 public class TokenMetadata {
 
+    private static final long SECONDS_PER_MINUTE = 60L;
+    private static final long MINUTES_PER_HOUR = 60L;
+    private static final long HOURS_PER_DAY = 24L;
+    private static final long STALE_DAYS = 30L;
+    private static final long EXPIRY_SOON_WINDOW_SECONDS = 5L * SECONDS_PER_MINUTE;
+    private static final long STALE_THRESHOLD_SECONDS =
+            STALE_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE;
+
     @Id
     @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false)
@@ -109,18 +117,22 @@ public class TokenMetadata {
     }
 
     // Business methods
+    /** Returns true if the token is expired at the current time. */
     public boolean isExpired() {
         return Instant.now().isAfter(expiresAt);
     }
 
+    /** Returns true if the token is still valid (not expired). */
     public boolean isValid() {
         return !isExpired();
     }
 
+    /** Updates the last-used timestamp to the current instant. */
     public void updateLastUsed() {
         this.lastUsed = Instant.now();
     }
 
+    /** Extends the expiration timestamp; must be in the future. */
     public void extendExpiration(final Instant newExpiresAt) {
         if (newExpiresAt.isBefore(Instant.now())) {
             throw new IllegalArgumentException("New expiration time cannot be in the past");
@@ -128,21 +140,25 @@ public class TokenMetadata {
         this.expiresAt = newExpiresAt;
     }
 
+    /** Immediately revokes the token by setting expiration to now. */
     public void revoke() {
         this.expiresAt = Instant.now();
     }
 
+    /** Indicates whether the token will expire within the next five minutes. */
     public boolean willExpireSoon() {
-        return expiresAt.isBefore(Instant.now().plusSeconds(300)); // 5 minutes
+        return expiresAt.isBefore(Instant.now().plusSeconds(EXPIRY_SOON_WINDOW_SECONDS));
     }
 
     // Metadata helper methods
+    /** Adds or replaces a metadata entry (immutable copy maintained). */
     public void addMetadata(final String key, final Object value) {
         var updatedMetadata = new java.util.HashMap<>(this.metadata);
         updatedMetadata.put(key, value);
         this.metadata = Map.copyOf(updatedMetadata);
     }
 
+    /** Removes a metadata entry if present (immutable copy maintained). */
     public void removeMetadata(final String key) {
         var updatedMetadata = new java.util.HashMap<>(this.metadata);
         updatedMetadata.remove(key);
@@ -150,60 +166,75 @@ public class TokenMetadata {
     }
 
     @SuppressWarnings("unchecked")
+    /** Retrieves a typed metadata value with a default fallback. */
     public <T> T getMetadata(final String key, final T defaultValue) {
         return (T) metadata.getOrDefault(key, defaultValue);
     }
 
+    /** Returns the session type stored in metadata (api, web, oauth). */
     public String getSessionType() {
         return getMetadata("sessionType", "unknown");
     }
 
+    /** Returns the originating IP address if present. */
     public String getIpAddress() {
         return getMetadata("ipAddress", null);
     }
 
+    /** Returns the originating user agent if present. */
     public String getUserAgent() {
         return getMetadata("userAgent", null);
     }
 
+    /** Returns the OAuth provider if present. */
     public String getOAuthProvider() {
         return getMetadata("oauthProvider", null);
     }
 
+    /** Returns the associated API key name if present. */
     public String getApiKeyName() {
         return getMetadata("apiKeyName", null);
     }
 
     // Session type checks
+    /** True for browser-based sessions (web or oauth). */
     public boolean isWebSession() {
         return "web".equals(getSessionType()) || "oauth".equals(getSessionType());
     }
 
+    /** True for API tokens. */
     public boolean isApiToken() {
         return "api".equals(getSessionType());
     }
 
+    /** True for OAuth sessions. */
     public boolean isOAuthSession() {
         return "oauth".equals(getSessionType());
     }
 
     // Security methods
+    /**
+     * Checks whether the access appears to originate from the same device (IP + user agent).
+     */
     public boolean isFromSameDevice(final String ipAddress, final String userAgent) {
         return ipAddress != null && ipAddress.equals(getIpAddress())
                 && userAgent != null && userAgent.equals(getUserAgent());
     }
 
+    /** Seconds remaining until expiration (may be negative if already expired). */
     public long getTimeUntilExpiration() {
         return expiresAt.getEpochSecond() - Instant.now().getEpochSecond();
     }
 
+    /** Seconds elapsed since the token was last used. */
     public long getTimeSinceLastUsed() {
         return Instant.now().getEpochSecond() - lastUsed.getEpochSecond();
     }
 
+    /** True if not used for more than 30 days. */
     public boolean isStale() {
-        // Consider token stale if not used for more than 30 days
-        return getTimeSinceLastUsed() > 30 * 24 * 60 * 60; // 30 days in seconds
+        // Consider token stale if not used for more than configured threshold
+        return getTimeSinceLastUsed() > STALE_THRESHOLD_SECONDS;
     }
 
     // Getters

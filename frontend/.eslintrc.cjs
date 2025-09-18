@@ -1,3 +1,4 @@
+/* eslint-env node */
 module.exports = {
   root: true,
   env: { browser: true, es2020: true },
@@ -13,21 +14,14 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true,
-    },
+    ecmaFeatures: { jsx: true },
   },
   plugins: ['react-refresh', '@typescript-eslint', 'react'],
   settings: {
-    react: {
-      version: 'detect',
-    },
+    react: { version: 'detect' },
   },
   rules: {
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
+    'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     '@typescript-eslint/no-unused-vars': ['error'],
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -37,7 +31,36 @@ module.exports = {
     'prefer-const': 'error',
     'no-var': 'error',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
-    'eqeqeq': ['error', 'always'],
-    'curly': 'error',
+    eqeqeq: ['error', 'always'],
+    curly: 'error',
+
+    // Separation of concerns (coarse-grained):
+    // - UI components/hooks/utils/lib should not import from pages
+    // - Store and API should not import from pages or components
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['../pages/*', '../../pages/*', '@/pages/*'],
+            message: 'Components/hooks/utils/lib should not import from pages',
+            targetImports: ['src/components/**', 'src/hooks/**', 'src/utils/**', 'src/lib/**'],
+          },
+          {
+            group: [
+              '../components/*',
+              '../../components/*',
+              '@/components/*',
+              '../pages/*',
+              '../../pages/*',
+              '@/pages/*',
+            ],
+            message: 'Store and API should not import from components or pages',
+            targetImports: ['src/store/**', 'src/store/api/**'],
+          },
+        ],
+      },
+    ],
   },
 }
+

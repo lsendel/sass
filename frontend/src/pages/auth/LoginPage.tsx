@@ -10,7 +10,7 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
   const isAuthenticated = useAppSelector(selectIsAuthenticated)
-  const { data: authMethods, isLoading } = useGetAuthMethodsQuery()
+  const { data: authMethods, isLoading, error: apiError } = useGetAuthMethodsQuery()
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -41,7 +41,7 @@ const LoginPage: React.FC = () => {
         </div>
       )}
 
-      {authMethods?.passwordAuthEnabled ? (
+      {(authMethods?.passwordAuthEnabled || apiError) ? (
         <PasswordLoginForm
           onSuccess={handleLoginSuccess}
           onError={handleLoginError}

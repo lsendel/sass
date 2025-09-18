@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-servicemonitor
+  namespace: payment-platform
+  labels:
+    app: redis
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+  namespaceSelector:
+    matchNames:
+      - payment-platform
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http

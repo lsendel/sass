@@ -1,0 +1,35 @@
+grafana:
+  enabled: true
+  grafana.ini:
+    server:
+      root_url: %(protocol)s://%(domain)s/ 
+    security:
+      admin_user: admin
+      admin_password: grafana-admin
+      allow_embedding: true
+    users:
+      allow_sign_up: false
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: payment-platform
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: payment-platform
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelector:
+      matchLabels:
+        release: prometheus
+    ruleSelector:
+      matchLabels:
+        release: prometheus
+

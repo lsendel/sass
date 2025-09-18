@@ -54,6 +54,10 @@ public class AuditService {
   }
 
   @Async
+  /**
+   * Core logging method used by convenience helpers.
+   * Not intended for overriding; wraps serialization and PII redaction.
+   */
   public CompletableFuture<Void> logEvent(
       final String eventType,
       final String resourceType,
@@ -116,6 +120,7 @@ public class AuditService {
 
   // Convenience methods for common audit events
   @Async
+  /** Logs a user login event (success/failure). Not intended for extension. */
   public CompletableFuture<Void> logUserLogin(
       final UUID userId, final String ipAddress, final String userAgent, final boolean success) {
     String eventType = success ? "USER_LOGIN" : "USER_LOGIN_FAILED";
@@ -426,5 +431,5 @@ public class AuditService {
             long weeklyEvents,
             long dailyEvents,
             int uniqueEventTypes,
-            int uniqueResourceTypes) {}
+            int uniqueResourceTypes) { }
 }

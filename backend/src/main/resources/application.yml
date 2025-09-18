@@ -209,3 +209,9 @@ stripe:
   secret-key: sk_test_dummy_key_for_testing
   webhook:
     secret: whsec_dummy_webhook_secret_for_testing
+
+# Test profile configuration
+app:
+  auth:
+    password:
+      enabled: true

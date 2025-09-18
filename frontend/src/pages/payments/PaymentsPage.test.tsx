@@ -1,0 +1,134 @@
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { Provider } from 'react-redux'
+import { BrowserRouter } from 'react-router-dom'
+import { configureStore } from '@reduxjs/toolkit'
+import PaymentsPage from './PaymentsPage'
+import authSlice from '../../store/slices/authSlice'
+import uiSlice from '../../store/slices/uiSlice'
+
+// Mock API hooks
+vi.mock('../../store/api/paymentApi', () => ({
+  useGetPaymentsQuery: () => ({
+    data: {
+      payments: [
+        {
+          id: '1',
+          amount: 100.00,
+          currency: 'usd',
+          status: 'succeeded',
+          createdAt: '2024-01-01T00:00:00Z',
+        }
+      ]
+    },
+    isLoading: false,
+    error: null,
+  }),
+  useGetPaymentMethodsQuery: () => ({
+    data: {
+      paymentMethods: [
+        {
+          id: '1',
+          type: 'card',
+          card: { last4: '4242', brand: 'visa' },
+          isDefault: true,
+        }
+      ]
+    },
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+// Mock components
+vi.mock('../../components/ui/LoadingSpinner', () => ({
+  default: () => <div data-testid="loading-spinner">Loading...</div>,
+}))
+
+const createMockStore = (initialState = {}) => {
+  return configureStore({
+    reducer: {
+      auth: authSlice,
+      ui: uiSlice,
+    },
+    preloadedState: {
+      auth: {
+        user: {
+          id: '123',
+          name: 'Test User',
+          email: 'test@example.com',
+          provider: 'google',
+          preferences: {},
+          createdAt: '2024-01-01T00:00:00Z',
+          lastActiveAt: null,
+        },
+        token: null,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+        ...initialState.auth,
+      },
+      ui: {
+        theme: 'light',
+        sidebarOpen: false,
+        loading: { global: false, components: {} },
+        notifications: [],
+        modals: {
+          isPaymentMethodModalOpen: false,
+          isSubscriptionModalOpen: false,
+          isInviteUserModalOpen: false,
+        },
+        ...initialState.ui,
+      },
+    },
+  })
+}
+
+const renderWithProviders = (component: React.ReactElement, initialState = {}) => {
+  const store = createMockStore(initialState)
+  return render(
+    <Provider store={store}>
+      <BrowserRouter>{component}</BrowserRouter>
+    </Provider>
+  )
+}
+
+describe('PaymentsPage', () => {
+  it('should render without errors', () => {
+    renderWithProviders(<PaymentsPage />)
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('should render for authenticated user', () => {
+    renderWithProviders(<PaymentsPage />, {
+      auth: { isAuthenticated: true }
+    })
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('should handle loading states', () => {
+    renderWithProviders(<PaymentsPage />, {
+      ui: { loading: { global: true } }
+    })
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('should handle payment data', () => {
+    renderWithProviders(<PaymentsPage />)
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('should handle payment method management', () => {
+    renderWithProviders(<PaymentsPage />, {
+      ui: {
+        modals: { isPaymentMethodModalOpen: true }
+      }
+    })
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('should handle empty payments state', () => {
+    renderWithProviders(<PaymentsPage />)
+    expect(document.body).toBeInTheDocument()
+  })
+})

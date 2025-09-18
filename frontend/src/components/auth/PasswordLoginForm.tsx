@@ -42,7 +42,12 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
 
   const onSubmit = async (data: PasswordLoginFormData) => {
     try {
-      const result = await passwordLogin(data).unwrap()
+      // Include the demo organization ID for authentication
+      const loginData = {
+        ...data,
+        organizationId: 'b48e719b-3116-423e-b114-c9791e296a8d', // Demo organization ID
+      }
+      const result = await passwordLogin(loginData).unwrap()
 
       // Update auth state with user and token
       dispatch(

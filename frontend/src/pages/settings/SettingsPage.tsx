@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import {
 import { logger } from '../../utils/logger'
+import {
   useGetCurrentUserQuery,
   useUpdateProfileMutation,
 } from '../../store/api/userApi'

@@ -1,0 +1,130 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Production
+dist/
+dist-ssr/
+build/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Evidence and test screenshots
+evidence-*.png
+evidence-*.jpg
+evidence-*.jpeg
+test-evidence/
+slick-design-evidence/
+screenshot-*.png
+*.screenshot.png
+validation-*.png
+login-*.png
+dashboard-*.png
+demo-*.png
+debug-*.png
+final-*.png
+working-*.png
+navigate-*.png
+show-*.png
+test-*.png
+REAL-*.png
+enhanced-*.png
+slick-*.png
+oauth-*.png
+page-*.png
+
+# Test scripts and demos
+*.cjs
+demo-*.js
+show-*.js
+validate-*.js
+test-*.js
+debug-*.js
+navigate-*.js
+working-*.js
+final-*.js
+
+# Test HTML files
+test-*.html
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.temp/
+.tmp/
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Package manager files
+package-lock.json.backup
+yarn.lock.backup
+pnpm-lock.yaml.backup
+
+# Playwright test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Vite cache
+.vite/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# ESLint cache
+.eslintcache
+
+# Stylelint cache
+.stylelintcache
+
+# Prettier cache
+.prettierignore
+
+# Keep only essential test files
+!tests/e2e/**/*.ts
+!tests/unit/**/*.ts
+!tests/integration/**/*.ts

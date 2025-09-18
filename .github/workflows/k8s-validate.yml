@@ -1,0 +1,57 @@
+name: K8s Manifests Validate
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'k8s/**'
+      - '.github/workflows/k8s-validate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'k8s/**'
+      - '.github/workflows/k8s-validate.yml'
+
+jobs:
+  kube-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          KUBECONFORM_VERSION=v0.6.7
+          curl -sSL -o /tmp/kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz
+          sudo tar -C /usr/local/bin -xzf /tmp/kubeconform.tar.gz kubeconform
+          kubeconform -v
+
+      - name: Validate Kubernetes manifests with kubeconform
+        run: |
+          set -euo pipefail
+          kubeconform \
+            -strict \
+            -ignore-missing-schemas \
+            -summary \
+            -verbose \
+            -exit-on-error \
+            -kubernetes-version 1.29.0 \
+            k8s/*.yaml
+
+      - name: Install kube-linter
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/stackrox/kube-linter/main/install.sh | bash -s -- -b /usr/local/bin v0.6.8
+          kube-linter version
+
+      - name: Lint Kubernetes manifests with kube-linter
+        run: |
+          kube-linter lint k8s --format sarif > kube-linter.sarif || true
+
+      - name: Upload kube-linter report
+        uses: actions/upload-artifact@v4
+        with:
+          name: kube-linter-report
+          path: kube-linter.sarif
+          retention-days: 7
+

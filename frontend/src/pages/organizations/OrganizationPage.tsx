@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import {
 import { logger } from '../../utils/logger'
+import {
   useGetUserOrganizationsQuery,
   useGetOrganizationMembersQuery,
   useInviteUserMutation,

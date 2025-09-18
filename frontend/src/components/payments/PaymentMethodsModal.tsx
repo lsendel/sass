@@ -1,6 +1,6 @@
 import React from 'react'
-import {
 import { logger } from '../../utils/logger'
+import {
   useGetOrganizationPaymentMethodsQuery,
   useSetDefaultPaymentMethodMutation,
   useDetachPaymentMethodMutation,

@@ -7,8 +7,10 @@
   <!-- Repository interfaces often contain long annotation strings that are awkward to indent -->
   <suppress files="src/main/java/com/platform/.*/internal/.*Repository\.java" checks="Indentation"/>
 
-  <!-- JPA entity methods and records: avoid forcing final/extension patterns that break proxies -->
-  <suppress files="src/main/java/com/platform/auth/internal/TokenMetadata\.java" checks="DesignForExtension|MagicNumber|LineLength|Indentation"/>
+  <!-- JPA entities and internal services: avoid DesignForExtension noise that can conflict with proxies -->
+  <suppress files="src/main/java/com/platform/.*/internal/.*\.java" checks="DesignForExtension"/>
+  <!-- Specific entity/service adjustments -->
+  <suppress files="src/main/java/com/platform/auth/internal/TokenMetadata\.java" checks="MagicNumber|LineLength|Indentation"/>
 
   <!-- Service methods include cross-cutting concerns; limit noise -->
   <suppress files="src/main/java/com/platform/audit/internal/AuditService\.java" checks="DesignForExtension|Indentation|WhitespaceAround"/>

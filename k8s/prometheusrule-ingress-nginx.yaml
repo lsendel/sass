@@ -1,0 +1,46 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ingress-nginx-prometheus-rules
+  namespace: payment-platform
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: ingress-nginx.rules
+      rules:
+        - alert: IngressHigh5xxRate
+          expr: |
+            sum(rate(nginx_ingress_controller_requests{status=~"5..",namespace="ingress-nginx"}[5m]))
+              /
+            sum(rate(nginx_ingress_controller_requests{namespace="ingress-nginx"}[5m]))
+              > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High 5xx rate on ingress-nginx (>5%)
+            description: The ingress controller 5xx rate exceeded 5% over 5 minutes.
+
+        - alert: IngressHighLatencyP95
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{namespace="ingress-nginx"}[5m])) by (le)
+            ) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Ingress p95 latency > 1s
+            description: The ingress controller p95 request latency exceeded 1s for 10 minutes.
+
+        - alert: IngressTooManyOpenConnections
+          expr: sum(nginx_ingress_controller_nginx_process_connections{namespace="ingress-nginx", state="active"}) > 20000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Too many active connections on ingress-nginx
+            description: Active connections above 20k for 10 minutes may indicate overload.
+
