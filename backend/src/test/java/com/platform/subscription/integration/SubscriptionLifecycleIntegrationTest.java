@@ -22,6 +22,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.shared.types.Money;
 import com.platform.subscription.internal.*;
 import com.platform.user.internal.Organization;
 import com.platform.user.internal.OrganizationRepository;
@@ -73,18 +74,19 @@ class SubscriptionLifecycleIntegrationTest {
     @BeforeEach
     void setUp() {
         // Create test organization
-        Organization org = new Organization("Subscription Corp", "sub-corp", null);
+        Organization org = new Organization("Subscription Corp", "sub-corp", (UUID) null);
         org = organizationRepository.save(org);
         orgId = org.getId();
 
         // Create test user
-        User user = new User("sub@example.com", "Sub User", orgId);
+        User user = new User("sub@example.com", "Sub User");
+        user.setOrganization(org);
         user = userRepository.save(user);
         userId = user.getId();
 
         // Create test plan
         Plan plan = new Plan("Pro Plan", "price_pro_test",
-                           new BigDecimal("29.99"), "usd",
+                           new Money(new BigDecimal("29.99"), "USD"),
                            Plan.BillingInterval.MONTH);
         plan = planRepository.save(plan);
         planId = plan.getId();
@@ -123,7 +125,7 @@ class SubscriptionLifecycleIntegrationTest {
 
         // Create premium plan
         Plan premiumPlan = new Plan("Premium Plan", "price_premium_test",
-                                  new BigDecimal("99.99"), "usd",
+                                  new Money(new BigDecimal("99.99"), "USD"),
                                   Plan.BillingInterval.MONTH);
         premiumPlan = planRepository.save(premiumPlan);
 
@@ -176,7 +178,7 @@ class SubscriptionLifecycleIntegrationTest {
     void shouldProcessSubscriptionReactivation() throws Exception {
         // Create canceled subscription
         Subscription subscription = Subscription.createActive(orgId, planId, null, null);
-        subscription.cancel(LocalDate.now().plusDays(1), "customer_request");
+        subscription.cancel();
         subscription = subscriptionRepository.save(subscription);
 
         mockMvc.perform(post("/api/v1/organizations/{orgId}/subscription/reactivate", orgId)
@@ -207,7 +209,7 @@ class SubscriptionLifecycleIntegrationTest {
                 .andExpect(jsonPath("$.status").value("OPEN"));
 
         // Verify invoice was created
-        var invoices = invoiceRepository.findBySubscriptionId(subscription.getId());
+        var invoices = invoiceRepository.findBySubscriptionIdOrderByCreatedAtDesc(subscription.getId());
         assertEquals(1, invoices.size());
         assertEquals(new BigDecimal("29.99"), invoices.get(0).getAmount());
     }
@@ -260,7 +262,7 @@ class SubscriptionLifecycleIntegrationTest {
                 .andExpect(jsonPath("$.trialDays").value(30));
 
         // Verify plan was created
-        var plans = planRepository.findByActiveTrue();
+        var plans = planRepository.findByActiveOrderByDisplayOrderAsc(true);
         assertTrue(plans.stream().anyMatch(p -> "Enterprise Plan".equals(p.getName())));
     }
 
@@ -294,7 +296,7 @@ class SubscriptionLifecycleIntegrationTest {
 
         // Upgrade to premium plan
         Plan premiumPlan = new Plan("Premium Plan", "price_premium_test",
-                                  new BigDecimal("99.99"), "usd",
+                                  new Money(new BigDecimal("99.99"), "USD"),
                                   Plan.BillingInterval.MONTH);
         premiumPlan = planRepository.save(premiumPlan);
 
@@ -312,7 +314,7 @@ class SubscriptionLifecycleIntegrationTest {
                 .andExpect(jsonPath("$.prorationAmount").exists());
 
         // Verify proration invoice was created
-        var invoices = invoiceRepository.findBySubscriptionId(subscription.getId());
+        var invoices = invoiceRepository.findBySubscriptionIdOrderByCreatedAtDesc(subscription.getId());
         assertTrue(invoices.size() >= 1);
     }
 

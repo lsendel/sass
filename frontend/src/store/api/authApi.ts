@@ -1,53 +1,31 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import { createApi } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
-import type { User } from '../slices/authSlice'
+import { createValidatedBaseQuery, createValidatedEndpoint, wrapSuccessResponse } from '@/lib/api/validation'
+import {
+  UserSchema,
+  AuthMethodsResponseSchema,
+  LoginResponseSchema,
+  AuthUrlResponseSchema,
+  SessionInfoSchema,
+  PasswordLoginRequestSchema,
+  PasswordRegisterRequestSchema,
+  LoginRequestSchema,
+  CallbackRequestSchema,
+  type User,
+  type OAuth2Provider,
+  type SessionInfo,
+  type LoginRequest,
+  type PasswordLoginRequest,
+  type PasswordRegisterRequest,
+  type AuthMethodsResponse,
+} from '@/types/api'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
 
-export type OAuth2Provider = {
-  name: string
-  displayName: string
-  iconUrl?: string
-  authUrl: string
-}
-
-export type SessionInfo = {
-  user: User
-  session: {
-    activeTokens: number
-    lastActiveAt: string
-    createdAt: string
-  }
-}
-
-export type LoginRequest = {
-  provider: string
-  redirectUri: string
-}
-
-export type PasswordLoginRequest = {
-  email: string
-  password: string
-  organizationId: string
-}
-
-export type PasswordRegisterRequest = {
-  email: string
-  password: string
-  name: string
-}
-
-export type AuthMethodsResponse = {
-  methods: string[]
-  passwordAuthEnabled: boolean
-  oauth2Providers: string[]
-}
-
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/auth`,
+  baseQuery: createValidatedBaseQuery(`${API_BASE_URL}/auth`, {
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
       if (token) {
@@ -59,17 +37,26 @@ export const authApi = createApi({
   tagTypes: ['Session'],
   endpoints: builder => ({
     getAuthMethods: builder.query<AuthMethodsResponse, void>({
-      query: () => '/methods',
+      ...createValidatedEndpoint(wrapSuccessResponse(AuthMethodsResponseSchema), {
+        query: () => '/methods',
+      }),
     }),
 
     passwordLogin: builder.mutation<
       { user: User; token: string },
       PasswordLoginRequest
     >({
-      query: credentials => ({
-        url: '/mock-login',
+      ...createValidatedEndpoint(wrapSuccessResponse(LoginResponseSchema), {
+        query: credentials => {
+          // Validate request data
+          PasswordLoginRequestSchema.parse(credentials);
+          return {
+            url: '/mock-login',
+            method: 'POST',
+            body: credentials,
+          };
+        },
         method: 'POST',
-        body: credentials,
       }),
       invalidatesTags: ['Session'],
     }),
@@ -78,23 +65,38 @@ export const authApi = createApi({
       { user: User; token: string },
       PasswordRegisterRequest
     >({
-      query: userData => ({
-        url: '/register',
+      ...createValidatedEndpoint(wrapSuccessResponse(LoginResponseSchema), {
+        query: userData => {
+          // Validate request data
+          PasswordRegisterRequestSchema.parse(userData);
+          return {
+            url: '/register',
+            method: 'POST',
+            body: userData,
+          };
+        },
         method: 'POST',
-        body: userData,
       }),
       invalidatesTags: ['Session'],
     }),
 
     getAuthUrl: builder.query<{ authUrl: string }, LoginRequest>({
-      query: ({ provider, redirectUri }) => ({
-        url: '/authorize',
-        params: { provider, redirect_uri: redirectUri },
+      ...createValidatedEndpoint(wrapSuccessResponse(AuthUrlResponseSchema), {
+        query: ({ provider, redirectUri }) => {
+          // Validate request data
+          LoginRequestSchema.parse({ provider, redirectUri });
+          return {
+            url: '/authorize',
+            params: { provider, redirect_uri: redirectUri },
+          };
+        },
       }),
     }),
 
     getSession: builder.query<SessionInfo, void>({
-      query: () => '/session',
+      ...createValidatedEndpoint(wrapSuccessResponse(SessionInfoSchema), {
+        query: () => '/session',
+      }),
       providesTags: ['Session'],
     }),
 
@@ -102,10 +104,17 @@ export const authApi = createApi({
       { user: User; token: string },
       { code: string; state?: string }
     >({
-      query: ({ code, state }) => ({
-        url: '/callback',
+      ...createValidatedEndpoint(wrapSuccessResponse(LoginResponseSchema), {
+        query: ({ code, state }) => {
+          // Validate request data
+          CallbackRequestSchema.parse({ code, state });
+          return {
+            url: '/callback',
+            method: 'POST',
+            body: { code, state },
+          };
+        },
         method: 'POST',
-        body: { code, state },
       }),
       invalidatesTags: ['Session'],
     }),

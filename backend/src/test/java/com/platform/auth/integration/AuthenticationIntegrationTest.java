@@ -86,7 +86,7 @@ class AuthenticationIntegrationTest {
     @BeforeEach
     void setUp() {
         // Create test organization
-        Organization org = new Organization("Auth Corp", "auth-corp", null);
+        Organization org = new Organization("Auth Corp", "auth-corp", (UUID) null);
         org = organizationRepository.save(org);
         orgId = org.getId();
 
@@ -97,8 +97,8 @@ class AuthenticationIntegrationTest {
             "https://test.com/auth",
             "https://test.com/token",
             "https://test.com/userinfo",
-            "test-client-id",
-            "sub"
+            java.util.List.of("openid", "profile", "email"),
+            "test-client-id"
         );
         testProvider = providerRepository.save(testProvider);
     }
@@ -136,17 +136,17 @@ class AuthenticationIntegrationTest {
     void shouldHandleOAuth2CallbackWithValidCode() throws Exception {
         // Create test session
         OAuth2UserInfo userInfo = new OAuth2UserInfo(
-            "test-provider",
             "test-user-id",
-            "test@example.com",
-            "Test User"
+            "test-provider",
+            "test@example.com"
         );
+        userInfo.setName("Test User");
         userInfo = userInfoRepository.save(userInfo);
 
         OAuth2Session session = new OAuth2Session(
             "session-123",
-            "test-provider",
             userInfo,
+            "test-provider",
             Instant.now().plus(1, ChronoUnit.HOURS)
         );
         session = sessionRepository.save(session);
@@ -170,7 +170,7 @@ class AuthenticationIntegrationTest {
         // Verify session is now active
         var updatedSession = sessionRepository.findById(session.getId());
         assertTrue(updatedSession.isPresent());
-        assertTrue(updatedSession.get().isActive());
+        assertTrue(updatedSession.get().isValid());
     }
 
     @Test
@@ -190,31 +190,31 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("INVALID_AUTHORIZATION_CODE"));
 
         // Verify audit event was logged
-        var auditEvents = auditEventRepository.findByEventType(OAuth2AuditEvent.EventType.AUTHORIZATION_FAILED);
+        var auditEvents = auditEventRepository.findByEventTypeOrderByEventTimestampDesc(OAuth2AuditEvent.OAuth2EventType.AUTHORIZATION_FAILED);
         assertFalse(auditEvents.isEmpty());
     }
 
     @Test
     void shouldManageSessionLifecycle() throws Exception {
         // Create user and session
-        User user = new User("session@example.com", "Session User", orgId);
+        User user = new User("session@example.com", "Session User");
+        user.setOrganization(organizationRepository.findById(orgId).orElseThrow());
         user = userRepository.save(user);
 
         OAuth2UserInfo userInfo = new OAuth2UserInfo(
-            "test-provider",
             "session-user-id",
-            "session@example.com",
-            "Session User"
+            "test-provider",
+            "session@example.com"
         );
+        userInfo.setName("Session User");
         userInfo = userInfoRepository.save(userInfo);
 
         OAuth2Session session = new OAuth2Session(
             "session-lifecycle-123",
-            "test-provider",
             userInfo,
+            "test-provider",
             Instant.now().plus(1, ChronoUnit.HOURS)
         );
-        session.activate();
         session = sessionRepository.save(session);
 
         // Check session status
@@ -233,7 +233,7 @@ class AuthenticationIntegrationTest {
         // Verify session is terminated
         var terminatedSession = sessionRepository.findById(session.getId());
         assertTrue(terminatedSession.isPresent());
-        assertFalse(terminatedSession.get().isActive());
+        assertFalse(terminatedSession.get().isValid());
         assertNotNull(terminatedSession.get().getTerminatedAt());
     }
 
@@ -254,7 +254,7 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
 
         // Verify security audit event
-        var auditEvents = auditEventRepository.findByEventType(OAuth2AuditEvent.EventType.SUSPICIOUS_ACTIVITY);
+        var auditEvents = auditEventRepository.findByEventTypeOrderByEventTimestampDesc(OAuth2AuditEvent.OAuth2EventType.SUSPICIOUS_ACTIVITY);
         assertFalse(auditEvents.isEmpty());
     }
 
@@ -262,17 +262,17 @@ class AuthenticationIntegrationTest {
     void shouldHandleTokenValidationAndExpiry() throws Exception {
         // Create expired session
         OAuth2UserInfo userInfo = new OAuth2UserInfo(
-            "test-provider",
             "expired-user",
-            "expired@example.com",
-            "Expired User"
+            "test-provider",
+            "expired@example.com"
         );
+        userInfo.setName("Expired User");
         userInfo = userInfoRepository.save(userInfo);
 
         OAuth2Session expiredSession = new OAuth2Session(
             "expired-session-123",
-            "test-provider",
             userInfo,
+            "test-provider",
             Instant.now().minus(1, ChronoUnit.HOURS) // Already expired
         );
         expiredSession = sessionRepository.save(expiredSession);
@@ -284,7 +284,7 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("SESSION_EXPIRED"));
 
         // Verify audit event for expired session
-        var auditEvents = auditEventRepository.findByEventType(OAuth2AuditEvent.EventType.SESSION_EXPIRED);
+        var auditEvents = auditEventRepository.findByEventTypeOrderByEventTimestampDesc(OAuth2AuditEvent.OAuth2EventType.SESSION_EXPIRED);
         assertFalse(auditEvents.isEmpty());
     }
 
@@ -308,9 +308,10 @@ class AuthenticationIntegrationTest {
         }
 
         // Verify attempts were tracked
-        var attempts = attemptRepository.findByIpAddressAndAttemptTimeAfter(
+        var attempts = attemptRepository.findByIpAddressAndTimeBetween(
             "192.168.1.100",
-            Instant.now().minus(5, ChronoUnit.MINUTES)
+            Instant.now().minus(5, ChronoUnit.MINUTES),
+            Instant.now()
         );
         assertEquals(3, attempts.size());
         assertTrue(attempts.stream().allMatch(a -> !a.isSuccess()));
@@ -343,7 +344,7 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("RATE_LIMIT_EXCEEDED"));
 
         // Verify rate limit audit event
-        var auditEvents = auditEventRepository.findByEventType(OAuth2AuditEvent.EventType.RATE_LIMIT_EXCEEDED);
+        var auditEvents = auditEventRepository.findByEventTypeOrderByEventTimestampDesc(OAuth2AuditEvent.OAuth2EventType.RATE_LIMIT_EXCEEDED);
         assertFalse(auditEvents.isEmpty());
     }
 
@@ -365,7 +366,7 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("PKCE_VALIDATION_FAILED"));
 
         // Verify PKCE validation audit event
-        var auditEvents = auditEventRepository.findByEventType(OAuth2AuditEvent.EventType.PKCE_VALIDATION_FAILED);
+        var auditEvents = auditEventRepository.findByEventTypeOrderByEventTimestampDesc(OAuth2AuditEvent.OAuth2EventType.PKCE_VALIDATION_FAILED);
         assertFalse(auditEvents.isEmpty());
     }
 
@@ -373,21 +374,20 @@ class AuthenticationIntegrationTest {
     void shouldHandleUserInfoSynchronization() throws Exception {
         // Create session with outdated user info
         OAuth2UserInfo userInfo = new OAuth2UserInfo(
-            "test-provider",
             "sync-user-id",
-            "sync@example.com",
-            "Old Name"
+            "test-provider",
+            "sync@example.com"
         );
+        userInfo.setName("Old Name");
         userInfo.setLastUpdatedFromProvider(Instant.now().minus(30, ChronoUnit.DAYS));
         userInfo = userInfoRepository.save(userInfo);
 
         OAuth2Session session = new OAuth2Session(
             "sync-session-123",
-            "test-provider",
             userInfo,
+            "test-provider",
             Instant.now().plus(1, ChronoUnit.HOURS)
         );
-        session.activate();
         session = sessionRepository.save(session);
 
         // Request user info update
@@ -397,7 +397,7 @@ class AuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.updated").value(true));
 
         // Verify user info sync audit event
-        var auditEvents = auditEventRepository.findByEventType(OAuth2AuditEvent.EventType.USER_INFO_UPDATED);
+        var auditEvents = auditEventRepository.findByEventTypeOrderByEventTimestampDesc(OAuth2AuditEvent.OAuth2EventType.USER_INFO_UPDATED);
         assertFalse(auditEvents.isEmpty());
     }
 }

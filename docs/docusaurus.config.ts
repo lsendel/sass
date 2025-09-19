@@ -15,15 +15,15 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://docs.platform.com',
+  url: 'https://docs.sass-platform.com',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'platform', // Usually your GitHub org/user name.
-  projectName: 'payment-platform-docs', // Usually your repo name.
+  organizationName: 'sass-platform', // Usually your GitHub org/user name.
+  projectName: 'sass-platform-docs', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -42,10 +42,9 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
+          // Edit URL for documentation
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/sass-platform/sass/tree/main/docs/',
         },
         blog: {
           showReadingTime: true,
@@ -53,10 +52,9 @@ const config: Config = {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
+          // Edit URL for blog posts
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/sass-platform/sass/tree/main/docs/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -86,7 +84,7 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://github.com/platform/payment-platform',
+          href: 'https://github.com/sass-platform/sass',
           label: 'GitHub',
           position: 'right',
         },
@@ -94,10 +92,10 @@ const config: Config = {
     },
     algolia: {
       // The application ID provided by Algolia
-      appId: 'YOUR_APP_ID',
+      appId: 'SASS_PLATFORM_APP_ID',
       // Public API key: it is safe to commit it
-      apiKey: 'YOUR_SEARCH_API_KEY',
-      indexName: 'payment-platform-docs',
+      apiKey: 'SASS_PLATFORM_SEARCH_API_KEY',
+      indexName: 'sass-platform-docs',
       // Optional: see doc section below
       contextualSearch: true,
       // Optional: Specify domains where the navigation should occur through window.location instead of history.push
@@ -155,7 +153,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} SASS Platform. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

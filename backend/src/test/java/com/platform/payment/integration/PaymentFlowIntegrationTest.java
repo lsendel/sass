@@ -70,12 +70,13 @@ class PaymentFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         // Create test organization
-        Organization org = new Organization("Test Corp", "test-corp", null);
+        Organization org = new Organization("Test Corp", "test-corp", (UUID) null);
         org = organizationRepository.save(org);
         orgId = org.getId();
 
         // Create test user
-        User user = new User("test@example.com", "Test User", orgId);
+        User user = new User("test@example.com", "Test User");
+        user.setOrganization(org);
         user = userRepository.save(user);
         userId = user.getId();
     }
@@ -100,7 +101,7 @@ class PaymentFlowIntegrationTest {
                 .andExpect(jsonPath("$.status").exists());
 
         // Verify payment was persisted
-        var payments = paymentRepository.findByOrganizationId(orgId);
+        var payments = paymentRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId);
         assertEquals(1, payments.size());
         assertEquals(new BigDecimal("100.00"), payments.get(0).getAmount());
     }
@@ -134,7 +135,7 @@ class PaymentFlowIntegrationTest {
                 .andExpect(jsonPath("$.isDefault").value(true));
 
         // Verify payment method was persisted
-        var paymentMethods = paymentMethodRepository.findByOrganizationId(orgId);
+        var paymentMethods = paymentMethodRepository.findByOrganizationIdAndDeletedAtIsNullOrderByCreatedAtDesc(orgId);
         assertEquals(1, paymentMethods.size());
         assertTrue(paymentMethods.get(0).isDefault());
     }
@@ -156,7 +157,7 @@ class PaymentFlowIntegrationTest {
                 .andExpect(jsonPath("$.error").exists());
 
         // Verify no payment was created
-        var payments = paymentRepository.findByOrganizationId(orgId);
+        var payments = paymentRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId);
         assertEquals(0, payments.size());
     }
 
@@ -265,7 +266,7 @@ class PaymentFlowIntegrationTest {
                     result2.getResponse().getContentAsString());
 
         // Only one payment should exist
-        var payments = paymentRepository.findByOrganizationId(orgId);
+        var payments = paymentRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId);
         assertEquals(1, payments.size());
     }
 
@@ -291,7 +292,7 @@ class PaymentFlowIntegrationTest {
         }
 
         // Verify all currencies were processed
-        var payments = paymentRepository.findByOrganizationId(orgId);
+        var payments = paymentRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId);
         assertEquals(currencies.length, payments.size());
     }
 }

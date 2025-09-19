@@ -228,16 +228,16 @@ public void handleUserRegistered(UserRegisteredEvent event) {
 
 ## Security Checklist
 
-- [x] **Opaque tokens only** (no JWT implementation)
-- [x] **Production security configuration** with strict CORS and CSP headers
-- [x] **Enhanced password policies** (12+ characters, complexity requirements)
-- [x] **Account lockout protection** with exponential backoff
+- [ ] **Opaque tokens only** (no JWT implementation)
+- [ ] **Production security configuration** with strict CORS and CSP headers
+- [ ] **Enhanced password policies** (12+ characters, complexity requirements)
+- [ ] **Account lockout protection** with exponential backoff
 - [ ] **Tenant isolation** enforced in all queries
 - [ ] **Input validation** on all endpoints (@Valid)
 - [ ] **Rate limiting** on authentication endpoints
-- [x] **Audit logging** for all security events
+- [ ] **Audit logging** for all security events
 - [ ] **HTTPS enforcement** in production
-- [x] **Secure headers** configured (HSTS, CSP, XSS protection)
+- [ ] **Secure headers** configured (HSTS, CSP, XSS protection)
 
 ## Important File Locations
 

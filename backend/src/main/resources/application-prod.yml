@@ -1,0 +1,237 @@
+# Production configuration for Spring Boot Modulith Payment Platform
+spring:
+  profiles:
+    active: prod
+
+  # Production Database Configuration
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/payment_platform_prod}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 25
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 30000
+      pool-name: PaymentPlatformCP
+
+  # Production JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.SnakeCasePhysicalNamingStrategy
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+        jdbc:
+          batch_size: 50
+          fetch_size: 100
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        generate_statistics: false
+        enable_lazy_load_no_trans: false
+    open-in-view: false
+
+  # Production Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      jedis:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+          max-wait: -1ms
+
+  # Production Session Configuration
+  session:
+    store-type: redis
+    timeout: 24h
+    redis:
+      flush-mode: on_save
+      namespace: platform:session:prod
+
+  # Production Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    out-of-order: false
+    clean-disabled: true
+    placeholders:
+      environment: production
+
+  # Production Security Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: "${APP_BASE_URL}/api/v1/auth/oauth2/callback/google"
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - read:user
+              - user:email
+            redirect-uri: "${APP_BASE_URL}/api/v1/auth/oauth2/callback/github"
+          microsoft:
+            client-id: ${MICROSOFT_CLIENT_ID}
+            client-secret: ${MICROSOFT_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+            authorization-grant-type: authorization_code
+            redirect-uri: "${APP_BASE_URL}/api/v1/auth/oauth2/callback/microsoft"
+
+# Production Server Configuration
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+  http2:
+    enabled: true
+
+# Production Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,flyway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never
+      cache:
+        time-to-live: 10s
+    flyway:
+      enabled: true
+      cache:
+        time-to-live: 10s
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: payment-platform
+      environment: production
+
+# Production Logging Configuration
+logging:
+  level:
+    com.platform: INFO
+    org.springframework.modulith: WARN
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    org.flywaydb: INFO
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH:/var/log/payment-platform/application.log}
+    max-size: 100MB
+    max-history: 30
+
+# Production Application Configuration
+app:
+  base-url: ${APP_BASE_URL}
+  frontend-url: ${FRONTEND_URL}
+
+  # Production Password Authentication Configuration
+  auth:
+    password:
+      enabled: ${ENABLE_PASSWORD_AUTH:true}
+      policy:
+        min-length: 12
+        require-uppercase: true
+        require-lowercase: true
+        require-numbers: true
+        require-symbols: true
+        max-age-days: 90
+        prevent-reuse-count: 12
+      lockout:
+        max-attempts: 5
+        lockout-durations: # Exponential backoff in minutes
+          - 5
+          - 10
+          - 30
+          - 60
+          - 120
+          - 240
+        max-lockout-duration: 1440 # 24 hours
+      tokens:
+        reset-expiry-hours: 2
+        verification-expiry-hours: 24
+
+  # Production Email Configuration
+  email:
+    smtp:
+      host: ${SMTP_HOST}
+      port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME}
+      password: ${SMTP_PASSWORD}
+      auth: true
+      starttls: true
+      ssl-trust: ${SMTP_SSL_TRUST:*}
+    from-address: ${EMAIL_FROM_ADDRESS}
+    from-name: ${EMAIL_FROM_NAME:Payment Platform}
+
+# Production Stripe Configuration
+stripe:
+  api-key: ${STRIPE_SECRET_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  connect-timeout: 30000
+  read-timeout: 80000
+
+# Production Security Headers
+security:
+  headers:
+    content-security-policy: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';"
+    hsts-max-age: 31536000
+    hsts-include-subdomains: true
+    hsts-preload: true
+
+# Production Performance Configuration
+performance:
+  cache:
+    caffeine:
+      spec: "maximumSize=1000,expireAfterWrite=10m"
+  async:
+    core-pool-size: 2
+    max-pool-size: 10
+    queue-capacity: 25
+    thread-name-prefix: "platform-async-"
+
+# Production Rate Limiting Configuration
+rate-limiting:
+  auth:
+    max-attempts: 5
+    window-minutes: 15
+    cleanup-interval-minutes: 30
+  api:
+    max-requests: 100
+    window-minutes: 1

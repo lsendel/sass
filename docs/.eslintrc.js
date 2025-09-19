@@ -4,10 +4,14 @@ module.exports = {
     browser: true,
     es2021: true,
     node: true,
+    jest: true,
   },
   extends: [
     'eslint:recommended',
     '@docusaurus/eslint-plugin/recommended',
+    'plugin:react/recommended',
+    'plugin:@typescript-eslint/recommended',
+    'prettier',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -16,19 +20,43 @@ module.exports = {
     ecmaFeatures: {
       jsx: true,
     },
+    project: './tsconfig.json',
   },
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'react'],
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
   rules: {
     // Custom rules for documentation project
     'no-console': 'warn',
-    'no-unused-vars': 'error',
-    '@typescript-eslint/no-unused-vars': 'error',
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
   },
   overrides: [
     {
       files: ['*.md', '*.mdx'],
-      parser: 'eslint-plugin-markdownlint/parser',
-      extends: ['plugin:markdownlint/recommended'],
+      extends: ['plugin:mdx/recommended'],
+      rules: {
+        // Disable some rules for markdown files
+        '@typescript-eslint/no-unused-vars': 'off',
+        'no-undef': 'off',
+      },
+    },
+    {
+      files: ['*.test.ts', '*.test.tsx', '*.spec.ts', '*.spec.tsx'],
+      env: {
+        jest: true,
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
     },
   ],
 };

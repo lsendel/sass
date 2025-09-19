@@ -1,108 +1,62 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import { createApi } from '@reduxjs/toolkit/query/react'
 import type { RootState } from '../index'
+import { createValidatedBaseQuery, createValidatedEndpoint, wrapSuccessResponse } from '@/lib/api/validation'
+import {
+  PaymentSchema,
+  PaymentMethodSchema,
+  PaginatedResponseSchema,
+  type Payment,
+  type PaymentMethod,
+} from '@/types/api'
+import { z } from 'zod'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
 
-export type PaymentStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'CANCELED'
+// Payment Intent schemas
+const PaymentIntentSchema = z.object({
+  id: z.string(),
+  clientSecret: z.string(),
+  status: z.string(),
+  amount: z.number().positive(),
+  currency: z.string().length(3),
+  description: z.string().nullable(),
+  metadata: z.record(z.string()).nullable(),
+});
 
-export type Payment = {
-  id: string
-  organizationId: string
-  stripePaymentIntentId: string
-  amount: number
-  currency: string
-  description: string | null
-  status: PaymentStatus
-  subscriptionId: string | null
-  invoiceId: string | null
-  metadata: Record<string, string> | null
-  createdAt: string
-  updatedAt: string
-}
+const PaymentStatisticsSchema = z.object({
+  totalSuccessfulPayments: z.number().nonnegative(),
+  totalAmount: z.number().nonnegative(),
+  recentAmount: z.number().nonnegative(),
+});
 
-export type PaymentMethodType =
-  | 'CARD'
-  | 'BANK_ACCOUNT'
-  | 'SEPA_DEBIT'
-  | 'ACH_DEBIT'
+const CreatePaymentIntentRequestSchema = z.object({
+  organizationId: z.string().uuid(),
+  amount: z.number().positive(),
+  currency: z.string().length(3),
+  description: z.string().optional(),
+  metadata: z.record(z.string()).optional(),
+});
 
-export type CardDetails = {
-  lastFour: string
-  brand: string
-  expMonth: number
-  expYear: number
-}
+const ConfirmPaymentIntentRequestSchema = z.object({
+  paymentMethodId: z.string(),
+});
 
-export type BillingAddress = {
-  addressLine1: string
-  addressLine2: string | null
-  city: string
-  state: string
-  postalCode: string
-  country: string
-}
+const AttachPaymentMethodRequestSchema = z.object({
+  organizationId: z.string().uuid(),
+  stripePaymentMethodId: z.string(),
+});
 
-export type BillingDetails = {
-  name: string | null
-  email: string | null
-  address: BillingAddress | null
-}
-
-export type PaymentMethod = {
-  id: string
-  organizationId: string
-  stripePaymentMethodId: string
-  type: PaymentMethodType
-  isDefault: boolean
-  displayName: string
-  cardDetails: CardDetails | null
-  billingDetails: BillingDetails | null
-  createdAt: string
-}
-
-export type PaymentIntent = {
-  id: string
-  clientSecret: string
-  status: string
-  amount: number
-  currency: string
-  description: string | null
-  metadata: Record<string, string> | null
-}
-
-export type PaymentStatistics = {
-  totalSuccessfulPayments: number
-  totalAmount: number
-  recentAmount: number
-}
-
-export type CreatePaymentIntentRequest = {
-  organizationId: string
-  amount: number
-  currency: string
-  description?: string
-  metadata?: Record<string, string>
-}
-
-export type ConfirmPaymentIntentRequest = {
-  paymentMethodId: string
-}
-
-export type AttachPaymentMethodRequest = {
-  organizationId: string
-  stripePaymentMethodId: string
-}
+// Export types
+export type PaymentIntent = z.infer<typeof PaymentIntentSchema>;
+export type PaymentStatistics = z.infer<typeof PaymentStatisticsSchema>;
+export type CreatePaymentIntentRequest = z.infer<typeof CreatePaymentIntentRequestSchema>;
+export type ConfirmPaymentIntentRequest = z.infer<typeof ConfirmPaymentIntentRequestSchema>;
+export type AttachPaymentMethodRequest = z.infer<typeof AttachPaymentMethodRequestSchema>;
 
 export const paymentApi = createApi({
   reducerPath: 'paymentApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/payments`,
+  baseQuery: createValidatedBaseQuery(`${API_BASE_URL}/payments`, {
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
       if (token) {
@@ -117,10 +71,17 @@ export const paymentApi = createApi({
       PaymentIntent,
       CreatePaymentIntentRequest
     >({
-      query: body => ({
-        url: '/intents',
+      ...createValidatedEndpoint(wrapSuccessResponse(PaymentIntentSchema), {
+        query: body => {
+          // Validate request data
+          CreatePaymentIntentRequestSchema.parse(body);
+          return {
+            url: '/intents',
+            method: 'POST',
+            body,
+          };
+        },
         method: 'POST',
-        body,
       }),
       invalidatesTags: ['Payment'],
     }),
@@ -131,16 +92,30 @@ export const paymentApi = createApi({
         paymentIntentId: string
       } & ConfirmPaymentIntentRequest
     >({
-      query: ({ paymentIntentId, ...body }) => ({
-        url: `/intents/${paymentIntentId}/confirm`,
+      ...createValidatedEndpoint(wrapSuccessResponse(PaymentIntentSchema), {
+        query: ({ paymentIntentId, ...body }) => {
+          // Validate request data
+          ConfirmPaymentIntentRequestSchema.parse(body);
+          z.string().uuid().parse(paymentIntentId);
+          return {
+            url: `/intents/${paymentIntentId}/confirm`,
+            method: 'POST',
+            body,
+          };
+        },
         method: 'POST',
-        body,
       }),
       invalidatesTags: ['Payment', 'PaymentStatistics'],
     }),
 
     getOrganizationPayments: builder.query<Payment[], string>({
-      query: organizationId => `/organizations/${organizationId}`,
+      ...createValidatedEndpoint(PaginatedResponseSchema(PaymentSchema), {
+        query: organizationId => {
+          z.string().uuid().parse(organizationId);
+          return `/organizations/${organizationId}`;
+        },
+      }),
+      transformResponse: (response: any) => response.data.items,
       providesTags: (_result, _error, organizationId) => [
         { type: 'Payment', id: organizationId },
       ],
@@ -150,18 +125,30 @@ export const paymentApi = createApi({
       Payment[],
       {
         organizationId: string
-        status: PaymentStatus
+        status: string
       }
     >({
-      query: ({ organizationId, status }) =>
-        `/organizations/${organizationId}/status/${status}`,
+      ...createValidatedEndpoint(PaginatedResponseSchema(PaymentSchema), {
+        query: ({ organizationId, status }) => {
+          z.string().uuid().parse(organizationId);
+          z.string().parse(status);
+          return `/organizations/${organizationId}/status/${status}`;
+        },
+      }),
+      transformResponse: (response: any) => response.data.items,
       providesTags: (_result, _error, { organizationId, status }) => [
         { type: 'Payment', id: `${organizationId}-${status}` },
       ],
     }),
 
     getPaymentStatistics: builder.query<PaymentStatistics, string>({
-      query: organizationId => `/organizations/${organizationId}/statistics`,
+      ...createValidatedEndpoint(wrapSuccessResponse(PaymentStatisticsSchema), {
+        query: organizationId => {
+          z.string().uuid().parse(organizationId);
+          return `/organizations/${organizationId}/statistics`;
+        },
+      }),
+      transformResponse: (response: any) => response.data,
       providesTags: (_result, _error, organizationId) => [
         { type: 'PaymentStatistics', id: organizationId },
       ],
@@ -171,10 +158,17 @@ export const paymentApi = createApi({
       PaymentMethod,
       AttachPaymentMethodRequest
     >({
-      query: body => ({
-        url: '/methods',
+      ...createValidatedEndpoint(wrapSuccessResponse(PaymentMethodSchema), {
+        query: body => {
+          // Validate request data
+          AttachPaymentMethodRequestSchema.parse(body);
+          return {
+            url: '/methods',
+            method: 'POST',
+            body,
+          };
+        },
         method: 'POST',
-        body,
       }),
       invalidatesTags: ['PaymentMethod'],
     }),
@@ -186,11 +180,15 @@ export const paymentApi = createApi({
         organizationId: string
       }
     >({
-      query: ({ paymentMethodId, organizationId }) => ({
-        url: `/methods/${paymentMethodId}`,
-        method: 'DELETE',
-        params: { organizationId },
-      }),
+      query: ({ paymentMethodId, organizationId }) => {
+        z.string().parse(paymentMethodId);
+        z.string().uuid().parse(organizationId);
+        return {
+          url: `/methods/${paymentMethodId}`,
+          method: 'DELETE',
+          params: { organizationId },
+        };
+      },
       invalidatesTags: ['PaymentMethod'],
     }),
 
@@ -201,16 +199,29 @@ export const paymentApi = createApi({
         organizationId: string
       }
     >({
-      query: ({ paymentMethodId, organizationId }) => ({
-        url: `/methods/${paymentMethodId}/default`,
+      ...createValidatedEndpoint(wrapSuccessResponse(PaymentMethodSchema), {
+        query: ({ paymentMethodId, organizationId }) => {
+          z.string().parse(paymentMethodId);
+          z.string().uuid().parse(organizationId);
+          return {
+            url: `/methods/${paymentMethodId}/default`,
+            method: 'PUT',
+            params: { organizationId },
+          };
+        },
         method: 'PUT',
-        params: { organizationId },
       }),
       invalidatesTags: ['PaymentMethod'],
     }),
 
     getOrganizationPaymentMethods: builder.query<PaymentMethod[], string>({
-      query: organizationId => `/methods/organizations/${organizationId}`,
+      ...createValidatedEndpoint(PaginatedResponseSchema(PaymentMethodSchema), {
+        query: organizationId => {
+          z.string().uuid().parse(organizationId);
+          return `/methods/organizations/${organizationId}`;
+        },
+      }),
+      transformResponse: (response: any) => response.data.items,
       providesTags: (_result, _error, organizationId) => [
         { type: 'PaymentMethod', id: organizationId },
       ],

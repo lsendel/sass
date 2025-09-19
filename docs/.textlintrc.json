@@ -1,0 +1,41 @@
+{
+  "plugins": ["@textlint/markdown"],
+  "rules": {
+    "preset-ja-spacing": true,
+    "preset-ja-technical-writing": {
+      "no-exclamation-question-mark": false,
+      "no-doubled-joshi": false
+    },
+    "terminology": {
+      "defaultTerms": false,
+      "terms": [
+        "Spring Boot",
+        "TypeScript",
+        "JavaScript",
+        "React",
+        "Docusaurus",
+        "PostgreSQL",
+        "Redis",
+        "Docker",
+        "OAuth2",
+        "JWT",
+        "API",
+        "REST",
+        "JSON",
+        "YAML",
+        "Markdown",
+        "GitHub",
+        "CI/CD"
+      ]
+    }
+  },
+  "filters": {
+    "comments": true,
+    "allowlist": {
+      "allow": [
+        "/```[\\s\\S]*?```/m",
+        "/`[^`]*`/g"
+      ]
+    }
+  }
+}

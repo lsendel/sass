@@ -1,6 +1,7 @@
 {
-  "name": "docs",
-  "version": "0.0.0",
+  "name": "sass-platform-docs",
+  "version": "1.0.0",
+  "description": "Documentation for the Spring Boot Modulith Payment Platform",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
@@ -23,6 +24,7 @@
     "docs-serve": "npm run serve",
     "docs-validate": "npm run validate",
     "docs-create": "node scripts/create-doc.js",
+    "optimize-images": "node scripts/optimize-images.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -35,20 +37,29 @@
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.8.1",
     "@docusaurus/tsconfig": "3.8.1",
     "@docusaurus/types": "3.8.1",
+    "@eslint/js": "^9.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.5.1",
     "@types/supertest": "^6.0.3",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-mdx": "^4.0.3",
+    "eslint-plugin-react": "^7.34.0",
     "jest": "^30.1.3",
     "markdown-link-check": "^3.13.7",
     "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.2.0",
     "supertest": "^7.1.4",
     "textlint": "^15.2.2",
+    "textlint-rule-preset-ja-spacing": "^2.5.0",
+    "textlint-rule-preset-ja-technical-writing": "^10.1.2",
     "ts-jest": "^29.4.2",
     "typescript": "~5.6.2"
   },

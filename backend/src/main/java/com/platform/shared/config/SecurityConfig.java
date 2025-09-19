@@ -26,8 +26,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.platform.auth.internal.OpaqueTokenStore;
+import com.platform.shared.config.OpaqueTokenAuthenticationFilter;
 import com.platform.shared.security.CustomOAuth2UserService;
+import com.platform.shared.security.InputSanitizer;
+import com.platform.shared.security.InputValidationFilter;
 import com.platform.shared.security.OAuth2AuthenticationSuccessHandler;
+import com.platform.shared.security.RateLimitingFilter;
 import com.platform.shared.security.SecurityHeadersFilter;
 import com.platform.shared.security.TenantContextFilter;
 
@@ -161,7 +165,9 @@ public class SecurityConfig {
                     .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                     .successHandler(successHandler))
 
-        // Add custom filters
+        // Add custom filters (order matters!)
+        .addFilterBefore(inputValidationFilter(), UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(rateLimitingFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(securityHeadersFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(tenantContextFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterAfter(
@@ -222,5 +228,20 @@ public class SecurityConfig {
   @Bean
   public SecurityHeadersFilter securityHeadersFilter() {
     return new SecurityHeadersFilter();
+  }
+
+  @Bean
+  public RateLimitingFilter rateLimitingFilter() {
+    return new RateLimitingFilter();
+  }
+
+  @Bean
+  public InputValidationFilter inputValidationFilter() {
+    return new InputValidationFilter(inputSanitizer());
+  }
+
+  @Bean
+  public InputSanitizer inputSanitizer() {
+    return new InputSanitizer();
   }
 }
