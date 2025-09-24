@@ -152,16 +152,33 @@ public class OrganizationService {
     return savedOrganization;
   }
 
+  /** Create a new organization and return a view */
+  public OrganizationView createOrganizationView(String name, String slug, Map<String, Object> settings) {
+    return OrganizationView.fromEntity(createOrganization(name, slug, settings));
+  }
+
   /** Get organization by ID */
   @Transactional(readOnly = true)
   public Optional<Organization> findById(UUID organizationId) {
     return organizationRepository.findById(organizationId).filter(org -> !org.isDeleted());
   }
 
+  /** Get organization view by ID */
+  @Transactional(readOnly = true)
+  public Optional<OrganizationView> findViewById(UUID organizationId) {
+    return findById(organizationId).map(OrganizationView::fromEntity);
+  }
+
   /** Get organization by slug */
   @Transactional(readOnly = true)
   public Optional<Organization> findBySlug(String slug) {
     return organizationRepository.findBySlugAndDeletedAtIsNull(slug);
+  }
+
+  /** Get organization view by slug */
+  @Transactional(readOnly = true)
+  public Optional<OrganizationView> findViewBySlug(String slug) {
+    return findBySlug(slug).map(OrganizationView::fromEntity);
   }
 
   /** Get organizations for current user */
@@ -177,6 +194,21 @@ public class OrganizationService {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(java.util.stream.Collectors.toList());
+  }
+
+  /** Get organization views for current user */
+  @Transactional(readOnly = true)
+  public List<OrganizationView> getUserOrganizationViews() {
+    return getUserOrganizations().stream().map(OrganizationView::fromEntity).toList();
+  }
+
+  /** Get all non-deleted organizations as views (admin/test utilities). */
+  @Transactional(readOnly = true)
+  public List<OrganizationView> getAllOrganizationViews() {
+    return organizationRepository.findAll().stream()
+        .filter(org -> !org.isDeleted())
+        .map(OrganizationView::fromEntity)
+        .toList();
   }
 
   /** Update organization details */
@@ -241,6 +273,10 @@ public class OrganizationService {
     return savedOrganization;
   }
 
+  public OrganizationView updateOrganizationView(UUID organizationId, String name, Map<String, Object> settings) {
+    return OrganizationView.fromEntity(updateOrganization(organizationId, name, settings));
+  }
+
   /** Update organization settings only */
   public Organization updateSettings(UUID organizationId, Map<String, Object> settings) {
     Organization organization =
@@ -255,6 +291,10 @@ public class OrganizationService {
 
     logger.info("Updated settings for organization: {}", organizationId);
     return savedOrganization;
+  }
+
+  public OrganizationView updateSettingsView(UUID organizationId, Map<String, Object> settings) {
+    return OrganizationView.fromEntity(updateSettings(organizationId, settings));
   }
 
   /** Delete organization (soft delete) */
@@ -477,6 +517,11 @@ public class OrganizationService {
     return savedInvitation;
   }
 
+  /** Invite user and return view */
+  public InvitationView inviteUserView(UUID organizationId, String email, OrganizationMember.Role role) {
+    return InvitationView.fromEntity(inviteUser(organizationId, email, role));
+  }
+
   /** Accept invitation */
   public OrganizationMember acceptInvitation(String token) {
     UUID currentUserId = TenantContext.getCurrentUserId();
@@ -637,6 +682,11 @@ public class OrganizationService {
         invitation.getOrganizationId());
 
     return savedMember;
+  }
+
+  /** Accept invitation and return member view */
+  public OrganizationMemberView acceptInvitationView(String token) {
+    return OrganizationMemberView.fromEntity(acceptInvitation(token));
   }
 
   /** Decline invitation */
@@ -824,11 +874,23 @@ public class OrganizationService {
     return savedMember;
   }
 
+  /** Update member role and return view */
+  public OrganizationMemberView updateMemberRoleView(
+      UUID organizationId, UUID userId, OrganizationMember.Role newRole) {
+    return OrganizationMemberView.fromEntity(updateMemberRole(organizationId, userId, newRole));
+  }
+
   /** Get pending invitations for organization */
   @Transactional(readOnly = true)
   public List<Invitation> getPendingInvitations(UUID organizationId) {
     validateOrganizationAccess(organizationId, OrganizationMember.Role.ADMIN);
     return invitationRepository.findPendingInvitationsForOrganization(organizationId);
+  }
+
+  /** Get pending invitation views */
+  @Transactional(readOnly = true)
+  public List<InvitationView> getPendingInvitationViews(UUID organizationId) {
+    return getPendingInvitations(organizationId).stream().map(InvitationView::fromEntity).toList();
   }
 
   /** Revoke invitation */

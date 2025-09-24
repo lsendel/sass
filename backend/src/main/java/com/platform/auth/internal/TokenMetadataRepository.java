@@ -18,6 +18,9 @@ public interface TokenMetadataRepository extends JpaRepository<TokenMetadata, UU
     /** Find token metadata by token hash */
     Optional<TokenMetadata> findByTokenHash(String tokenHash);
 
+    /** Find token metadata by lookup hash */
+    Optional<TokenMetadata> findFirstByTokenLookupHashAndExpiresAtAfter(String tokenLookupHash, Instant now);
+
     /** Find all valid (non-expired) tokens */
     @Query("SELECT tm FROM TokenMetadata tm WHERE tm.expiresAt > :now")
     List<TokenMetadata> findValidTokens(@Param("now") Instant now);
@@ -59,7 +62,11 @@ public interface TokenMetadataRepository extends JpaRepository<TokenMetadata, UU
 
     /** Find tokens by user and session type */
     @Query(
-            "SELECT tm FROM TokenMetadata tm WHERE tm.userId = :userId AND JSON_EXTRACT(tm.metadata, '$.sessionType') = :sessionType AND tm.expiresAt > :now")
+            value =
+                    "SELECT * FROM token_metadata tm WHERE tm.user_id = :userId "
+                            + "AND tm.expires_at > :now "
+                            + "AND (tm.metadata::jsonb) ->> 'sessionType' = :sessionType",
+            nativeQuery = true)
     List<TokenMetadata> findUserTokensBySessionType(
             @Param("userId") UUID userId,
             @Param("sessionType") String sessionType,
@@ -67,7 +74,10 @@ public interface TokenMetadataRepository extends JpaRepository<TokenMetadata, UU
 
     /** Find tokens by IP address (for security analysis) */
     @Query(
-            "SELECT tm FROM TokenMetadata tm WHERE JSON_EXTRACT(tm.metadata, '$.ipAddress') = :ipAddress AND tm.expiresAt > :now")
+            value =
+                    "SELECT * FROM token_metadata tm WHERE tm.expires_at > :now "
+                            + "AND (tm.metadata::jsonb) ->> 'ipAddress' = :ipAddress",
+            nativeQuery = true)
     List<TokenMetadata> findTokensByIpAddress(
             @Param("ipAddress") String ipAddress, @Param("now") Instant now);
 
@@ -85,8 +95,10 @@ public interface TokenMetadataRepository extends JpaRepository<TokenMetadata, UU
 
     /** Count tokens by session type */
     @Query(
-            "SELECT JSON_EXTRACT(tm.metadata, '$.sessionType') as sessionType, COUNT(tm) "
-                    + "FROM TokenMetadata tm WHERE tm.expiresAt > :now "
-                    + "GROUP BY JSON_EXTRACT(tm.metadata, '$.sessionType')")
+            value =
+                    "SELECT (tm.metadata::jsonb) ->> 'sessionType' AS sessionType, COUNT(*) "
+                            + "FROM token_metadata tm WHERE tm.expires_at > :now "
+                            + "GROUP BY (tm.metadata::jsonb) ->> 'sessionType'",
+            nativeQuery = true)
     List<Object[]> countTokensBySessionType(@Param("now") Instant now);
 }

@@ -1,12 +1,20 @@
+@import 'tailwindcss';
+
+/* Legacy layer imports for compatibility */
+@layer base, components, utilities;
+
+/* Global CSS Reset and Base Styles */
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Modern light theme - clean and professional */
+  color-scheme: light;
+  color: #111827; /* gray-900 */
+  background-color: #ffffff;
 
+  /* Font rendering optimizations */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -14,56 +22,158 @@
   -webkit-text-size-adjust: 100%;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
+/* Clean body reset */
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+/* Modern link styles using theme colors */
+a {
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  color: #2563eb; /* primary brand color */
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+a:hover {
+  color: #06b6d4; /* accent color */
+}
+
+a:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  color: #111827;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Professional button reset - will be overridden by components */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* SVG Icon Size Enforcement */
+svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Ensure Tailwind icon classes work correctly */
+.w-3 { width: 12px !important; }
+.h-3 { height: 12px !important; }
+.w-3\.5 { width: 14px !important; }
+.h-3\.5 { height: 14px !important; }
+.w-4 { width: 16px !important; }
+.h-4 { height: 16px !important; }
+.w-5 { width: 20px !important; }
+.h-5 { height: 20px !important; }
+.w-6 { width: 24px !important; }
+.h-6 { height: 24px !important; }
+.w-8 { width: 32px !important; }
+.h-8 { height: 32px !important; }
+
+/* Utility classes for consistent styling */
+@layer utilities {
+  /* Text color utilities using theme */
+  .text-brand {
+    color: #2563eb;
   }
-  a:hover {
-    color: #747bff;
+
+  .text-accent {
+    color: #06b6d4;
   }
-  button {
-    background-color: #f9f9f9;
+
+  /* Brand primary color class for consistency */
+  .text-primary {
+    color: #2563eb;
+  }
+
+  .bg-primary {
+    background-color: #2563eb;
+  }
+
+  .border-primary {
+    border-color: #2563eb;
+  }
+
+  /* Modern glassmorphism effect - more subtle */
+  .glass {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Professional gradients */
+  .gradient-brand {
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(100%) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Brand element classes for detection */
+  .brand-element {
+    color: #2563eb;
+  }
+
+  .brand-bg {
+    background-color: #2563eb;
   }
 }

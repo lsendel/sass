@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -32,6 +34,13 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleForbidden(
       SecurityException ex, HttpServletRequest req) {
     return build(HttpStatus.FORBIDDEN, ex.getMessage(), req);
+  }
+
+  @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+  public ResponseEntity<ErrorResponse> handleAccessDenied(
+      RuntimeException ex, HttpServletRequest req) {
+    String message = ex.getMessage() != null ? ex.getMessage() : "Access denied";
+    return build(HttpStatus.FORBIDDEN, message, req);
   }
 
   @ExceptionHandler(StripeException.class)

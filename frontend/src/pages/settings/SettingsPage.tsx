@@ -5,7 +5,11 @@ import {
   useUpdateProfileMutation,
 } from '../../store/api/userApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { LoadingCard, LoadingButton } from '../../components/ui/LoadingStates'
+import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
 import { parseApiError } from '../../utils/apiError'
+import { useCrossComponentSync } from '../../hooks/useDataSync'
+import { useNotifications } from '../../components/ui/FeedbackSystem'
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -14,7 +18,6 @@ import {
   KeyIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline'
-import { toast } from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,8 +43,10 @@ type ProfileForm = z.infer<typeof profileSchema>
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile')
-  const { data: profile, isLoading } = useGetCurrentUserQuery()
+  const { data: profile, isLoading, error } = useGetCurrentUserQuery()
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation()
+  const { syncUserData } = useCrossComponentSync()
+  const { showSuccess, showError } = useNotifications()
 
   const {
     register,
@@ -72,8 +77,37 @@ const SettingsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner size="lg" />
+      <div className="space-y-6">
+        <LoadingCard
+          title="Loading Settings"
+          message="Fetching your profile and preferences..."
+        />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="md:flex md:items-center md:justify-between">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              Settings
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage your account settings and preferences.
+            </p>
+          </div>
+        </div>
+
+        <ApiErrorDisplay
+          error={error}
+          onRetry={async () => {
+            window.location.reload()
+          }}
+          fallbackMessage="Failed to load settings. Please try again."
+        />
       </div>
     )
   }
@@ -93,11 +127,12 @@ const SettingsPage: React.FC = () => {
         },
       }).unwrap()
 
-      toast.success('Profile updated successfully')
+      showSuccess('Profile Updated', 'Your profile has been updated successfully.')
+      await syncUserData()
     } catch (err) {
       const parsed = parseApiError(err)
       logger.error('Failed to update profile:', parsed)
-      toast.error(parsed.message || 'Failed to update profile')
+      showError('Update Failed', parsed.message || 'Failed to update profile. Please try again.')
     }
   }
 
@@ -251,13 +286,14 @@ const SettingsPage: React.FC = () => {
               </div>
 
               <div className="flex justify-end">
-                <button
+                <LoadingButton
                   type="submit"
-                  disabled={isUpdating}
-                  className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  isLoading={isUpdating}
+                  variant="primary"
+                  size="md"
                 >
-                  {isUpdating ? 'Saving...' : 'Save Changes'}
-                </button>
+                  Save Changes
+                </LoadingButton>
               </div>
             </form>
           )}
@@ -334,13 +370,14 @@ const SettingsPage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end">
-                  <button
+                  <LoadingButton
                     type="submit"
-                    disabled={isUpdating}
-                    className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    isLoading={isUpdating}
+                    variant="primary"
+                    size="md"
                   >
-                    {isUpdating ? 'Saving...' : 'Save Changes'}
-                  </button>
+                    Save Changes
+                  </LoadingButton>
                 </div>
               </form>
             </div>
@@ -387,9 +424,13 @@ const SettingsPage: React.FC = () => {
                         Add an extra layer of security to your account.
                       </p>
                     </div>
-                    <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <LoadingButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => showError('Not Available', 'Two-factor authentication is not yet implemented.')}
+                    >
                       Enable
-                    </button>
+                    </LoadingButton>
                   </div>
                 </div>
               </div>
@@ -418,9 +459,13 @@ const SettingsPage: React.FC = () => {
                         Export all your account data and information.
                       </p>
                     </div>
-                    <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <LoadingButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => showError('Not Available', 'Data export is not yet implemented.')}
+                    >
                       Export Data
-                    </button>
+                    </LoadingButton>
                   </div>
                 </div>
 
@@ -435,10 +480,18 @@ const SettingsPage: React.FC = () => {
                         This action cannot be undone.
                       </p>
                     </div>
-                    <button className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <LoadingButton
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                          showError('Not Available', 'Account deletion is not yet implemented. Please contact support.')
+                        }
+                      }}
+                    >
                       <TrashIcon className="h-4 w-4 mr-1" />
                       Delete
-                    </button>
+                    </LoadingButton>
                   </div>
                 </div>
               </div>

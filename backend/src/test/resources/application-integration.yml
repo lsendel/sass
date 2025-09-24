@@ -1,0 +1,60 @@
+# Integration test configuration for TestContainers
+spring:
+  profiles:
+    active: integration
+
+  # Database configuration for TestContainers PostgreSQL
+  datasource:
+    # These will be overridden by TestContainers
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+
+  # JPA configuration for tests
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Redis configuration for TestContainers
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+
+  # Session configuration
+  session:
+    store-type: redis
+    redis:
+      namespace: spring:session:integration
+
+  # Flyway configuration for integration tests
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-on-validation-error: true
+
+# TestContainers configuration
+testcontainers:
+  reuse:
+    enable: false
+
+# Logging configuration for tests
+logging:
+  level:
+    com.platform: INFO
+    org.testcontainers: INFO
+    org.springframework.security: DEBUG
+    root: WARN

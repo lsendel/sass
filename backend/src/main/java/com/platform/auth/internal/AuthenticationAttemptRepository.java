@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -128,6 +129,7 @@ public interface AuthenticationAttemptRepository
    * Delete old authentication attempts for GDPR compliance. Should be called periodically to clean
    * up old audit data.
    */
+  @Modifying
   @Query("DELETE FROM AuthenticationAttempt a WHERE a.attemptTime < :cutoffTime")
   void deleteOldAttempts(@Param("cutoffTime") Instant cutoffTime);
 

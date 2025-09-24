@@ -3,28 +3,39 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import { COLOR, ACCENT_COLOR } from "@/lib/theme"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        glass: "backdrop-blur-sm bg-white/10 border border-white/20 text-gray-700 hover:bg-white/20 shadow-lg",
+        // Primary button using global COLOR theme
+        default: `bg-[${COLOR}] text-white hover:bg-[${COLOR}]/90 focus:ring-[${COLOR}]/20 shadow-sm hover:shadow-md`,
+
+        // Accent button using global ACCENT_COLOR
+        accent: `bg-[${ACCENT_COLOR}] text-white hover:bg-[${ACCENT_COLOR}]/90 focus:ring-[${ACCENT_COLOR}]/20 shadow-sm hover:shadow-md`,
+
+        // Destructive actions
+        destructive: "bg-error-600 text-white hover:bg-error-700 focus:ring-error-200 shadow-sm hover:shadow-md",
+
+        // Outline variant using theme colors
+        outline: `border border-[${COLOR}] text-[${COLOR}] hover:bg-[${COLOR}] hover:text-white focus:ring-[${COLOR}]/20`,
+
+        // Secondary button
+        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-200",
+
+        // Ghost button
+        ghost: "text-gray-700 hover:bg-gray-100 focus:ring-gray-200",
+
+        // Link variant
+        link: `text-[${COLOR}] hover:text-[${ACCENT_COLOR}] hover:underline focus:ring-[${COLOR}]/20 p-0 h-auto font-medium`,
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        sm: "h-8 px-3 text-sm rounded-lg",
+        default: "h-10 px-4 text-sm rounded-lg",
+        lg: "h-12 px-6 text-base rounded-xl",
+        icon: "h-10 w-10 rounded-lg",
       },
     },
     defaultVariants: {

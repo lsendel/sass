@@ -53,16 +53,19 @@ public class SecurityConfig {
   private final OAuth2AuthenticationSuccessHandler successHandler;
   private final AuthorizationRequestRepository<OAuth2AuthorizationRequest>
       authorizationRequestRepository;
+  private final RateLimitingFilter rateLimitingFilter;
 
   public SecurityConfig(
       OpaqueTokenStore tokenStore,
       CustomOAuth2UserService customOAuth2UserService,
       OAuth2AuthenticationSuccessHandler successHandler,
-      AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository) {
+      AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository,
+      RateLimitingFilter rateLimitingFilter) {
     this.tokenStore = tokenStore;
     this.customOAuth2UserService = customOAuth2UserService;
     this.successHandler = successHandler;
     this.authorizationRequestRepository = authorizationRequestRepository;
+    this.rateLimitingFilter = rateLimitingFilter;
   }
 
   @Bean
@@ -85,12 +88,28 @@ public class SecurityConfig {
                     .frameOptions(frameOptions -> frameOptions.deny())
                     .contentTypeOptions(contentTypeOptions -> {})
                     .httpStrictTransportSecurity(
-                        hstsConfig -> hstsConfig.maxAgeInSeconds(31536000).includeSubDomains(true))
+                        hstsConfig ->
+                            hstsConfig
+                                .maxAgeInSeconds(31536000)
+                                .includeSubDomains(true)
+                                .preload(true))
                     .referrerPolicy(
                         referrerPolicy ->
                             referrerPolicy.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy
-                                    .STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
+                                    .STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                    .addHeaderWriter(
+                        (request, response) -> {
+                          response.setHeader("X-Content-Type-Options", "nosniff");
+                          response.setHeader("X-Frame-Options", "DENY");
+                          response.setHeader("X-XSS-Protection", "1; mode=block");
+                          response.setHeader(
+                              "Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+                          response.setHeader(
+                              "Content-Security-Policy",
+                              "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                                  + "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
+                        }))
 
         // Configure authorization
         .authorizeHttpRequests(
@@ -167,7 +186,7 @@ public class SecurityConfig {
 
         // Add custom filters (order matters!)
         .addFilterBefore(inputValidationFilter(), UsernamePasswordAuthenticationFilter.class)
-        .addFilterBefore(rateLimitingFilter(), UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(securityHeadersFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(tenantContextFilter(), UsernamePasswordAuthenticationFilter.class)
         .addFilterAfter(
@@ -228,11 +247,6 @@ public class SecurityConfig {
   @Bean
   public SecurityHeadersFilter securityHeadersFilter() {
     return new SecurityHeadersFilter();
-  }
-
-  @Bean
-  public RateLimitingFilter rateLimitingFilter() {
-    return new RateLimitingFilter();
   }
 
   @Bean

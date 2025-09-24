@@ -1,0 +1,62 @@
+# SASS Constitutional Tools
+
+This directory contains the Python-based constitutional enforcement system for the SASS project.
+
+## Overview
+
+The constitutional tools provide AI-powered development assistance and enforcement of development practices, including:
+
+- **Constitutional Enforcement Agents**: Monitor and enforce development standards
+- **TDD Compliance Agents**: Ensure test-driven development practices
+- **Architecture Validation**: Module boundary and dependency enforcement
+- **Security Compliance**: OWASP, PCI DSS, and GDPR validation
+- **Workflow Orchestration**: Multi-agent coordination for complex development tasks
+
+## Structure
+
+```
+tools/
+├── agents/                 # AI agents for various enforcement tasks
+│   ├── constitutional_enforcement.py
+│   ├── tdd_compliance.py
+│   └── task_coordination.py
+├── architecture/           # Architecture validation tools
+├── events/                 # Event-driven communication system
+├── workflows/              # Complex workflow orchestration
+├── security/               # Security compliance tools
+├── monitoring/             # Constitutional monitoring
+├── lib/                    # Shared libraries and utilities
+├── requirements.txt        # Python dependencies
+├── pyproject.toml         # Python project configuration
+└── README.md              # This file
+```
+
+## Installation
+
+```bash
+cd tools
+pip install -r requirements.txt
+# or for development
+pip install -e .[dev]
+```
+
+## Testing
+
+Tests for the constitutional tools are located in `../tests/python/`.
+
+Run tests from the tools directory:
+```bash
+cd tools
+python -m pytest ../tests/python/
+```
+
+## Development
+
+This system is separate from the main Java/TypeScript application but works alongside it to enforce development practices and provide tooling support.
+
+## Architecture Notes
+
+- **Language Separation**: Python tools complement the Java Spring Boot backend and React frontend
+- **Event-Driven**: Uses event-driven architecture for loose coupling
+- **Agent-Based**: Multiple specialized agents coordinate complex workflows
+- **Constitutional Model**: Enforces non-negotiable development principles

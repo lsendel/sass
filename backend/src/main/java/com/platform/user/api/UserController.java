@@ -2,182 +2,155 @@ package com.platform.user.api;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import com.platform.shared.security.TenantContext;
-import com.platform.user.internal.User;
-import com.platform.user.internal.UserService;
+import com.platform.shared.security.PlatformUserPrincipal;
+import com.platform.user.api.UserDto.PagedUserResponse;
+import com.platform.user.api.UserDto.UpdatePreferencesRequest;
+import com.platform.user.api.UserDto.UpdateProfileRequest;
+import com.platform.user.api.UserDto.UserResponse;
+import com.platform.user.api.UserDto.UserStatistics;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@PreAuthorize("isAuthenticated()")
 public class UserController {
 
-  private final UserService userService;
+  private final UserManagementServiceInterface userManagementService;
 
-  public UserController(UserService userService) {
-    this.userService = userService;
+  public UserController(UserManagementServiceInterface userManagementService) {
+    this.userManagementService = userManagementService;
   }
 
   @GetMapping("/me")
-  public ResponseEntity<UserResponse> getCurrentUser() {
-    Optional<User> user = userService.getCurrentUser();
-    return user.map(u -> ResponseEntity.ok(UserResponse.fromUser(u)))
+  public ResponseEntity<UserResponse> getCurrentUser(
+      @AuthenticationPrincipal PlatformUserPrincipal principal) {
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    Optional<UserResponse> user = userManagementService.getCurrentUser();
+    return user.map(ResponseEntity::ok)
         .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
   }
 
   @GetMapping("/{userId}")
-  public ResponseEntity<UserResponse> getUserById(@PathVariable UUID userId) {
-    Optional<User> user = userService.findById(userId);
-    return user.map(u -> ResponseEntity.ok(UserResponse.fromUser(u)))
-        .orElse(ResponseEntity.notFound().build());
+  @PreAuthorize("hasRole('ADMIN') || #userId == principal.userId")
+  public ResponseEntity<UserResponse> getUserById(
+      @AuthenticationPrincipal PlatformUserPrincipal principal, @PathVariable UUID userId) {
+    Optional<UserResponse> user = userManagementService.findById(userId);
+    return user.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
   }
 
   @PutMapping("/me/profile")
   public ResponseEntity<UserResponse> updateProfile(
+      @AuthenticationPrincipal PlatformUserPrincipal principal,
       @Valid @RequestBody UpdateProfileRequest request) {
-    UUID currentUserId = TenantContext.getCurrentUserId();
-    if (currentUserId == null) {
+    if (principal == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    User updatedUser =
-        userService.updateProfile(currentUserId, request.name(), request.preferences());
+    UserResponse updatedUser =
+        userManagementService.updateProfile(principal.getUserId(), request.name(), request.preferences());
 
-    return ResponseEntity.ok(UserResponse.fromUser(updatedUser));
+    return ResponseEntity.ok(updatedUser);
   }
 
   @PutMapping("/me/preferences")
   public ResponseEntity<UserResponse> updatePreferences(
+      @AuthenticationPrincipal PlatformUserPrincipal principal,
       @Valid @RequestBody UpdatePreferencesRequest request) {
-    UUID currentUserId = TenantContext.getCurrentUserId();
-    if (currentUserId == null) {
+    if (principal == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    User updatedUser = userService.updatePreferences(currentUserId, request.preferences());
-    return ResponseEntity.ok(UserResponse.fromUser(updatedUser));
+    UserResponse updatedUser =
+        userManagementService.updatePreferences(principal.getUserId(), request.preferences());
+    return ResponseEntity.ok(updatedUser);
   }
 
   @DeleteMapping("/me")
-  public ResponseEntity<Void> deleteCurrentUser() {
-    UUID currentUserId = TenantContext.getCurrentUserId();
-    if (currentUserId == null) {
+  public ResponseEntity<Void> deleteCurrentUser(
+      @AuthenticationPrincipal PlatformUserPrincipal principal) {
+    if (principal == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    userService.deleteUser(currentUserId);
+    userManagementService.deleteUser(principal.getUserId());
     return ResponseEntity.noContent().build();
   }
 
   @GetMapping("/search")
-  public ResponseEntity<List<UserResponse>> searchUsers(@RequestParam String name) {
-    List<User> users = userService.searchUsersByName(name);
-    List<UserResponse> responses = users.stream().map(UserResponse::fromUser).toList();
-    return ResponseEntity.ok(responses);
+  public ResponseEntity<List<UserResponse>> searchUsers(
+      @RequestParam String name, @AuthenticationPrincipal PlatformUserPrincipal principal) {
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    List<UserResponse> users = userManagementService.searchUsersByName(name);
+    return ResponseEntity.ok(users);
   }
 
   @GetMapping
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<PagedUserResponse> getAllUsers(
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size,
       @RequestParam(defaultValue = "createdAt") String sortBy,
       @RequestParam(defaultValue = "desc") String sortDirection) {
 
-    Page<User> userPage = userService.findAllUsers(page, size, sortBy, sortDirection);
-
-    List<UserResponse> users = userPage.getContent().stream().map(UserResponse::fromUser).toList();
-
     PagedUserResponse response =
-        new PagedUserResponse(
-            users,
-            userPage.getNumber(),
-            userPage.getSize(),
-            userPage.getTotalElements(),
-            userPage.getTotalPages(),
-            userPage.isFirst(),
-            userPage.isLast());
-
+        userManagementService.findAllUsers(page, size, sortBy, sortDirection);
     return ResponseEntity.ok(response);
   }
 
   @GetMapping("/recent")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<List<UserResponse>> getRecentUsers(@RequestParam String since) {
     try {
       Instant sinceInstant = Instant.parse(since);
-      List<User> users = userService.getRecentlyActiveUsers(sinceInstant);
-      List<UserResponse> responses = users.stream().map(UserResponse::fromUser).toList();
-      return ResponseEntity.ok(responses);
+      List<UserResponse> users = userManagementService.getRecentlyActiveUsers(sinceInstant);
+      return ResponseEntity.ok(users);
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();
     }
   }
 
   @GetMapping("/statistics")
-  public ResponseEntity<UserService.UserStatistics> getUserStatistics() {
-    UserService.UserStatistics stats = userService.getUserStatistics();
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<UserStatistics> getUserStatistics() {
+    UserStatistics stats = userManagementService.getUserStatistics();
     return ResponseEntity.ok(stats);
   }
 
   @GetMapping("/count")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<Long> countActiveUsers() {
-    long count = userService.countActiveUsers();
+    long count = userManagementService.countActiveUsers();
     return ResponseEntity.ok(count);
   }
 
   @GetMapping("/providers/{provider}")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<List<UserResponse>> getUsersByProvider(@PathVariable String provider) {
-    List<User> users = userService.findUsersByProvider(provider);
-    List<UserResponse> responses = users.stream().map(UserResponse::fromUser).toList();
-    return ResponseEntity.ok(responses);
+    List<UserResponse> users = userManagementService.findUsersByProvider(provider);
+    return ResponseEntity.ok(users);
   }
 
   @PostMapping("/{userId}/restore")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<UserResponse> restoreUser(@PathVariable UUID userId) {
-    User restoredUser = userService.restoreUser(userId);
-    return ResponseEntity.ok(UserResponse.fromUser(restoredUser));
+    UserResponse restoredUser = userManagementService.restoreUser(userId);
+    return ResponseEntity.ok(restoredUser);
   }
-
-  public record UserResponse(
-      UUID id,
-      String email,
-      String name,
-      String provider,
-      Map<String, Object> preferences,
-      Instant createdAt,
-      Instant lastActiveAt) {
-    public static UserResponse fromUser(User user) {
-      return new UserResponse(
-          user.getId(),
-          user.getEmail().getValue(),
-          user.getName(),
-          user.getProvider(),
-          user.getPreferences(),
-          user.getCreatedAt(),
-          user.getLastActiveAt());
-    }
-  }
-
-  public record UpdateProfileRequest(@NotBlank String name, Map<String, Object> preferences) {}
-
-  public record UpdatePreferencesRequest(@NotNull Map<String, Object> preferences) {}
-
-  public record PagedUserResponse(
-      List<UserResponse> users,
-      int page,
-      int size,
-      long totalElements,
-      int totalPages,
-      boolean first,
-      boolean last) {}
 }
+

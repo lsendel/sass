@@ -21,7 +21,7 @@ import {
 } from '@/types/api'
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
+  import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export const authApi = createApi({
   reducerPath: 'authApi',

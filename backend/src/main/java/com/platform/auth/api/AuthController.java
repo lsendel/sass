@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +26,7 @@ import com.platform.shared.security.PlatformUserPrincipal;
 
 /** REST controller for authentication endpoints including OAuth2 flows. */
 @RestController
+@org.springframework.context.annotation.Profile("!test")
 @RequestMapping("/api/v1/auth")
 @CrossOrigin(
     origins = {"${app.frontend-url}", "http://localhost:3000"},
@@ -40,17 +40,14 @@ public class AuthController {
 
   private final OAuth2ProvidersService providersService;
   private final SessionService sessionService;
-  private final ClientRegistrationRepository clientRegistrationRepository;
   private final PasswordProperties passwordProperties;
 
   public AuthController(
       OAuth2ProvidersService providersService,
       SessionService sessionService,
-      ClientRegistrationRepository clientRegistrationRepository,
       PasswordProperties passwordProperties) {
     this.providersService = providersService;
     this.sessionService = sessionService;
-    this.clientRegistrationRepository = clientRegistrationRepository;
     this.passwordProperties = passwordProperties;
   }
 

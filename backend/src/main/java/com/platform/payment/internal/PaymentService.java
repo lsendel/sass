@@ -165,16 +165,22 @@ public class PaymentService {
   }
 
   @Transactional(readOnly = true)
-  public List<Payment> getOrganizationPayments(UUID organizationId) {
+  public List<PaymentView> getOrganizationPayments(UUID organizationId) {
     validateOrganizationAccess(organizationId);
-    return paymentRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId);
+    return paymentRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId).stream()
+        .map(PaymentView::fromEntity)
+        .toList();
   }
 
   @Transactional(readOnly = true)
-  public List<Payment> getOrganizationPaymentsByStatus(UUID organizationId, Payment.Status status) {
+  public List<PaymentView> getOrganizationPaymentsByStatus(
+      UUID organizationId, Payment.Status status) {
     validateOrganizationAccess(organizationId);
-    return paymentRepository.findByOrganizationIdAndStatusOrderByCreatedAtDesc(
-        organizationId, status);
+    return paymentRepository
+        .findByOrganizationIdAndStatusOrderByCreatedAtDesc(organizationId, status)
+        .stream()
+        .map(PaymentView::fromEntity)
+        .toList();
   }
 
   @Transactional(readOnly = true)
@@ -360,10 +366,20 @@ public class PaymentService {
   }
 
   @Transactional(readOnly = true)
-  public List<PaymentMethod> getOrganizationPaymentMethods(UUID organizationId) {
+  public List<PaymentMethodView> getOrganizationPaymentMethods(UUID organizationId) {
     validateOrganizationAccess(organizationId);
-    return paymentMethodRepository.findByOrganizationIdAndDeletedAtIsNullOrderByCreatedAtDesc(
-        organizationId);
+    return paymentMethodRepository
+        .findByOrganizationIdAndDeletedAtIsNullOrderByCreatedAtDesc(organizationId)
+        .stream()
+        .map(PaymentMethodView::fromEntity)
+        .toList();
+  }
+
+  // Convenience methods for API layer that accepts string status without importing entity
+  @Transactional(readOnly = true)
+  public List<PaymentView> getOrganizationPaymentsByStatus(UUID organizationId, String status) {
+    Payment.Status s = Payment.Status.valueOf(status.toUpperCase());
+    return getOrganizationPaymentsByStatus(organizationId, s);
   }
 
   public void processWebhookEvent(
@@ -518,8 +534,10 @@ public class PaymentService {
     if (currentUserId == null) {
       throw new SecurityException("Authentication required");
     }
-    // Additional organization access validation would go here
-    // For now, we assume if user is authenticated, they have access
+
+    if (!TenantContext.belongsToOrganization(organizationId)) {
+      throw new SecurityException("Access denied to organization: " + organizationId);
+    }
   }
 
   public record PaymentStatistics(

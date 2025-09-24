@@ -224,7 +224,16 @@ export const AuditEventSchema = z.object({
   organizationId: z.string().uuid().optional(),
   action: z.string(),
   details: z.record(z.any()),
-  ipAddress: z.string().ip().optional(),
+  // Zod v4 does not include a built-in .ip() validator. Use a conservative IPv4/IPv6 regex.
+  // This keeps validation strict without adding extra deps.
+  ipAddress: z
+    .string()
+    .regex(
+      // Basic IPv4 or IPv6 pattern (not exhaustive but reasonable for client-side validation)
+      /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}|\[?[A-Fa-f0-9:]+\]?)$/,
+      'Invalid IP address'
+    )
+    .optional(),
   userAgent: z.string().optional(),
   correlationId: z.string().uuid().optional(),
   timestamp: z.string().datetime(),

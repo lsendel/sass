@@ -11,7 +11,7 @@ import {
 import { z } from 'zod'
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
+  import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 // Payment Intent schemas
 const PaymentIntentSchema = z.object({
@@ -22,6 +22,19 @@ const PaymentIntentSchema = z.object({
   currency: z.string().length(3),
   description: z.string().nullable(),
   metadata: z.record(z.string()).nullable(),
+});
+
+// Setup Intent schemas for adding payment methods
+const SetupIntentSchema = z.object({
+  id: z.string(),
+  client_secret: z.string(),
+  status: z.string(),
+  usage: z.string().optional(),
+});
+
+const CreateSetupIntentRequestSchema = z.object({
+  organizationId: z.string().uuid(),
+  usage: z.string().default('off_session').optional(),
 });
 
 const PaymentStatisticsSchema = z.object({
@@ -49,8 +62,10 @@ const AttachPaymentMethodRequestSchema = z.object({
 
 // Export types
 export type PaymentIntent = z.infer<typeof PaymentIntentSchema>;
+export type SetupIntent = z.infer<typeof SetupIntentSchema>;
 export type PaymentStatistics = z.infer<typeof PaymentStatisticsSchema>;
 export type CreatePaymentIntentRequest = z.infer<typeof CreatePaymentIntentRequestSchema>;
+export type CreateSetupIntentRequest = z.infer<typeof CreateSetupIntentRequestSchema>;
 export type ConfirmPaymentIntentRequest = z.infer<typeof ConfirmPaymentIntentRequestSchema>;
 export type AttachPaymentMethodRequest = z.infer<typeof AttachPaymentMethodRequestSchema>;
 
@@ -65,8 +80,27 @@ export const paymentApi = createApi({
       return headers
     },
   }),
-  tagTypes: ['Payment', 'PaymentMethod', 'PaymentStatistics'],
+  tagTypes: ['Payment', 'PaymentMethod', 'PaymentStatistics', 'SetupIntent'],
   endpoints: builder => ({
+    createSetupIntent: builder.mutation<
+      SetupIntent,
+      CreateSetupIntentRequest
+    >({
+      ...createValidatedEndpoint(wrapSuccessResponse(SetupIntentSchema), {
+        query: body => {
+          // Validate request data
+          CreateSetupIntentRequestSchema.parse(body);
+          return {
+            url: '/setup-intents',
+            method: 'POST',
+            body,
+          };
+        },
+        method: 'POST',
+      }),
+      invalidatesTags: ['SetupIntent'],
+    }),
+
     createPaymentIntent: builder.mutation<
       PaymentIntent,
       CreatePaymentIntentRequest
@@ -230,6 +264,7 @@ export const paymentApi = createApi({
 })
 
 export const {
+  useCreateSetupIntentMutation,
   useCreatePaymentIntentMutation,
   useConfirmPaymentIntentMutation,
   useGetOrganizationPaymentsQuery,

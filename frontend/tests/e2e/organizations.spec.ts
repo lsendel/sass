@@ -11,7 +11,7 @@ test.describe('Organizations', () => {
           user: {
             id: 'user-123',
             name: 'Test User',
-            email: 'test@example.com',
+            email: 'demo@example.com',
           },
           authenticated: true,
         }),
@@ -81,7 +81,7 @@ test.describe('Organizations', () => {
         body: JSON.stringify([
           {
             id: 'member-1',
-            email: 'test@example.com',
+            email: 'demo@example.com',
             role: 'OWNER',
             status: 'ACTIVE',
             user: {
@@ -127,7 +127,7 @@ test.describe('Organizations', () => {
         body: JSON.stringify([
           {
             id: 'member-1',
-            email: 'test@example.com',
+            email: 'demo@example.com',
             role: 'OWNER',
             status: 'ACTIVE',
             user: {
@@ -155,7 +155,7 @@ test.describe('Organizations', () => {
 
     // Should display member list
     await expect(page.getByText('Test User')).toBeVisible()
-    await expect(page.getByText('test@example.com')).toBeVisible()
+    await expect(page.getByText('demo@example.com')).toBeVisible()
     await expect(page.getByText('member@example.com')).toBeVisible()
 
     // Should display member roles and status

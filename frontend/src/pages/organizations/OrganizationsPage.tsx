@@ -1,115 +1,181 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
+import { useGetUserOrganizationsQuery, useCreateOrganizationMutation } from '../../store/api/organizationApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
+import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
+import { Button } from '../../components/ui/button'
 import CreateOrganizationModal from '../../components/organizations/CreateOrganizationModal'
+import { useCrossComponentSync } from '../../hooks/useDataSync'
+import { useOptimisticList } from '../../hooks/useOptimisticUpdates'
+import { useOptimisticNotifications } from '../../hooks/useNotificationIntegration'
+import { OptimisticListItem, OptimisticOverlay } from '../../components/ui/OptimisticComponents'
 import {
   BuildingOfficeIcon,
   PlusIcon,
   UserGroupIcon,
   CalendarDaysIcon,
-  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
+import { getIconClasses, getCardClasses } from '../../lib/theme'
+import { logger } from '../../utils/logger'
+import type { Organization } from '../../types/api'
 
 const OrganizationsPage: React.FC = () => {
   const {
     data: organizations,
     isLoading,
     error,
+    refetch,
   } = useGetUserOrganizationsQuery()
+  const [createOrganization] = useCreateOrganizationMutation()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const { syncOrganizationData } = useCrossComponentSync()
+  const optimisticNotifications = useOptimisticNotifications<Organization>()
+
+  // Optimistic updates for organizations list
+  const {
+    data: optimisticOrganizations,
+    setData,
+    addItem,
+    hasOptimisticUpdates,
+    optimisticUpdates
+  } = useOptimisticList<Organization>(organizations || [])
+
+  // Update optimistic list when server data changes
+  useEffect(() => {
+    if (organizations) {
+      setData(organizations)
+    }
+  }, [organizations, setData])
+
+  const pendingUpdates = optimisticUpdates.filter(u => u.status === 'pending')
+  const failedUpdates = optimisticUpdates.filter(u => u.status === 'failed')
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-white/80 text-center">Loading organizations...</p>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="h-8 bg-gray-200 rounded animate-pulse w-48 mb-2" />
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-64" />
+            </div>
+            <div className="h-10 bg-gray-200 rounded animate-pulse w-36" />
+          </div>
         </div>
+
+        {/* Organizations List Skeleton */}
+        <ListSkeleton items={3} />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="backdrop-blur-xl bg-red-500/20 border border-red-300/30 rounded-3xl p-6 shadow-2xl">
-        <div className="text-sm text-red-100 text-center">
-          Failed to load organizations. Please try again later.
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <span className="gradient-brand bg-clip-text text-transparent">Organizations</span>
+              </h1>
+              <p className="text-sm text-gray-600">
+                Manage your organization memberships and create new organizations.
+              </p>
+            </div>
+          </div>
         </div>
+
+        <ApiErrorDisplay
+          error={error}
+          onRetry={async () => {
+            await refetch()
+            await syncOrganizationData()
+          }}
+          fallbackMessage="Failed to load organizations. Please try again."
+        />
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-blue-500 to-cyan-600 rounded-3xl shadow-lg mb-6">
-          <BuildingOfficeIcon className="w-8 h-8 text-white" />
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              <span className="gradient-brand bg-clip-text text-transparent">Organizations</span>
+            </h1>
+            <p className="text-sm text-gray-600">
+              Manage your organization memberships and create new organizations.
+            </p>
+          </div>
+          <LoadingButton
+            onClick={() => setIsCreateModalOpen(true)}
+            variant="primary"
+            size="md"
+          >
+            <PlusIcon className={getIconClasses('sm')} />
+            New Organization
+          </LoadingButton>
         </div>
-        <h2 className="text-4xl font-bold text-white mb-3">
-          Organizations
-        </h2>
-        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8">
-          Manage your organization memberships and create new organizations.
-        </p>
-        <button
-          type="button"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium rounded-2xl shadow-lg hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20"
-        >
-          <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-          New Organization
-        </button>
       </div>
 
+      {/* Optimistic Updates Overlay */}
+      <OptimisticOverlay
+        isActive={hasOptimisticUpdates}
+        pendingCount={pendingUpdates.length}
+        failedCount={failedUpdates.length}
+      />
+
       {/* Organizations List */}
-      {organizations && organizations.length > 0 ? (
-        <div className="space-y-4">
-          {organizations.map(organization => (
-            <Link
-              key={organization.id}
-              to={`/organizations/${organization.slug}`}
-              className="block group"
-            >
-              <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-6 shadow-2xl hover:bg-white/15 hover:scale-105 transition-all duration-300">
+      {optimisticOrganizations && optimisticOrganizations.length > 0 ? (
+        <div className="grid gap-4">
+          {optimisticOrganizations.map(organization => {
+            // Find the corresponding optimistic update
+            const optimisticUpdate = optimisticUpdates.find(update =>
+              update.data.type === 'add' && update.data.item.id === organization.id
+            )
+            const status = optimisticUpdate?.status
+
+            const OrganizationCard = (
+              <div className={`${getCardClasses('elevated')} group-hover:shadow-xl transition-all duration-200`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
-                      <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
-                        <BuildingOfficeIcon className="h-6 w-6 text-white" />
+                      <div className="w-8 h-8 gradient-brand bg-[#2563eb] rounded-lg flex items-center justify-center">
+                        <BuildingOfficeIcon className={`${getIconClasses('sm')} text-white`} />
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="flex items-center">
-                        <p className="text-lg font-bold text-white truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-base font-semibold text-gray-900 truncate">
                           {organization.name}
-                        </p>
-                        <span className="ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white/90 backdrop-blur-sm">
+                        </h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                           /{organization.slug}
                         </span>
                       </div>
-                      <div className="mt-1 flex items-center text-sm text-white/70">
-                        <CalendarDaysIcon className="flex-shrink-0 mr-1.5 h-4 w-4" />
-                        <p>
-                          Created{' '}
-                          {format(
-                            new Date(organization.createdAt),
-                            'MMM d, yyyy'
-                          )}
-                        </p>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                        <CalendarDaysIcon className={getIconClasses('xs')} />
+                        <span>
+                          Created {format(new Date(organization.createdAt), 'MMM d, yyyy')}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center text-sm text-white/70">
-                      <UserGroupIcon className="flex-shrink-0 mr-1.5 h-4 w-4" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <UserGroupIcon className={getIconClasses('xs')} />
                       <span>Members</span>
                     </div>
-                    <div className="text-white/60 group-hover:text-white/80 group-hover:translate-x-1 transition-all duration-300">
+                    <div className="text-gray-400 group-hover:text-gray-600 transition-colors">
                       <svg
-                        className="h-5 w-5"
+                        className={getIconClasses('sm')}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -125,28 +191,61 @@ const OrganizationsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </Link>
-          ))}
+            )
+
+            if (status) {
+              // This is an optimistic update, wrap with optimistic indicator
+              return (
+                <OptimisticListItem
+                  key={organization.id}
+                  status={status}
+                  className="p-0 border-0 bg-transparent"
+                >
+                  {status === 'confirmed' || !status ? (
+                    <Link
+                      to={`/organizations/${organization.slug}`}
+                      className="block group transition-transform hover:scale-[1.02]"
+                    >
+                      {OrganizationCard}
+                    </Link>
+                  ) : (
+                    OrganizationCard
+                  )}
+                </OptimisticListItem>
+              )
+            } else {
+              // This is confirmed data, render normally with link
+              return (
+                <Link
+                  key={organization.id}
+                  to={`/organizations/${organization.slug}`}
+                  className="block group transition-transform hover:scale-[1.02]"
+                >
+                  {OrganizationCard}
+                </Link>
+              )
+            }
+          })}
         </div>
       ) : (
-        <div className="text-center py-12 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gray-500 to-gray-600 rounded-3xl shadow-lg mb-6">
-            <BuildingOfficeIcon className="w-10 h-10 text-white" />
+        <div className={`${getCardClasses('subtle')} text-center py-8`}>
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-200 rounded-lg mb-4">
+            <BuildingOfficeIcon className={`${getIconClasses('lg')} text-gray-500`} />
           </div>
-          <h3 className="text-2xl font-bold text-white mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
             No organizations yet
           </h3>
-          <p className="text-white/70 mb-8 max-w-md mx-auto">
+          <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
             Get started by creating your first organization and begin managing your team.
           </p>
-          <button
-            type="button"
+          <LoadingButton
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium rounded-2xl shadow-lg hover:from-blue-700 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+            variant="primary"
+            size="md"
           >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+            <PlusIcon className={getIconClasses('sm')} />
             Create Your First Organization
-          </button>
+          </LoadingButton>
         </div>
       )}
 
@@ -154,6 +253,44 @@ const OrganizationsPage: React.FC = () => {
       <CreateOrganizationModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onOptimisticCreate={async (optimisticOrg) => {
+          // Use enhanced notification system with optimistic updates
+          return optimisticNotifications.addOptimisticUpdateWithNotifications(
+            optimisticOrg,
+            async (org) => {
+              const result = await createOrganization({
+                name: org.name,
+                slug: org.slug,
+                settings: org.settings
+              }).unwrap()
+
+              // Refresh the entire list to get latest data
+              await refetch()
+              await syncOrganizationData()
+
+              return result
+            },
+            {
+              loadingTitle: 'Creating organization...',
+              loadingMessage: `Setting up "${optimisticOrg.name}"`,
+              successTitle: 'Organization created!',
+              successMessage: `"${optimisticOrg.name}" is ready to use`,
+              errorTitle: 'Failed to create organization',
+              showLoadingNotification: true,
+              showSuccessNotification: true,
+              autoCloseLoading: true,
+              onSuccess: () => {
+                // Organization will appear optimistically in the list
+                // and be confirmed when the server responds
+              },
+              onError: (error, rollbackData) => {
+                logger.error('Organization creation failed:', error)
+                // The optimistic item will be marked as failed
+                // and the user can retry or undo
+              }
+            }
+          )
+        }}
       />
     </div>
   )

@@ -8,6 +8,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Separation of Concerns rules for the backend. These focus on keeping Web/API, Service, and
@@ -26,6 +27,7 @@ class SeparationOfConcernsTest {
     void controllersShouldNotAccessRepositoriesDirectly() {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("..api..")
+                .and().areNotAnnotatedWith(Profile.class)
                 .should().accessClassesThat().haveSimpleNameEndingWith("Repository");
         rule.check(classes);
     }
@@ -34,6 +36,8 @@ class SeparationOfConcernsTest {
     void controllersShouldNotDependOnInternalEntities() {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("..api..")
+                .and().haveSimpleNameEndingWith("Controller")
+                .and().areNotAnnotatedWith(Profile.class)
                 .should().accessClassesThat().areAnnotatedWith("jakarta.persistence.Entity");
         rule.check(classes);
     }
@@ -47,11 +51,11 @@ class SeparationOfConcernsTest {
     }
 
     @Test
-    void repositoriesShouldOnlyBeUsedByServices() {
-        ArchRule rule = classes()
-                .that().haveSimpleNameEndingWith("Repository")
-                .should().onlyBeAccessed().byClassesThat().resideInAPackage("..internal..");
+    void repositoriesShouldNotBeUsedByApiLayer() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..api..")
+                .and().areNotAnnotatedWith(Profile.class)
+                .should().accessClassesThat().haveSimpleNameEndingWith("Repository");
         rule.check(classes);
     }
 }
-

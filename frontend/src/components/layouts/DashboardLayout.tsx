@@ -48,17 +48,8 @@ const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* Professional subtle background pattern */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
-                           radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.03) 0%, transparent 40%),
-                           radial-gradient(circle at 40% 60%, rgba(168, 162, 158, 0.02) 0%, transparent 40%)`
-        }}></div>
-      </div>
-
-      <div className="relative z-10 flex h-screen">
+    <div className="h-screen flex bg-gray-50">
+      <div className="flex w-full">
         {/* Mobile sidebar */}
         <div
           className={cn(
@@ -92,18 +83,18 @@ const DashboardLayout: React.FC = () => {
         </div>
 
         {/* Desktop sidebar */}
-        <div className="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 md:p-4">
-          <Card variant="glass" className="flex-1 flex flex-col min-h-0">
+        <div className="hidden md:flex md:w-64 md:flex-col">
+          <div className="bg-white border-r border-gray-200 flex-1 flex flex-col min-h-0">
             <SidebarContent
               onLogout={handleLogout}
               currentPath={location.pathname}
               user={user}
             />
-          </Card>
+          </div>
         </div>
 
         {/* Main content */}
-        <div className="flex flex-col w-0 flex-1 md:ml-72 md:pl-6">
+        <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile header */}
           <div className="md:hidden">
             <div className="relative z-10 flex-shrink-0 flex h-16 backdrop-blur-xl bg-white/90 border-b border-gray-200/50 shadow-sm">
@@ -132,12 +123,8 @@ const DashboardLayout: React.FC = () => {
           </div>
 
           {/* Page content */}
-          <main className="flex-1 relative overflow-y-auto focus:outline-none p-4 md:p-6">
-            <div className="max-w-7xl mx-auto">
-              <Card variant="glass" className="p-6 md:p-8 min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-6rem)]">
-                <Outlet />
-              </Card>
-            </div>
+          <main className="flex-1 overflow-y-auto p-4">
+            <Outlet />
           </main>
         </div>
       </div>
@@ -161,41 +148,42 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   return (
     <>
       {/* Logo */}
-      <div className="flex items-center flex-shrink-0 px-6 py-6 border-b border-gray-200/30">
+      <div className="flex items-center flex-shrink-0 px-4 py-4 border-b border-gray-200">
         <div className="flex items-center">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-            <LockClosedIcon className="h-5 w-5 text-white" />
+          <div className="w-8 h-8 gradient-brand rounded-lg flex items-center justify-center">
+            <LockClosedIcon className="h-4 w-4 text-white" />
           </div>
-          <span className="ml-3 text-lg font-semibold text-gray-900">
+          <span className="ml-2 text-base font-semibold text-gray-900">
             Payment Platform
           </span>
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 flex flex-col overflow-y-auto px-4 py-4">
+      <div className="flex-1 flex flex-col overflow-y-auto px-3 py-3">
         <nav className="flex-1 space-y-1">
           {navigation.map(item => {
-            const isActive =
-              currentPath === item.href ||
-              (item.href !== '/dashboard' && currentPath.startsWith(item.href))
+            const isActive = currentPath === item.href || 
+              (item.href !== '/dashboard' && currentPath.startsWith(item.href + '/')) ||
+              (item.href === '/dashboard' && currentPath === '/')
 
             return (
               <Link
                 key={item.name}
                 to={item.href}
+                data-testid={`nav-${item.name.toLowerCase()}`}
                 className={cn(
-                  'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
+                  'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                   isActive
-                    ? 'bg-blue-50/80 border-r-2 border-blue-600 text-blue-700 shadow-sm backdrop-blur-sm'
-                    : 'text-gray-600 hover:bg-white/40 hover:text-gray-900 hover:backdrop-blur-sm'
+                    ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 )}
               >
                 <item.icon
                   className={cn(
-                    'mr-3 flex-shrink-0 h-5 w-5',
+                    'mr-3 flex-shrink-0 h-4 w-4',
                     isActive
-                      ? 'text-blue-600'
+                      ? 'text-primary-600'
                       : 'text-gray-400 group-hover:text-gray-600'
                   )}
                 />
@@ -207,15 +195,15 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
       </div>
 
       {/* User section */}
-      <div className="flex-shrink-0 border-t border-gray-200/30 p-4">
-        <div className="flex items-center w-full p-3 rounded-lg bg-white/20 hover:bg-white/30 transition-colors duration-200 backdrop-blur-sm">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-gradient-to-br from-gray-400 to-gray-500 text-white text-xs">
+      <div className="flex-shrink-0 border-t border-gray-200 p-3">
+        <div className="flex items-center w-full p-2 rounded-lg hover:bg-gray-50 transition-colors">
+          <Avatar className="h-7 w-7">
+            <AvatarFallback className="bg-gray-500 text-white text-xs">
               {user?.name?.charAt(0) || 'U'}
             </AvatarFallback>
           </Avatar>
-          <div className="ml-3 flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+          <div className="ml-2 flex-1 min-w-0">
+            <p className="text-xs font-medium text-gray-900 truncate">
               {user?.name || 'Demo User'}
             </p>
             <p className="text-xs text-gray-600 truncate">
@@ -224,12 +212,12 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
           </div>
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={onLogout}
-            className="flex-shrink-0 h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-white/40"
+            className="flex-shrink-0 h-7 w-7 p-0 text-gray-500 hover:text-gray-700"
             title="Sign out"
           >
-            <ArrowRightOnRectangleIcon className="h-4 w-4" />
+            <ArrowRightOnRectangleIcon className="h-3 w-3" />
           </Button>
         </div>
       </div>

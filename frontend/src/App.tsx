@@ -10,7 +10,6 @@ import {
 import { useGetSessionQuery } from './store/api/authApi'
 import AuthLayout from './components/layouts/AuthLayout'
 import DashboardLayout from './components/layouts/DashboardLayout'
-import LoginPage from './pages/auth/LoginPage'
 import MockLoginPage from './pages/auth/MockLoginPage'
 import CallbackPage from './pages/auth/CallbackPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
@@ -21,6 +20,7 @@ import SubscriptionPage from './pages/subscription/SubscriptionPage'
 import SettingsPage from './pages/settings/SettingsPage'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import { NotificationProvider } from './components/ui/FeedbackSystem'
 
 const AppContent: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -61,26 +61,21 @@ const AppContent: React.FC = () => {
       </Route>
 
       {/* Protected routes */}
-      <Route
-        path="/*"
-        element={
-          isAuthenticated ? (
-            <DashboardLayout />
-          ) : (
-            <Navigate to="/auth/login" replace />
-          )
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="organizations" element={<OrganizationsPage />} />
-        <Route path="organizations/:slug" element={<OrganizationPage />} />
-        <Route path="payments" element={<PaymentsPage />} />
-        <Route path="subscription" element={<SubscriptionPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
+      {isAuthenticated ? (
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="organizations" element={<OrganizationsPage />} />
+          <Route path="organizations/:slug" element={<OrganizationPage />} />
+          <Route path="payments" element={<PaymentsPage />} />
+          <Route path="subscription" element={<SubscriptionPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      ) : (
+        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+      )}
 
-      {/* Catch all - redirect to dashboard if authenticated, login if not */}
+      {/* Catch all - redirect based on auth status */}
       <Route
         path="*"
         element={
@@ -97,35 +92,37 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <div className="App">
-        <AppContent />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#ffffff',
-              color: '#374151',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.5rem',
-              boxShadow:
-                '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-            },
-            success: {
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#ffffff',
+      <NotificationProvider>
+        <div className="App">
+          <AppContent />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#ffffff',
+                color: '#374151',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                boxShadow:
+                  '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
               },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#ffffff',
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#ffffff',
+                },
               },
-            },
-          }}
-        />
-      </div>
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#ffffff',
+                },
+              },
+            }}
+          />
+        </div>
+      </NotificationProvider>
     </ErrorBoundary>
   )
 }

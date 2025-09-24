@@ -378,8 +378,7 @@ public class UserService {
   @Transactional(readOnly = true)
   public List<User> findUsersByPreference(String preferenceKey, String preferenceValue) {
     validateAdminAccess();
-    String jsonPath = "$." + preferenceKey;
-    return userRepository.findByPreference(jsonPath, preferenceValue);
+    return userRepository.findByPreference(preferenceKey, preferenceValue);
   }
 
   /** Restore soft-deleted user (admin function) */

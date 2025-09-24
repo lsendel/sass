@@ -1,0 +1,139 @@
+SHELL := /bin/bash
+
+# Environment variables with defaults
+JAVA_HOME ?= /opt/homebrew/opt/openjdk@21
+BACKEND_PORT ?= 8082
+FRONTEND_PORT ?= 3000
+
+# Colors for output
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+# Helper functions
+define log_info
+	@echo "$(BLUE)ℹ️  $(1)$(NC)"
+endef
+
+define log_success
+	@echo "$(GREEN)✅ $(1)$(NC)"
+endef
+
+define log_warning
+	@echo "$(YELLOW)⚠️  $(1)$(NC)"
+endef
+
+define log_error
+	@echo "$(RED)❌ $(1)$(NC)"
+endef
+
+# Default target
+.PHONY: help
+help: ## Show this help message
+	@echo "$(BLUE)Spring Boot Modulith Payment Platform - Development Commands$(NC)"
+	@echo "============================================================"
+	@echo ""
+	@echo "$(GREEN)Quick Start Commands:$(NC)"
+	@echo "  make quick-start     Complete setup and start development"
+	@echo "  make fix-tests       Fix common test issues"
+	@echo "  make health-check    Comprehensive system health check"
+	@echo ""
+	@echo "$(YELLOW)Setup Commands:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "setup\|clean" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)Development Commands:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "dev\|start\|stop" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)Testing Commands:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "test\|fix" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+
+# Enhanced setup with error checking
+.PHONY: setup setup-backend setup-frontend
+setup: check-prerequisites setup-backend setup-frontend ## Install all dependencies with error checking
+	$(call log_success,"Setup complete! Run 'make dev' to start development servers.")
+
+check-prerequisites: ## Check system prerequisites
+	$(call log_info,"Checking system prerequisites...")
+	@command -v java >/dev/null 2>&1 || { $(call log_error,"Java not found. Please install Java 21."); exit 1; }
+	@command -v node >/dev/null 2>&1 || { $(call log_error,"Node.js not found. Please install Node.js 18+."); exit 1; }
+	@command -v npm >/dev/null 2>&1 || { $(call log_error,"npm not found. Please install npm."); exit 1; }
+	$(call log_success,"All prerequisites found")
+
+setup-backend: check-prerequisites ## Install backend dependencies with error checking
+	$(call log_info,"Setting up backend dependencies...")
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew build -x test || { $(call log_error,"Backend setup failed"); exit 1; }
+	$(call log_success,"Backend setup completed")
+
+setup-frontend: check-prerequisites ## Install frontend dependencies with error checking
+	$(call log_info,"Setting up frontend dependencies...")
+	@cd frontend && npm ci || { $(call log_error,"Frontend setup failed"); exit 1; }
+	$(call log_success,"Frontend setup completed")
+
+# Enhanced testing with better error reporting
+.PHONY: test test-backend test-frontend fix-tests health-check
+test: test-backend test-frontend ## Run all tests with enhanced error reporting
+	$(call log_success,"All tests completed successfully")
+
+test-backend: ## Run backend tests with detailed reporting
+	$(call log_info,"Running backend tests...")
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew test jacocoTestReport || { \
+			$(call log_error,"Backend tests failed. Check build/reports/tests/test/index.html for details"); \
+			exit 1; \
+		}
+	$(call log_success,"Backend tests passed")
+
+test-frontend: ## Run frontend tests with detailed reporting
+	$(call log_info,"Running frontend tests...")
+	@cd frontend && npm test -- --run || { \
+		$(call log_error,"Frontend tests failed"); \
+		exit 1; \
+	}
+	$(call log_success,"Frontend tests passed")
+
+fix-tests: ## Systematically fix common test issues
+	$(call log_info,"Running test fixing script...")
+	@bash scripts/fix-tests.sh
+
+health-check: ## Comprehensive system health check
+	$(call log_info,"Running comprehensive health check...")
+	@echo "$(BLUE)System Information:$(NC)"
+	@echo "Java Version: $$(java -version 2>&1 | head -1)"
+	@echo "Node Version: $$(node --version)"
+	@echo "NPM Version: $$(npm --version)"
+	@echo ""
+	@echo "$(BLUE)Service Status:$(NC)"
+	@curl -s http://localhost:$(BACKEND_PORT)/actuator/health >/dev/null && \
+		$(call log_success,"Backend service is running") || \
+		$(call log_warning,"Backend service is not running")
+	@curl -s http://localhost:$(FRONTEND_PORT) >/dev/null && \
+		$(call log_success,"Frontend service is running") || \
+		$(call log_warning,"Frontend service is not running")
+
+# Enhanced development commands
+.PHONY: dev dev-safe quick-start
+dev-safe: stop setup ## Safe development start with full setup
+	$(call log_info,"Starting development environment safely...")
+	@make dev
+
+quick-start: ## Complete setup and start development (recommended)
+	$(call log_info,"Quick start: cleaning, setting up, and starting development...")
+	@make stop || true
+	@make clean || true
+	@make setup
+	@make dev
+
+# Enhanced build with optimization
+.PHONY: build build-optimized
+build-optimized: ## Build with optimizations for production
+	$(call log_info,"Building optimized production artifacts...")
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew clean build -Pprod || { $(call log_error,"Backend build failed"); exit 1; }
+	@cd frontend && npm run build || { $(call log_error,"Frontend build failed"); exit 1; }
+	$(call log_success,"Optimized build completed")
+
+# Include original Makefile content (abbreviated for space)
+include Makefile

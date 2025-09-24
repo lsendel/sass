@@ -96,7 +96,11 @@ public class OAuth2SessionService {
           userInfo.getProviderUserId(),
           provider);
 
-      return new OAuth2SessionResult(savedSession, userInfo, true);
+      return new OAuth2SessionResult(
+          savedSession.getSessionId(),
+          savedSession.getExpiresAt(),
+          OAuth2UserInfoView.fromEntity(userInfo),
+          true);
 
     } catch (Exception e) {
       auditService.logAuthenticationFailure(
@@ -119,7 +123,7 @@ public class OAuth2SessionService {
 
               return new OAuth2SessionInfo(
                   session.getSessionId(),
-                  session.getUserInfo(),
+                  OAuth2UserInfoView.fromEntity(session.getUserInfo()),
                   session.getProvider(),
                   session.isValid(),
                   session.getExpiresAt(),
@@ -288,12 +292,12 @@ public class OAuth2SessionService {
 
   /** Result of OAuth2 session creation */
   public record OAuth2SessionResult(
-      OAuth2Session session, OAuth2UserInfo userInfo, boolean success) {}
+      String sessionId, java.time.Instant expiresAt, OAuth2UserInfoView userInfo, boolean success) {}
 
   /** OAuth2 session information */
   public record OAuth2SessionInfo(
       String sessionId,
-      OAuth2UserInfo userInfo,
+      OAuth2UserInfoView userInfo,
       String provider,
       boolean isValid,
       Instant expiresAt,

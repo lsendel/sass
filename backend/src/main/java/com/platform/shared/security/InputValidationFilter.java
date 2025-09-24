@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 /**
@@ -66,10 +67,28 @@ public class InputValidationFilter implements Filter {
                 e.getMessage(), getClientIpAddress(httpRequest));
 
             sendSecurityErrorResponse(httpResponse, e.getMessage());
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
+            Throwable cause = unwrap(e);
+            if (cause instanceof AccessDeniedException accessDeniedException) {
+                throw accessDeniedException;
+            }
+            if (cause instanceof SecurityException securityException) {
+                throw securityException;
+            }
+
             logger.error("Error in input validation filter", e);
             sendSecurityErrorResponse(httpResponse, "Request validation failed");
         }
+    }
+
+    private Throwable unwrap(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null && current != current.getCause()) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private boolean shouldSkipValidation(HttpServletRequest request) {

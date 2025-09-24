@@ -21,20 +21,20 @@ export default defineConfig({
     ['json', { outputFile: path.join('test-results', 'results.json') }],
     ['junit', { outputFile: path.join('test-results', 'results.xml') }],
     ['line'],
-    ['allure-playwright', { outputFolder: 'test-results/allure-results' }],
+    [path.resolve('./tests/e2e/utils/enhanced-reporter.ts')],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    /* Enhanced evidence collection - collect traces for all tests */
+    trace: 'on',
 
-    /* Take screenshot on failure */
+    /* Enhanced screenshot collection */
     screenshot: 'only-on-failure',
 
-    /* Record video on failure */
+    /* Enhanced video collection */
     video: 'retain-on-failure',
 
     /* Timeout for each action */
@@ -120,8 +120,8 @@ export default defineConfig({
   },
 
   /* Global setup and teardown */
-  globalSetup: require.resolve('./tests/e2e/utils/global-setup.ts'),
-  globalTeardown: require.resolve('./tests/e2e/utils/global-teardown.ts'),
+  globalSetup: path.resolve('./tests/e2e/utils/global-setup.ts'),
+  globalTeardown: path.resolve('./tests/e2e/utils/global-teardown.ts'),
 
   /* Test filters */
   grep: process.env.PLAYWRIGHT_GREP ? new RegExp(process.env.PLAYWRIGHT_GREP) : undefined,

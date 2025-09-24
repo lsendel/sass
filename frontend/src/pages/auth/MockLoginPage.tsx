@@ -114,6 +114,7 @@ const MockLoginPage: React.FC = () => {
                     type="email"
                     autoComplete="email"
                     required
+                    data-testid="email-input"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-1 focus:ring-purple-400 focus:border-transparent transition-all duration-200 text-sm"
@@ -139,6 +140,7 @@ const MockLoginPage: React.FC = () => {
                     type="password"
                     autoComplete="current-password"
                     required
+                    data-testid="password-input"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-1 focus:ring-purple-400 focus:border-transparent transition-all duration-200 text-sm"
@@ -162,6 +164,7 @@ const MockLoginPage: React.FC = () => {
               {/* Submit button */}
               <button
                 type="submit"
+                data-testid="submit-button"
                 disabled={isLoading}
                 className="w-full group relative py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
               >
@@ -187,6 +190,17 @@ const MockLoginPage: React.FC = () => {
                   <p className="text-white text-opacity-70 text-xs font-mono">demo@example.com</p>
                   <p className="text-white text-opacity-70 text-xs font-mono">DemoPassword123!</p>
                 </div>
+                <button
+                  type="button"
+                  data-testid="login-button"
+                  onClick={() => {
+                    setEmail('demo@example.com')
+                    setPassword('DemoPassword123!')
+                  }}
+                  className="mt-2 text-xs text-white text-opacity-70 hover:text-opacity-100 underline transition-opacity"
+                >
+                  Click to use demo credentials
+                </button>
               </div>
             </form>
           </div>

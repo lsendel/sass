@@ -3,7 +3,7 @@ import type { RootState } from '../index'
 import type { User } from '../slices/authSlice'
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1'
+  import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export type UpdateProfileRequest = {
   name: string

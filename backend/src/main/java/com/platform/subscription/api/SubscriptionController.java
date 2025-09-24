@@ -1,226 +1,167 @@
 package com.platform.subscription.api;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
-import com.platform.payment.internal.Invoice;
-import com.platform.subscription.internal.*;
+import com.platform.subscription.api.SubscriptionDto.CancelSubscriptionRequest;
+import com.platform.subscription.api.SubscriptionDto.ChangePlanRequest;
+import com.platform.subscription.api.SubscriptionDto.CreateSubscriptionRequest;
+import com.platform.subscription.api.SubscriptionDto.InvoiceResponse;
+import com.platform.subscription.api.SubscriptionDto.ReactivateSubscriptionRequest;
+import com.platform.subscription.api.SubscriptionDto.SubscriptionResponse;
+import com.platform.subscription.api.SubscriptionDto.SubscriptionStatisticsResponse;
+import com.platform.shared.security.PlatformUserPrincipal;
 import com.stripe.exception.StripeException;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @RequestMapping("/api/v1/subscriptions")
+@Tag(name = "Subscriptions", description = "Subscription management and billing endpoints")
+@SecurityRequirement(name = "sessionAuth")
 public class SubscriptionController {
 
-  private final SubscriptionService subscriptionService;
+  private final SubscriptionManagementService subscriptionManagementService;
 
-  public SubscriptionController(SubscriptionService subscriptionService) {
-    this.subscriptionService = subscriptionService;
+  public SubscriptionController(SubscriptionManagementService subscriptionManagementService) {
+    this.subscriptionManagementService = subscriptionManagementService;
   }
 
   @PostMapping
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #request.organizationId)")
+  @Operation(
+      summary = "Create subscription",
+      description = "Create a new subscription for an organization"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "201", description = "Subscription created successfully"),
+      @ApiResponse(responseCode = "400", description = "Invalid request data"),
+      @ApiResponse(responseCode = "403", description = "Not authorized for organization")
+  })
   public ResponseEntity<SubscriptionResponse> createSubscription(
-      @Valid @RequestBody CreateSubscriptionRequest request) {
+      @Parameter(hidden = true) @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
+      @Parameter(description = "Subscription creation data", required = true)
+      @Valid @RequestBody @P("request") CreateSubscriptionRequest request) {
     try {
-      Subscription subscription =
-          subscriptionService.createSubscription(
-              request.organizationId(),
+        SubscriptionResponse subscription =
+            subscriptionManagementService.createSubscription(
+                request.organizationId(),
               request.planId(),
               request.paymentMethodId(),
               request.trialEligible() != null ? request.trialEligible() : false);
 
-      SubscriptionResponse response = SubscriptionResponse.fromSubscription(subscription);
-      return ResponseEntity.status(HttpStatus.CREATED).body(response);
+      return ResponseEntity.status(HttpStatus.CREATED).body(subscription);
     } catch (StripeException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
   }
 
   @GetMapping("/organizations/{organizationId}")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
+  @Operation(
+      summary = "Get organization subscription",
+      description = "Retrieve the current subscription for an organization"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Subscription found"),
+      @ApiResponse(responseCode = "404", description = "Subscription not found")
+  })
   public ResponseEntity<SubscriptionResponse> getOrganizationSubscription(
-      @PathVariable UUID organizationId) {
-    Optional<Subscription> subscription = subscriptionService.findByOrganizationId(organizationId);
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+    Optional<SubscriptionResponse> subscription = subscriptionManagementService.findByOrganizationId(organizationId);
     return subscription
-        .map(sub -> ResponseEntity.ok(SubscriptionResponse.fromSubscription(sub)))
+        .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
   @PutMapping("/{subscriptionId}/plan")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #request.organizationId)")
   public ResponseEntity<SubscriptionResponse> changeSubscriptionPlan(
-      @PathVariable UUID subscriptionId, @Valid @RequestBody ChangePlanRequest request) {
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
+      @PathVariable UUID subscriptionId,
+      @Valid @RequestBody @P("request") ChangePlanRequest request) {
     try {
-      Subscription subscription =
-          subscriptionService.changeSubscriptionPlan(
+      SubscriptionResponse subscription =
+          subscriptionManagementService.changeSubscriptionPlan(
               request.organizationId(),
               request.newPlanId(),
               request.prorationBehavior() != null ? request.prorationBehavior() : true);
 
-      SubscriptionResponse response = SubscriptionResponse.fromSubscription(subscription);
-      return ResponseEntity.ok(response);
+      return ResponseEntity.ok(subscription);
     } catch (StripeException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
   }
 
   @PostMapping("/{subscriptionId}/cancel")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #request.organizationId)")
   public ResponseEntity<SubscriptionResponse> cancelSubscription(
-      @PathVariable UUID subscriptionId, @Valid @RequestBody CancelSubscriptionRequest request) {
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
+      @PathVariable UUID subscriptionId,
+      @Valid @RequestBody @P("request") CancelSubscriptionRequest request) {
     try {
-      Subscription subscription =
-          subscriptionService.cancelSubscription(
+      SubscriptionResponse subscription =
+          subscriptionManagementService.cancelSubscription(
               request.organizationId(),
               request.immediate() != null ? request.immediate() : false,
               request.cancelAt());
 
-      SubscriptionResponse response = SubscriptionResponse.fromSubscription(subscription);
-      return ResponseEntity.ok(response);
+      return ResponseEntity.ok(subscription);
     } catch (StripeException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
   }
 
   @PostMapping("/{subscriptionId}/reactivate")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #request.organizationId)")
   public ResponseEntity<SubscriptionResponse> reactivateSubscription(
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
       @PathVariable UUID subscriptionId,
-      @Valid @RequestBody ReactivateSubscriptionRequest request) {
+      @Valid @RequestBody @P("request") ReactivateSubscriptionRequest request) {
     try {
-      Subscription subscription =
-          subscriptionService.reactivateSubscription(request.organizationId());
-      SubscriptionResponse response = SubscriptionResponse.fromSubscription(subscription);
-      return ResponseEntity.ok(response);
+      SubscriptionResponse subscription =
+          subscriptionManagementService.reactivateSubscription(request.organizationId());
+      return ResponseEntity.ok(subscription);
     } catch (StripeException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
   }
 
   @GetMapping("/organizations/{organizationId}/statistics")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<SubscriptionStatisticsResponse> getSubscriptionStatistics(
-      @PathVariable UUID organizationId) {
-    SubscriptionService.SubscriptionStatistics stats =
-        subscriptionService.getSubscriptionStatistics(organizationId);
-    SubscriptionStatisticsResponse response = SubscriptionStatisticsResponse.fromStatistics(stats);
-    return ResponseEntity.ok(response);
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+    SubscriptionStatisticsResponse stats =
+        subscriptionManagementService.getSubscriptionStatistics(organizationId);
+    return ResponseEntity.ok(stats);
   }
 
   @GetMapping("/organizations/{organizationId}/invoices")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<List<InvoiceResponse>> getOrganizationInvoices(
-      @PathVariable UUID organizationId) {
-    List<Invoice> invoices = subscriptionService.getOrganizationInvoices(organizationId);
-    List<InvoiceResponse> responses = invoices.stream().map(InvoiceResponse::fromInvoice).toList();
-    return ResponseEntity.ok(responses);
-  }
-
-  // Request DTOs
-  public record CreateSubscriptionRequest(
-      @NotNull UUID organizationId,
-      @NotNull UUID planId,
-      String paymentMethodId,
-      Boolean trialEligible) {}
-
-  public record ChangePlanRequest(
-      @NotNull UUID organizationId, @NotNull UUID newPlanId, Boolean prorationBehavior) {}
-
-  public record CancelSubscriptionRequest(
-      @NotNull UUID organizationId, Boolean immediate, Instant cancelAt) {}
-
-  public record ReactivateSubscriptionRequest(@NotNull UUID organizationId) {}
-
-  // Response DTOs
-  public record SubscriptionResponse(
-      UUID id,
-      UUID organizationId,
-      UUID planId,
-      String stripeSubscriptionId,
-      Subscription.Status status,
-      Instant currentPeriodStart,
-      Instant currentPeriodEnd,
-      Instant trialEnd,
-      Instant cancelAt,
-      Instant createdAt,
-      Instant updatedAt) {
-    public static SubscriptionResponse fromSubscription(Subscription subscription) {
-      return new SubscriptionResponse(
-          subscription.getId(),
-          subscription.getOrganizationId(),
-          subscription.getPlanId(),
-          subscription.getStripeSubscriptionId(),
-          subscription.getStatus(),
-          subscription.getCurrentPeriodStart() != null
-              ? subscription
-                  .getCurrentPeriodStart()
-                  .atStartOfDay(java.time.ZoneOffset.UTC)
-                  .toInstant()
-              : null,
-          subscription.getCurrentPeriodEnd() != null
-              ? subscription
-                  .getCurrentPeriodEnd()
-                  .atStartOfDay(java.time.ZoneOffset.UTC)
-                  .toInstant()
-              : null,
-          subscription.getTrialEnd() != null
-              ? subscription.getTrialEnd().atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
-              : null,
-          subscription.getCancelAt(),
-          subscription.getCreatedAt(),
-          subscription.getUpdatedAt());
-    }
-  }
-
-  public record InvoiceResponse(
-      UUID id,
-      UUID organizationId,
-      UUID subscriptionId,
-      String stripeInvoiceId,
-      String invoiceNumber,
-      Invoice.Status status,
-      BigDecimal subtotalAmount,
-      BigDecimal taxAmount,
-      BigDecimal totalAmount,
-      String currency,
-      Instant dueDate,
-      Instant paidAt,
-      Instant createdAt) {
-    public static InvoiceResponse fromInvoice(Invoice invoice) {
-      return new InvoiceResponse(
-          invoice.getId(),
-          invoice.getOrganizationId(),
-          invoice.getSubscriptionId(),
-          invoice.getStripeInvoiceId(),
-          invoice.getInvoiceNumber(),
-          invoice.getStatus(),
-          invoice.getSubtotalAmount().getAmount(),
-          invoice.getTaxAmount().getAmount(),
-          invoice.getTotalAmount().getAmount(),
-          invoice.getCurrency(),
-          invoice.getDueDate() != null
-              ? invoice.getDueDate().atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
-              : null,
-          invoice.getPaidAt(),
-          invoice.getCreatedAt());
-    }
-  }
-
-  public record SubscriptionStatisticsResponse(
-      Subscription.Status status,
-      long totalInvoices,
-      BigDecimal totalAmount,
-      BigDecimal recentAmount) {
-    public static SubscriptionStatisticsResponse fromStatistics(
-        SubscriptionService.SubscriptionStatistics stats) {
-      return new SubscriptionStatisticsResponse(
-          stats.status(),
-          stats.totalInvoices(),
-          stats.totalAmount().getAmount(),
-          stats.recentAmount().getAmount());
-    }
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal userPrincipal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+    List<InvoiceResponse> invoices = subscriptionManagementService.getOrganizationInvoices(organizationId);
+    return ResponseEntity.ok(invoices);
   }
 }
