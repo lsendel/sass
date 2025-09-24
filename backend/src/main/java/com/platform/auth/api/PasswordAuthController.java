@@ -15,16 +15,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.platform.auth.internal.PasswordAuthService;
 import com.platform.shared.security.PasswordProperties;
+import com.platform.shared.security.PlatformUserPrincipal;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * REST API controller for password authentication endpoints. Only enabled when password
  * authentication is configured.
  */
 @RestController
+@Tag(name = "Authentication", description = "Password-based authentication endpoints")
 @RequestMapping("/api/v1/auth")
 @ConditionalOnProperty(name = "app.auth.password.enabled", havingValue = "true")
 public class PasswordAuthController {
@@ -43,8 +56,41 @@ public class PasswordAuthController {
 
   /** POST /auth/register - Register new user with password */
   @PostMapping("/register")
+  @Operation(
+      summary = "Register new user",
+      description = "Create a new user account with email and password authentication"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(
+          responseCode = "201",
+          description = "User registered successfully",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = Map.class),
+              examples = @ExampleObject(value = """
+                  {
+                    "success": true,
+                    "user": {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "email": "user@example.com",
+                      "displayName": "John Doe",
+                      "emailVerified": false
+                    },
+                    "organization": {
+                      "id": "123e4567-e89b-12d3-a456-426614174001",
+                      "name": "John's Organization"
+                    }
+                  }
+                  """)
+          )
+      ),
+      @ApiResponse(responseCode = "400", description = "Invalid request data"),
+      @ApiResponse(responseCode = "409", description = "Email already exists")
+  })
   public ResponseEntity<Map<String, Object>> register(
-      @Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+      @Parameter(description = "User registration data", required = true)
+      @Valid @RequestBody RegisterRequest request, 
+      HttpServletRequest httpRequest) {
     String ipAddress = getClientIpAddress(httpRequest);
     String userAgent = httpRequest.getHeader("User-Agent");
 
@@ -67,10 +113,10 @@ public class PasswordAuthController {
                   "Registration successful. Please check your email for verification.",
                   "user",
                   Map.of(
-                      "id", result.user().getId(),
-                      "email", result.user().getEmail(),
-                      "displayName", result.user().getName(),
-                      "emailVerified", result.user().getEmailVerified())));
+                  "id", result.user().id(),
+                  "email", result.user().email(),
+                  "displayName", result.user().name(),
+                  "emailVerified", true)));
     } else {
       HttpStatus status =
           switch (result.errorType()) {
@@ -94,8 +140,40 @@ public class PasswordAuthController {
 
   /** POST /auth/login - Authenticate user with email and password */
   @PostMapping("/login")
+  @Operation(
+      summary = "Authenticate user",
+      description = "Authenticate user with email and password, returns session cookie"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(
+          responseCode = "200",
+          description = "Authentication successful",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = Map.class),
+              examples = @ExampleObject(value = """
+                  {
+                    "success": true,
+                    "user": {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "email": "user@example.com",
+                      "displayName": "John Doe"
+                    },
+                    "organization": {
+                      "id": "123e4567-e89b-12d3-a456-426614174001",
+                      "name": "John's Organization"
+                    }
+                  }
+                  """)
+          )
+      ),
+      @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+      @ApiResponse(responseCode = "423", description = "Account locked")
+  })
   public ResponseEntity<Map<String, Object>> login(
-      @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+      @Parameter(description = "User login credentials", required = true)
+      @Valid @RequestBody LoginRequest request, 
+      HttpServletRequest httpRequest) {
     String ipAddress = getClientIpAddress(httpRequest);
     String userAgent = httpRequest.getHeader("User-Agent");
 
@@ -112,13 +190,13 @@ public class PasswordAuthController {
               "Authentication successful",
               "user",
               Map.of(
-                  "id", result.user().getId(),
-                  "email", result.user().getEmail(),
-                  "displayName", result.user().getName(),
+                  "id", result.user().id(),
+                  "email", result.user().email(),
+                  "displayName", result.user().name(),
                   "organization",
                       Map.of(
-                          "id", result.user().getOrganization().getId(),
-                          "name", result.user().getOrganization().getName()))));
+                          "id", result.user().organizationId(),
+                          "name", result.user().organizationName()))));
     } else {
       HttpStatus status =
           switch (result.errorType()) {
@@ -185,17 +263,31 @@ public class PasswordAuthController {
 
   /** POST /auth/change-password - Change password for authenticated user */
   @PostMapping("/change-password")
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<Map<String, Object>> changePassword(
-      @Valid @RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
+      @AuthenticationPrincipal PlatformUserPrincipal userPrincipal,
+      @Valid @RequestBody ChangePasswordRequest request,
+      HttpServletRequest httpRequest) {
+
+    if (userPrincipal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(
+              Map.of(
+                  "success", false,
+                  "error", "UNAUTHORIZED",
+                  "message", "Authentication required"));
+    }
+
     String ipAddress = getClientIpAddress(httpRequest);
     String userAgent = httpRequest.getHeader("User-Agent");
 
-    // TODO: Extract user ID from authentication context
-    UUID userId = request.userId(); // This should come from security context
-
     PasswordAuthService.PasswordChangeResult result =
         passwordAuthService.changePassword(
-            userId, request.currentPassword(), request.newPassword(), ipAddress, userAgent);
+            userPrincipal.getUserId(),
+            request.currentPassword(),
+            request.newPassword(),
+            ipAddress,
+            userAgent);
 
     if (result.success()) {
       return ResponseEntity.ok(Map.of("success", true, "message", "Password changed successfully"));
@@ -321,7 +413,6 @@ public class PasswordAuthController {
       @NotBlank String token, @NotBlank @Size(min = 8, max = 128) String newPassword) {}
 
   public record ChangePasswordRequest(
-      @NotBlank UUID userId, // TODO: Extract from security context
       @NotBlank String currentPassword,
       @NotBlank @Size(min = 8, max = 128) String newPassword) {}
 

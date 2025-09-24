@@ -44,8 +44,7 @@ public class TokenMetadata {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @NotNull
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private UUID userId;
 
     @NotBlank
@@ -66,6 +65,9 @@ public class TokenMetadata {
     @Column(name = "metadata")
     @Convert(converter = TokenMetadataConverter.class)
     private Map<String, Object> metadata = Map.of();
+
+    @Column(name = "token_lookup_hash")
+    private String tokenLookupHash;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -264,6 +266,14 @@ public class TokenMetadata {
 
     public Map<String, Object> getMetadata() {
         return Map.copyOf(metadata);
+    }
+
+    public String getTokenLookupHash() {
+        return tokenLookupHash;
+    }
+
+    public void setTokenLookupHash(String tokenLookupHash) {
+        this.tokenLookupHash = tokenLookupHash;
     }
 
     public Instant getCreatedAt() {

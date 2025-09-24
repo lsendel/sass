@@ -1,3 +1,5 @@
+// import { tailwindTheme } from './src/lib/theme.js'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -6,8 +8,11 @@ export default {
   ],
   theme: {
     extend: {
+      // Use theme tokens for consistent colors
       colors: {
+        // Brand colors using our theme system
         primary: {
+          DEFAULT: '#2563eb',
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -18,21 +23,21 @@ export default {
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
-          950: '#172554',
         },
-        gray: {
-          50: '#f9fafb',
-          100: '#f3f4f6',
-          200: '#e5e7eb',
-          300: '#d1d5db',
-          400: '#9ca3af',
-          500: '#6b7280',
-          600: '#4b5563',
-          700: '#374151',
-          800: '#1f2937',
-          900: '#111827',
-          950: '#030712',
+        accent: {
+          DEFAULT: '#06b6d4',
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4',
+          600: '#0891b2',
+          700: '#0e7490',
+          800: '#155e75',
+          900: '#164e63',
         },
+        // Semantic colors for better UX
         success: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -69,33 +74,40 @@ export default {
           800: '#991b1b',
           900: '#7f1d1d',
         },
+        gray: {
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',
+          500: '#6b7280',
+          600: '#4b5563',
+          700: '#374151',
+          800: '#1f2937',
+          900: '#111827',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-      },
+      // Simplified border radius system
       borderRadius: {
-        'xl': '0.75rem',
-        '2xl': '1rem',
-        '3xl': '1.5rem',
+        'xl': '0.75rem',   // 12px
+        '2xl': '1rem',     // 16px - reduced from 1.5rem
+        '3xl': '1.5rem',   // 24px - maximum for cards
       },
+      // Professional shadow system
       boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-        'medium': '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        'large': '0 10px 50px -12px rgba(0, 0, 0, 0.25)',
+        'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        'DEFAULT': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        'lg': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        'xl': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
       },
+      // Simplified animations - professional and purposeful
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'spin-slow': 'spin 2s linear infinite',
-        'float': 'float 6s ease-in-out infinite',
-        'float-delayed': 'floatDelayed 8s ease-in-out infinite',
-        'float-slow': 'floatSlow 10s ease-in-out infinite',
-        'gradient-x': 'gradientX 15s ease infinite',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.2s ease-out',
+        'scale': 'scale 0.15s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -103,34 +115,24 @@ export default {
           '100%': { opacity: '1' },
         },
         slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        slideDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+        scale: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
-        floatDelayed: {
-          '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
-          '33%': { transform: 'translateY(-30px) translateX(10px)' },
-          '66%': { transform: 'translateY(-10px) translateX(-10px)' },
-        },
-        floatSlow: {
-          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
-          '50%': { transform: 'translateY(-15px) rotate(5deg)' },
-        },
-        gradientX: {
-          '0%, 100%': {
-            'background-position': '0% 50%'
-          },
-          '50%': {
-            'background-position': '100% 50%'
-          },
-        },
+      },
+      // Typography scale - reduced from oversized
+      fontSize: {
+        'xs': '0.75rem',    // 12px
+        'sm': '0.875rem',   // 14px
+        'base': '1rem',     // 16px
+        'lg': '1.125rem',   // 18px
+        'xl': '1.25rem',    // 20px
+        '2xl': '1.5rem',    // 24px - was 3xl
+        '3xl': '1.875rem',  // 30px - was 4xl+
+        '4xl': '2.25rem',   // 36px - for hero only
       },
     },
   },

@@ -1,36 +1,24 @@
-/**
- * Centralized logger utility that only logs in development mode
- * Prevents console statements from appearing in production builds
- */
-
-const isDevelopment = import.meta.env.DEV
+const isDev = (): boolean => {
+  try {
+    return import.meta.env.DEV === true
+  } catch {
+    return false
+  }
+}
 
 export const logger = {
   log: (...args: any[]) => {
-    if (isDevelopment) {
-      console.log(...args)
-    }
+    if (isDev()) console.log(...args)
   },
   error: (...args: any[]) => {
-    if (isDevelopment) {
-      console.error(...args)
-    }
+    console.error(...args)
   },
   warn: (...args: any[]) => {
-    if (isDevelopment) {
-      console.warn(...args)
-    }
+    if (isDev()) console.warn(...args)
   },
   info: (...args: any[]) => {
-    if (isDevelopment) {
-      console.info(...args)
-    }
-  },
-  debug: (...args: any[]) => {
-    if (isDevelopment) {
-      console.debug(...args)
-    }
+    if (isDev()) console.info(...args)
   },
 }
 
-export default logger
+export { isDev }

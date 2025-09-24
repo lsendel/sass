@@ -21,7 +21,7 @@ vi.mock('../../store/api/userApi', () => ({
 }))
 
 vi.mock('../../store/api/organizationApi', () => ({
-  useGetOrganizationsQuery: () => ({
+  useGetUserOrganizationsQuery: () => ({
     data: {
       organizations: [
         { id: '1', name: 'Test Org', slug: 'test-org' }
@@ -37,6 +37,36 @@ vi.mock('../../store/api/subscriptionApi', () => ({
     data: { status: 'active', planName: 'Pro Plan' },
     isLoading: false,
     error: null,
+  }),
+  useGetSubscriptionStatisticsQuery: () => ({
+    data: { status: 'active', planName: 'Pro Plan' },
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+vi.mock('../../store/api/paymentApi', () => ({
+  useGetPaymentStatisticsQuery: () => ({
+    data: {
+      totalAmount: 1000,
+      totalSuccessfulPayments: 10,
+      failedPayments: 2,
+    },
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+// Mock hooks
+vi.mock('../../hooks/useRealTimeUpdates', () => ({
+  useRealTimeUpdates: () => ({
+    isActive: true,
+    lastUpdate: new Date(),
+    isPaused: false,
+    updateCount: 5,
+    resumeUpdates: vi.fn(),
+    pauseUpdates: vi.fn(),
+    forceUpdate: vi.fn(),
   }),
 }))
 

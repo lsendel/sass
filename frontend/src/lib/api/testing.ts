@@ -61,6 +61,13 @@ export function generateRealisticMockData<T>(schema: z.ZodSchema<T>): T {
   function generateValue(schema: z.ZodTypeAny, path: string[] = []): any {
     const fieldName = path[path.length - 1]?.toLowerCase() || '';
 
+    const genUuid = () =>
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+
     if (schema instanceof z.ZodString) {
       // Generate realistic string values based on field name
       if (fieldName.includes('email')) {
@@ -70,7 +77,7 @@ export function generateRealisticMockData<T>(schema: z.ZodSchema<T>): T {
         return 'Test Name';
       }
       if (fieldName.includes('id')) {
-        return crypto.randomUUID();
+        return genUuid();
       }
       if (fieldName.includes('url')) {
         return 'https://example.com';
@@ -81,7 +88,15 @@ export function generateRealisticMockData<T>(schema: z.ZodSchema<T>): T {
       if (fieldName.includes('currency')) {
         return 'USD';
       }
-      if (fieldName.includes('date') || fieldName.includes('time')) {
+      const isTimestampField =
+        fieldName.endsWith('at') ||
+        fieldName.includes('timestamp') ||
+        fieldName.includes('date') ||
+        fieldName.includes('time') ||
+        fieldName.includes('createdat') ||
+        fieldName.includes('updatedat') ||
+        fieldName.includes('lastloginat');
+      if (isTimestampField) {
         return new Date().toISOString();
       }
       return 'mock-string-value';
@@ -188,13 +203,13 @@ export function createValidationTestSuite<T>(
       name: `${suiteName} - Null input`,
       input: null,
       expectedValid: false,
-      expectedError: 'Expected object, received null',
+      expectedError: 'Invalid input: expected object, received null',
     },
     {
       name: `${suiteName} - Undefined input`,
       input: undefined,
       expectedValid: false,
-      expectedError: 'Required',
+      expectedError: 'Invalid input: expected object, received undefined',
     },
     {
       name: `${suiteName} - Empty object`,
@@ -205,13 +220,13 @@ export function createValidationTestSuite<T>(
       name: `${suiteName} - Invalid type`,
       input: 'invalid-string',
       expectedValid: false,
-      expectedError: 'Expected object, received string',
+      expectedError: 'Invalid input: expected object, received string',
     },
     {
       name: `${suiteName} - Array instead of object`,
       input: [],
       expectedValid: false,
-      expectedError: 'Expected object, received array',
+      expectedError: 'Invalid input: expected object, received array',
     }
   );
 

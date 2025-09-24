@@ -1,5 +1,8 @@
 package com.platform.auth.internal;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -14,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.platform.shared.security.PlatformUserPrincipal;
+import com.platform.user.internal.Organization;
+import com.platform.user.internal.OrganizationMember;
+import com.platform.user.internal.OrganizationMemberRepository;
 import com.platform.user.internal.User;
 import com.platform.user.internal.UserService;
 
@@ -33,14 +39,17 @@ public class OpaqueTokenStore {
   private final TokenMetadataRepository tokenMetadataRepository;
   private final PasswordEncoder passwordEncoder;
   private final UserService userService;
+  private final OrganizationMemberRepository memberRepository;
 
   public OpaqueTokenStore(
       TokenMetadataRepository tokenMetadataRepository,
       PasswordEncoder passwordEncoder,
-      UserService userService) {
+      UserService userService,
+      OrganizationMemberRepository memberRepository) {
     this.tokenMetadataRepository = tokenMetadataRepository;
     this.passwordEncoder = passwordEncoder;
     this.userService = userService;
+    this.memberRepository = memberRepository;
   }
 
   /** Create a new opaque token for a user */
@@ -49,6 +58,7 @@ public class OpaqueTokenStore {
     String token = generateSecureToken();
     String salt = generateSalt();
     String tokenHash = hashToken(token, salt);
+    String lookupHash = computeLookupHash(token);
 
     // Set expiration (30 days for web sessions)
     Instant expiresAt = Instant.now().plus(30, ChronoUnit.DAYS);
@@ -62,6 +72,8 @@ public class OpaqueTokenStore {
       tokenMetadata.addMetadata("userAgent", userAgent);
     }
 
+    tokenMetadata.setTokenLookupHash(lookupHash);
+
     // Save to database
     tokenMetadataRepository.save(tokenMetadata);
 
@@ -74,9 +86,12 @@ public class OpaqueTokenStore {
     String token = generateSecureToken();
     String salt = generateSalt();
     String tokenHash = hashToken(token, salt);
+    String lookupHash = computeLookupHash(token);
 
     TokenMetadata tokenMetadata =
         TokenMetadata.createApiToken(userId, tokenHash, salt, expiresAt, apiKeyName);
+
+    tokenMetadata.setTokenLookupHash(lookupHash);
 
     tokenMetadataRepository.save(tokenMetadata);
 
@@ -85,41 +100,19 @@ public class OpaqueTokenStore {
   }
 
   /** Validate a token and return user principal if valid */
-  @Transactional(readOnly = true)
+  @Transactional
   public Optional<PlatformUserPrincipal> validateToken(String token) {
-    if (token == null || token.trim().isEmpty()) {
-      return Optional.empty();
-    }
-
-    try {
-      // Find token metadata by attempting to hash with all possible salts
-      // This is secure because we're using the hash to find the record
-      return tokenMetadataRepository.findValidTokens(Instant.now()).stream()
-          .filter(
-              metadata -> {
-                String expectedHash = hashToken(token, metadata.getSalt());
-                return metadata.getTokenHash().equals(expectedHash);
-              })
-          .findFirst()
-          .map(this::updateLastUsedAndCreatePrincipal);
-
-    } catch (Exception e) {
-      logger.warn("Error validating token", e);
-      return Optional.empty();
-    }
+    return resolveTokenMetadata(token).map(this::updateLastUsedAndCreatePrincipal);
   }
 
   /** Revoke a specific token */
   public void revokeToken(String token) {
-    validateToken(token)
+    resolveTokenMetadata(token)
         .ifPresent(
-            principal -> {
-              TokenMetadata metadata = findTokenMetadata(token);
-              if (metadata != null) {
-                metadata.revoke();
-                tokenMetadataRepository.save(metadata);
-                logger.info("Revoked token for user: {}", principal.getUserId());
-              }
+            metadata -> {
+              metadata.revoke();
+              tokenMetadataRepository.save(metadata);
+              logger.info("Revoked token for user: {}", metadata.getUserId());
             });
   }
 
@@ -139,19 +132,21 @@ public class OpaqueTokenStore {
 
   /** Extend token expiration (for active sessions) */
   public void extendTokenExpiration(String token, Instant newExpiresAt) {
-    TokenMetadata metadata = findTokenMetadata(token);
-    if (metadata != null && metadata.isValid()) {
-      metadata.extendExpiration(newExpiresAt);
-      tokenMetadataRepository.save(metadata);
-      logger.debug("Extended token expiration for user: {}", metadata.getUserId());
-    }
+    resolveTokenMetadata(token)
+        .ifPresent(
+            metadata -> {
+              if (metadata.isValid()) {
+                metadata.extendExpiration(newExpiresAt);
+                tokenMetadataRepository.save(metadata);
+                logger.debug("Extended token expiration for user: {}", metadata.getUserId());
+              }
+            });
   }
 
   /** Get token information without validating */
-  @Transactional(readOnly = true)
+  @Transactional
   public Optional<TokenMetadata> getTokenInfo(String token) {
-    TokenMetadata metadata = findTokenMetadata(token);
-    return Optional.ofNullable(metadata);
+    return resolveTokenMetadata(token);
   }
 
   /** Count active sessions for a user */
@@ -178,15 +173,54 @@ public class OpaqueTokenStore {
     return passwordEncoder.encode(token + salt);
   }
 
-  private TokenMetadata findTokenMetadata(String token) {
-    return tokenMetadataRepository.findValidTokens(Instant.now()).stream()
-        .filter(
-            metadata -> {
-              String expectedHash = hashToken(token, metadata.getSalt());
-              return metadata.getTokenHash().equals(expectedHash);
-            })
-        .findFirst()
-        .orElse(null);
+  private Optional<TokenMetadata> resolveTokenMetadata(String token) {
+    if (token == null || token.trim().isEmpty()) {
+      return Optional.empty();
+    }
+
+    try {
+      Instant now = Instant.now();
+      String lookupHash = computeLookupHash(token);
+
+      Optional<TokenMetadata> directMatch =
+          tokenMetadataRepository
+              .findFirstByTokenLookupHashAndExpiresAtAfter(lookupHash, now)
+              .filter(metadata -> matchesToken(token, metadata));
+
+      if (directMatch.isPresent()) {
+        return directMatch;
+      }
+
+      return tokenMetadataRepository.findValidTokens(now).stream()
+          .filter(metadata -> matchesToken(token, metadata))
+          .findFirst()
+          .map(
+              metadata -> {
+                if (metadata.getTokenLookupHash() == null) {
+                  metadata.setTokenLookupHash(lookupHash);
+                  tokenMetadataRepository.save(metadata);
+                }
+                return metadata;
+              });
+
+    } catch (Exception e) {
+      logger.warn("Error resolving token", e);
+      return Optional.empty();
+    }
+  }
+
+  private boolean matchesToken(String token, TokenMetadata metadata) {
+    return passwordEncoder.matches(token + metadata.getSalt(), metadata.getTokenHash());
+  }
+
+  private String computeLookupHash(String token) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hashBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+      return Base64.getUrlEncoder().withoutPadding().encodeToString(hashBytes);
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 algorithm not available", e);
+    }
   }
 
   private PlatformUserPrincipal updateLastUsedAndCreatePrincipal(TokenMetadata metadata) {
@@ -196,21 +230,39 @@ public class OpaqueTokenStore {
 
     // Fetch user details from UserService
     Optional<User> userOpt = userService.findById(metadata.getUserId());
-    if (userOpt.isPresent()) {
-      User user = userOpt.get();
-      return PlatformUserPrincipal.systemUser(
-          metadata.getUserId(),
-          user.getEmail().getValue(), // Get email from User entity
-          user.getName() // Get name from User entity
-          );
-    } else {
-      // User not found - this should be rare but handle gracefully
+    if (userOpt.isEmpty()) {
       logger.warn("User not found for token metadata: {}", metadata.getUserId());
       return PlatformUserPrincipal.systemUser(
-          metadata.getUserId(),
-          "unknown@platform.com", // Fallback email
-          "Unknown User" // Fallback name
-          );
+          metadata.getUserId(), "unknown@platform.com", "Unknown User");
     }
+
+    User user = userOpt.get();
+    Organization organization = user.getOrganization();
+
+    if (organization == null) {
+      return PlatformUserPrincipal.systemUser(
+          metadata.getUserId(), user.getEmail().getValue(), user.getName());
+    }
+
+    String role = resolveMemberRole(metadata.getUserId(), organization.getId());
+    return PlatformUserPrincipal.organizationMember(
+        metadata.getUserId(),
+        user.getEmail().getValue(),
+        user.getName(),
+        organization.getId(),
+        organization.getSlug(),
+        role);
+  }
+
+  private String resolveMemberRole(UUID userId, UUID organizationId) {
+    if (organizationId == null) {
+      return "MEMBER";
+    }
+
+    return memberRepository
+        .findByOrganizationIdAndUserId(organizationId, userId)
+        .map(OrganizationMember::getRole)
+        .map(Enum::name)
+        .orElse("MEMBER");
   }
 }

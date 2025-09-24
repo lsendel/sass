@@ -1,0 +1,918 @@
+openapi: 3.0.3
+info:
+  title: API Integration Testing Framework
+  description: REST API for managing and executing integration tests for the Payment Platform
+  version: 1.0.0
+  contact:
+    name: Testing Team
+    email: testing@platform.com
+
+servers:
+  - url: http://localhost:8090
+    description: Local test runner
+  - url: http://test-runner.platform.com
+    description: CI/CD test runner
+
+tags:
+  - name: Test Execution
+    description: Execute and monitor test runs
+  - name: Test Management
+    description: Manage test suites and scenarios
+  - name: Test Reports
+    description: Access test reports and metrics
+  - name: Test Data
+    description: Manage test fixtures and data
+
+paths:
+  /api/v1/test-suites:
+    get:
+      tags:
+        - Test Management
+      summary: List all test suites
+      operationId: listTestSuites
+      parameters:
+        - name: module
+          in: query
+          schema:
+            type: string
+            enum: [AUTH, PAYMENT, USER, SUBSCRIPTION, AUDIT, SHARED]
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CONTRACT, INTEGRATION, E2E, UNIT]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [CRITICAL, MAJOR, MINOR]
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: List of test suites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suites:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestSuite'
+                  total:
+                    type: integer
+
+    post:
+      tags:
+        - Test Management
+      summary: Create a new test suite
+      operationId: createTestSuite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestSuiteRequest'
+      responses:
+        '201':
+          description: Test suite created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuite'
+
+  /api/v1/test-suites/{suiteId}:
+    get:
+      tags:
+        - Test Management
+      summary: Get test suite details
+      operationId: getTestSuite
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Test suite details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuiteDetail'
+
+  /api/v1/test-suites/{suiteId}/scenarios:
+    get:
+      tags:
+        - Test Management
+      summary: List scenarios in a test suite
+      operationId: listTestScenarios
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of test scenarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scenarios:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestScenario'
+
+    post:
+      tags:
+        - Test Management
+      summary: Add scenario to test suite
+      operationId: addTestScenario
+      parameters:
+        - name: suiteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestScenarioRequest'
+      responses:
+        '201':
+          description: Scenario added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestScenario'
+
+  /api/v1/executions:
+    post:
+      tags:
+        - Test Execution
+      summary: Start test execution
+      operationId: startTestExecution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionRequest'
+      responses:
+        '202':
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponse'
+
+    get:
+      tags:
+        - Test Execution
+      summary: List test executions
+      operationId: listExecutions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, RUNNING, PASSED, FAILED, ERROR, CANCELLED]
+        - name: environmentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestExecution'
+
+  /api/v1/executions/{executionId}:
+    get:
+      tags:
+        - Test Execution
+      summary: Get execution details
+      operationId: getExecution
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionDetail'
+
+  /api/v1/executions/{executionId}/progress:
+    get:
+      tags:
+        - Test Execution
+      summary: Get real-time execution progress
+      operationId: getExecutionProgress
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionProgress'
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-sent events stream
+
+  /api/v1/executions/{executionId}/cancel:
+    post:
+      tags:
+        - Test Execution
+      summary: Cancel running execution
+      operationId: cancelExecution
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution cancelled
+
+  /api/v1/reports/{executionId}:
+    get:
+      tags:
+        - Test Reports
+      summary: Get test report
+      operationId: getTestReport
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [HTML, JSON, XML, PDF]
+            default: JSON
+      responses:
+        '200':
+          description: Test report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestReport'
+            text/html:
+              schema:
+                type: string
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /api/v1/reports/coverage:
+    get:
+      tags:
+        - Test Reports
+      summary: Get coverage report
+      operationId: getCoverageReport
+      parameters:
+        - name: module
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Coverage report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageReport'
+
+  /api/v1/fixtures:
+    get:
+      tags:
+        - Test Data
+      summary: List test fixtures
+      operationId: listFixtures
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [USER, ORGANIZATION, PAYMENT, SUBSCRIPTION]
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: List of fixtures
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fixtures:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestFixture'
+
+    post:
+      tags:
+        - Test Data
+      summary: Create test fixture
+      operationId: createFixture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestFixtureRequest'
+      responses:
+        '201':
+          description: Fixture created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestFixture'
+
+components:
+  schemas:
+    TestSuite:
+      type: object
+      required:
+        - id
+        - name
+        - module
+        - category
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        module:
+          type: string
+          enum: [AUTH, PAYMENT, USER, SUBSCRIPTION, AUDIT, SHARED]
+        category:
+          type: string
+          enum: [CONTRACT, INTEGRATION, E2E, UNIT]
+        priority:
+          type: string
+          enum: [CRITICAL, MAJOR, MINOR]
+        enabled:
+          type: boolean
+        parallelizable:
+          type: boolean
+        maxRetries:
+          type: integer
+        timeoutSeconds:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        scenarioCount:
+          type: integer
+
+    TestSuiteDetail:
+      allOf:
+        - $ref: '#/components/schemas/TestSuite'
+        - type: object
+          properties:
+            scenarios:
+              type: array
+              items:
+                $ref: '#/components/schemas/TestScenario'
+            lastExecution:
+              $ref: '#/components/schemas/ExecutionSummary'
+            statistics:
+              $ref: '#/components/schemas/SuiteStatistics'
+
+    TestScenario:
+      type: object
+      required:
+        - id
+        - name
+        - endpoint
+        - httpMethod
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+        httpMethod:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+        expectedResponseCode:
+          type: integer
+        expectedResponseTime:
+          type: integer
+        dependencies:
+          type: array
+          items:
+            type: string
+
+    TestExecution:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        executionId:
+          type: string
+        testSuiteId:
+          type: string
+          format: uuid
+        environmentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, INITIALIZING, RUNNING, PASSED, FAILED, ERROR, CANCELLED, COMPLETED]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        triggeredBy:
+          type: string
+        triggerType:
+          type: string
+          enum: [MANUAL, SCHEDULED, CI_CD, API]
+
+    ExecutionDetail:
+      allOf:
+        - $ref: '#/components/schemas/TestExecution'
+        - type: object
+          properties:
+            gitCommit:
+              type: string
+            gitBranch:
+              type: string
+            parallelThreads:
+              type: integer
+            testResults:
+              type: array
+              items:
+                $ref: '#/components/schemas/TestResult'
+            summary:
+              $ref: '#/components/schemas/ExecutionSummary'
+
+    TestResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        testScenarioId:
+          type: string
+          format: uuid
+        scenarioName:
+          type: string
+        status:
+          type: string
+          enum: [PASSED, FAILED, SKIPPED, ERROR]
+        duration:
+          type: integer
+        actualResponseCode:
+          type: integer
+        actualResponseTime:
+          type: integer
+        errorMessage:
+          type: string
+        retryCount:
+          type: integer
+
+    ExecutionProgress:
+      type: object
+      properties:
+        executionId:
+          type: string
+          format: uuid
+        currentPhase:
+          type: string
+          enum: [SETUP, MODULE_TESTING, INTEGRATION, CLEANUP]
+        currentModule:
+          type: string
+        totalTests:
+          type: integer
+        completedTests:
+          type: integer
+        passedTests:
+          type: integer
+        failedTests:
+          type: integer
+        skippedTests:
+          type: integer
+        percentComplete:
+          type: number
+          format: float
+        estimatedTimeRemaining:
+          type: integer
+        currentTest:
+          type: string
+
+    TestReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        executionId:
+          type: string
+          format: uuid
+        generatedAt:
+          type: string
+          format: date-time
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+        moduleResults:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ModuleResult'
+        coverageMetrics:
+          $ref: '#/components/schemas/CoverageMetrics'
+        performanceMetrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        failureAnalysis:
+          $ref: '#/components/schemas/FailureAnalysis'
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    TestFixture:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [USER, ORGANIZATION, PAYMENT, SUBSCRIPTION]
+        data:
+          type: object
+        tags:
+          type: array
+          items:
+            type: string
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+
+    # Request Objects
+    TestSuiteRequest:
+      type: object
+      required:
+        - name
+        - module
+        - category
+      properties:
+        name:
+          type: string
+        module:
+          type: string
+          enum: [AUTH, PAYMENT, USER, SUBSCRIPTION, AUDIT, SHARED]
+        category:
+          type: string
+          enum: [CONTRACT, INTEGRATION, E2E, UNIT]
+        priority:
+          type: string
+          enum: [CRITICAL, MAJOR, MINOR]
+        enabled:
+          type: boolean
+          default: true
+        parallelizable:
+          type: boolean
+          default: false
+        maxRetries:
+          type: integer
+          default: 1
+        timeoutSeconds:
+          type: integer
+          default: 300
+        tags:
+          type: array
+          items:
+            type: string
+
+    TestScenarioRequest:
+      type: object
+      required:
+        - name
+        - endpoint
+        - httpMethod
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+        httpMethod:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+        setupSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestStep'
+        executionSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestStep'
+        validationSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestStep'
+        expectedResponseCode:
+          type: integer
+        expectedResponseTime:
+          type: integer
+
+    ExecutionRequest:
+      type: object
+      required:
+        - testSuiteIds
+        - environmentId
+      properties:
+        testSuiteIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        environmentId:
+          type: string
+          format: uuid
+        parallel:
+          type: boolean
+          default: true
+        parallelThreads:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+
+    TestFixtureRequest:
+      type: object
+      required:
+        - name
+        - type
+        - data
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [USER, ORGANIZATION, PAYMENT, SUBSCRIPTION]
+        data:
+          type: object
+        sqlScript:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        validUntil:
+          type: string
+          format: date-time
+
+    # Response Objects
+    ExecutionResponse:
+      type: object
+      properties:
+        executionId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        message:
+          type: string
+        progressUrl:
+          type: string
+        reportUrl:
+          type: string
+
+    # Embedded Objects
+    TestStep:
+      type: object
+      properties:
+        order:
+          type: integer
+        action:
+          type: string
+          enum: [REQUEST, ASSERT, WAIT, SET_VARIABLE, DATABASE_OPERATION]
+        target:
+          type: string
+        parameters:
+          type: object
+        expectedOutcome:
+          type: string
+        optional:
+          type: boolean
+
+    ExecutionSummary:
+      type: object
+      properties:
+        totalTests:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        skipped:
+          type: integer
+        errorRate:
+          type: number
+        averageResponseTime:
+          type: number
+
+    ReportSummary:
+      type: object
+      properties:
+        totalTests:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        skipped:
+          type: integer
+        errorRate:
+          type: number
+        averageResponseTime:
+          type: number
+        p95ResponseTime:
+          type: number
+        totalDuration:
+          type: integer
+
+    ModuleResult:
+      type: object
+      properties:
+        moduleName:
+          type: string
+        testCount:
+          type: integer
+        passCount:
+          type: integer
+        failCount:
+          type: integer
+        coverage:
+          type: number
+        criticalFailures:
+          type: array
+          items:
+            type: string
+
+    CoverageMetrics:
+      type: object
+      properties:
+        lineCoverage:
+          type: number
+        branchCoverage:
+          type: number
+        methodCoverage:
+          type: number
+        classCoverage:
+          type: number
+        packageCoverage:
+          type: number
+
+    CoverageReport:
+      type: object
+      properties:
+        overall:
+          $ref: '#/components/schemas/CoverageMetrics'
+        modules:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CoverageMetrics'
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        averageResponseTime:
+          type: number
+        medianResponseTime:
+          type: number
+        p95ResponseTime:
+          type: number
+        p99ResponseTime:
+          type: number
+        minResponseTime:
+          type: integer
+        maxResponseTime:
+          type: integer
+        throughput:
+          type: number
+
+    FailureAnalysis:
+      type: object
+      properties:
+        failureCategories:
+          type: object
+          additionalProperties:
+            type: integer
+        flakyTests:
+          type: array
+          items:
+            type: string
+        newFailures:
+          type: array
+          items:
+            type: string
+        fixedTests:
+          type: array
+          items:
+            type: string
+        regressions:
+          type: array
+          items:
+            type: string
+
+    SuiteStatistics:
+      type: object
+      properties:
+        totalExecutions:
+          type: integer
+        successRate:
+          type: number
+        averageDuration:
+          type: number
+        lastSuccess:
+          type: string
+          format: date-time
+        lastFailure:
+          type: string
+          format: date-time

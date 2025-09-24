@@ -4,7 +4,10 @@ import { selectCurrentUser } from '../../store/slices/authSlice'
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
 import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
 import { useGetSubscriptionStatisticsQuery } from '../../store/api/subscriptionApi'
+import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { LoadingCard, CardSkeleton, InlineLoading } from '../../components/ui/LoadingStates'
+import { Button } from '../../components/ui/button'
 import {
   BuildingOfficeIcon,
   CreditCardIcon,
@@ -12,36 +15,63 @@ import {
   UserGroupIcon,
   ArrowTrendingUpIcon,
   CalendarDaysIcon,
-  SparklesIcon,
   ChartBarIcon,
   BellIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
+import { getIconClasses, getCardClasses } from '../../lib/theme'
 
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
-  const { data: organizations, isLoading: orgsLoading } =
-    useGetUserOrganizationsQuery()
+  const {
+    data: organizations,
+    isLoading: orgsLoading,
+    refetch: refetchOrganizations
+  } = useGetUserOrganizationsQuery()
 
   // Get statistics for the first organization (primary org)
   const primaryOrg = organizations?.[0]
-  const { data: paymentStats, isLoading: paymentStatsLoading } =
-    useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
+  const {
+    data: paymentStats,
+    isLoading: paymentStatsLoading,
+    refetch: refetchPaymentStats
+  } = useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
       skip: !primaryOrg?.id,
     })
 
-  const { data: subscriptionStats, isLoading: subscriptionStatsLoading } =
-    useGetSubscriptionStatisticsQuery(primaryOrg?.id || '', {
+  const {
+    data: subscriptionStats,
+    isLoading: subscriptionStatsLoading,
+    refetch: refetchSubscriptionStats
+  } = useGetSubscriptionStatisticsQuery(primaryOrg?.id || '', {
       skip: !primaryOrg?.id,
     })
+
+  // Set up real-time updates for dashboard data
+  const realTimeUpdates = useRealTimeUpdates(
+    async () => {
+      // Refresh all statistics and return the data
+      const [paymentData, subscriptionData] = await Promise.all([
+        refetchPaymentStats(),
+        refetchSubscriptionStats(),
+      ])
+      return { paymentData, subscriptionData }
+    },
+    {
+      interval: 30000, // Update every 30 seconds
+      enabled: !!primaryOrg?.id, // Only update when we have an organization
+      pauseWhenInactive: true,
+      pauseAfterInactivity: 300000, // Pause after 5 minutes of inactivity
+    }
+  )
 
   if (orgsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 flex justify-center items-center">
-        <div className="bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600 text-center">Loading your dashboard...</p>
-        </div>
+      <div className="space-y-6">
+        <LoadingCard
+          title="Loading Dashboard"
+          message="Preparing your personalized dashboard experience..."
+        />
       </div>
     )
   }
@@ -51,183 +81,182 @@ const DashboardPage: React.FC = () => {
       name: 'Organizations',
       value: organizations?.length || 0,
       icon: BuildingOfficeIcon,
-      gradient: 'from-blue-500 to-cyan-500',
-      bgGradient: 'from-blue-50 to-cyan-50',
+      bgColor: 'bg-primary-50',
+      iconColor: 'text-primary-600',
       trend: '+12%',
     },
     {
       name: 'Total Payments',
       value: paymentStats?.totalSuccessfulPayments || 0,
       icon: CreditCardIcon,
-      gradient: 'from-green-500 to-emerald-500',
-      bgGradient: 'from-green-50 to-emerald-50',
+      bgColor: 'bg-success-50',
+      iconColor: 'text-success-600',
       trend: '+18%',
     },
     {
       name: 'Revenue',
-      value: paymentStats ? `$${paymentStats.totalAmount.toFixed(2)}` : '$0.00',
+      value: paymentStats && typeof paymentStats.totalAmount === 'number' ? `$${paymentStats.totalAmount.toFixed(2)}` : '$0.00',
       icon: ArrowTrendingUpIcon,
-      gradient: 'from-purple-500 to-pink-500',
-      bgGradient: 'from-purple-50 to-pink-50',
+      bgColor: 'bg-accent-50',
+      iconColor: 'text-accent-600',
       trend: '+32%',
     },
     {
       name: 'Subscription',
       value: String(subscriptionStats?.status ?? 'Active'),
       icon: DocumentTextIcon,
-      gradient: 'from-indigo-500 to-purple-500',
-      bgGradient: 'from-indigo-50 to-purple-50',
+      bgColor: 'bg-gray-50',
+      iconColor: 'text-gray-600',
       trend: 'Current',
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
-      {/* Floating background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-purple-200 bg-opacity-30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-indigo-200 bg-opacity-20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-pink-200 bg-opacity-25 rounded-full blur-3xl animate-pulse delay-2000"></div>
-      </div>
-
-      <div className="relative space-y-8 p-6">
-        {/* Welcome Header */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-purple-500 to-indigo-600 rounded-3xl shadow-lg mb-6">
-            <SparklesIcon className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-purple-900 to-indigo-900 bg-clip-text text-transparent mb-3">
-            Welcome back, {user?.name}! 👋
+    <div className="space-y-6">
+      {/* Welcome Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome back, <span className="brand-element">{user?.name}</span>! 👋
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Here's your personalized dashboard overview with all the latest insights and metrics.
+          <p className="text-sm text-gray-600">
+            Here's your dashboard overview with the latest insights and metrics.
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
-          {stats.map((stat, index) => (
-            <div
-              key={stat.name}
-              className={`group relative bg-gradient-to-br ${stat.bgGradient} p-6 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-white border-opacity-50 backdrop-blur-sm`}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              {/* Icon */}
-              <div className={`inline-flex items-center justify-center w-14 h-14 bg-gradient-to-r ${stat.gradient} rounded-2xl shadow-lg mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                <stat.icon className="h-7 w-7 text-white" />
-              </div>
-
-              {/* Content */}
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 mb-2">
-                  {stat.name === 'Total Payments' && paymentStatsLoading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : stat.name === 'Subscription' && subscriptionStatsLoading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    stat.value
-                  )}
-                </p>
-                <div className="flex items-center">
-                  <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                    {stat.trend}
-                  </span>
-                </div>
-              </div>
-
-              {/* Decorative gradient */}
-              <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-xl`}></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white border-opacity-50">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mr-4">
-                <ChartBarIcon className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">Quick Actions</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <QuickActionCard
-                title="Manage Organizations"
-                description="View and manage your organization memberships"
-                href="/organizations"
-                icon={BuildingOfficeIcon}
-                gradient="from-blue-500 to-cyan-500"
-              />
-              <QuickActionCard
-                title="View Payments"
-                description="See your payment history and transactions"
-                href="/payments"
-                icon={CreditCardIcon}
-                gradient="from-green-500 to-emerald-500"
-              />
-              <QuickActionCard
-                title="Subscription Settings"
-                description="Manage your subscription plan and billing"
-                href="/subscription"
-                icon={DocumentTextIcon}
-                gradient="from-purple-500 to-pink-500"
-              />
-            </div>
+        {/* Real-time update status */}
+        <div className="text-right">
+          <div className="text-xs text-gray-500 mb-1">
+            {realTimeUpdates.isActive ? (
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+                Live updates active
+              </span>
+            ) : (
+              <span className="text-gray-400">Updates paused</span>
+            )}
           </div>
+          <button
+            onClick={realTimeUpdates.forceUpdate}
+            className="text-xs text-primary-600 hover:text-primary-500 underline"
+          >
+            Refresh now
+          </button>
         </div>
-
-        {/* Recent Activity */}
-        {primaryOrg && (
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white border-opacity-50">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mr-4">
-                  <BellIcon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">Recent Activity</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
-                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mr-4">
-                    <UserGroupIcon className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      Organization <span className="font-bold">{primaryOrg.name}</span> created
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {format(new Date(primaryOrg.createdAt), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                  <div className="text-green-600">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-
-                {!!subscriptionStats?.status && (
-                  <div className="flex items-center p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200">
-                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mr-4">
-                      <DocumentTextIcon className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        Subscription status: <span className="font-bold">{subscriptionStats.status}</span>
-                      </p>
-                      <p className="text-xs text-gray-500">Active subscription</p>
-                    </div>
-                    <div className="text-indigo-600">
-                      <CalendarDaysIcon className="h-5 w-5" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Stats Grid - Compact */}
+      <div className="grid grid-cols-4 gap-3">
+        {stats.map((stat, index) => (
+          <div
+            key={stat.name}
+            className={`${getCardClasses()} p-3 transition-shadow hover:shadow-lg brand-element`}
+          >
+            {/* Icon */}
+            <div className={`inline-flex items-center justify-center w-6 h-6 ${stat.bgColor} rounded-lg mb-2`}>
+              <stat.icon className="w-3 h-3 brand-element" />
+            </div>
+
+            {/* Content */}
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-1">{stat.name}</p>
+              <p className="text-base font-bold text-gray-900 mb-1 brand-element">
+                {stat.name === 'Total Payments' && paymentStatsLoading ? (
+                  <InlineLoading size="md" />
+                ) : stat.name === 'Subscription' && subscriptionStatsLoading ? (
+                  <InlineLoading size="md" />
+                ) : (
+                  stat.value
+                )}
+              </p>
+              <div className="flex items-center">
+                <span className="text-xs font-medium text-success-600 bg-success-100 px-1 py-0.5 rounded">
+                  {stat.trend}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Actions - Compact */}
+      <div className={getCardClasses()}>
+        <div className="flex items-center mb-3">
+          <div className="w-6 h-6 gradient-brand rounded-lg flex items-center justify-center mr-2">
+            <ChartBarIcon className="w-3 h-3 text-white brand-element" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 brand-element">Quick Actions</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <QuickActionCard
+            title="Organizations"
+            description="Manage memberships"
+            href="/organizations"
+            icon={BuildingOfficeIcon}
+          />
+          <QuickActionCard
+            title="Payments"
+            description="View transactions"
+            href="/payments"
+            icon={CreditCardIcon}
+          />
+          <QuickActionCard
+            title="Subscription"
+            description="Manage billing"
+            href="/subscription"
+            icon={DocumentTextIcon}
+          />
+        </div>
+      </div>
+
+      {/* Recent Activity - Compact */}
+      {primaryOrg && (
+        <div className={getCardClasses()}>
+          <div className="flex items-center mb-3">
+            <div className="w-6 h-6 bg-success-600 rounded-lg flex items-center justify-center mr-2">
+              <BellIcon className="w-3 h-3 text-white brand-element" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 brand-element">Recent Activity</h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center p-2 bg-success-50 rounded-lg border border-success-200">
+              <div className="w-6 h-6 bg-success-600 rounded-full flex items-center justify-center mr-2">
+                <UserGroupIcon className="w-3 h-3 text-white brand-element" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-gray-900">
+                  Organization <span className="font-semibold brand-element">{primaryOrg.name}</span> created
+                </p>
+                <p className="text-xs text-gray-500">
+                  {format(new Date(primaryOrg.createdAt), 'MMM d, yyyy')}
+                </p>
+              </div>
+              <div className="text-success-600">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+
+            {!!subscriptionStats?.status && (
+              <div className="flex items-center p-2 bg-primary-50 rounded-lg border border-primary-200">
+                <div className="w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center mr-2 brand-bg">
+                  <DocumentTextIcon className="w-3 h-3 text-white brand-element" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-900">
+                    Subscription: <span className="font-semibold brand-element">{subscriptionStats.status}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">Active subscription</p>
+                </div>
+                <div className="text-primary-600">
+                  <CalendarDaysIcon className="w-3 h-3 brand-element" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -237,7 +266,6 @@ type QuickActionCardProps = {
   description: string
   href: string
   icon: React.ComponentType<{ className?: string }>
-  gradient: string
 }
 
 const QuickActionCard: React.FC<QuickActionCardProps> = ({
@@ -245,41 +273,34 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
   description,
   href,
   icon: Icon,
-  gradient,
 }) => {
   return (
-    <div className="group relative bg-white bg-opacity-60 backdrop-blur-sm p-6 rounded-2xl border border-white border-opacity-50 hover:bg-opacity-80 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden">
-      {/* Background gradient effect */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
-
+    <div className="group relative bg-gray-50 hover:bg-gray-100 p-3 rounded-lg transition-colors border border-gray-200">
       <div className="relative">
         {/* Icon */}
-        <div className={`inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r ${gradient} rounded-xl shadow-lg mb-4 group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="h-6 w-6 text-white" />
+        <div className="inline-flex items-center justify-center w-6 h-6 bg-gray-200 rounded-lg mb-2">
+          <Icon className="w-3 h-3 text-gray-600 brand-element" />
         </div>
 
         {/* Content */}
         <div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1 brand-element">
             <a href={href} className="focus:outline-none">
               <span className="absolute inset-0" aria-hidden="true" />
               {title}
             </a>
           </h3>
-          <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
+          <p className="text-xs text-gray-600">
             {description}
           </p>
         </div>
 
         {/* Arrow icon */}
-        <div className="absolute top-6 right-6 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="absolute top-2 right-2 text-gray-400 group-hover:text-gray-600 transition-colors">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         </div>
-
-        {/* Decorative corner element */}
-        <div className={`absolute bottom-0 right-0 w-16 h-16 bg-gradient-to-tl ${gradient} opacity-10 rounded-full blur-lg group-hover:opacity-20 transition-opacity duration-300`}></div>
       </div>
     </div>
   )

@@ -61,12 +61,14 @@ public class TenantContextFilter extends OncePerRequestFilter {
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
 
-    // Skip filter for public endpoints
-    return path.startsWith("/actuator/health")
-        || path.startsWith("/api/v1/auth/providers")
-        || path.startsWith("/api/v1/auth/authorize")
-        || path.startsWith("/api/v1/auth/callback")
-        || path.startsWith("/api/v1/plans")
-        || path.startsWith("/api/v1/webhooks/");
+    // Skip filter for unauthenticated public assets and health checks only
+    if (path.startsWith("/actuator/health") || path.startsWith("/api/v1/plans")
+        || path.startsWith("/api/v1/webhooks/")) {
+      return true;
+    }
+
+    // Ensure tenant context is available on all auth-protected endpoints,
+    // including OAuth2 flows and session endpoints.
+    return false;
   }
 }

@@ -261,7 +261,26 @@ export function processApiError(error: unknown): ErrorInfo {
         };
       }
     } catch {
-      // Could not parse error response, fall back to status code mapping
+      // Could not parse error response strictly. Try a lenient shape check
+      try {
+        const data: any = (error as any).data;
+        const code: string | undefined = data?.error?.code;
+        const message: string | undefined = data?.error?.message;
+        if (code) {
+          const mappedError = ERROR_MESSAGE_MAP[code];
+          if (mappedError) {
+            specificError = {
+              code,
+              message: message || mappedError.userMessage || code,
+              userMessage: mappedError.userMessage || message || 'An error occurred.',
+              isRetryable: mappedError.isRetryable ?? true,
+              severity: mappedError.severity || 'medium',
+            };
+          }
+        }
+      } catch {
+        // Fallback to HTTP status mapping
+      }
     }
 
     return specificError || {

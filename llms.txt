@@ -1,0 +1,156 @@
+# LLM Context File for SASS (Spring Boot Application with Security System)
+
+## Project Overview
+- Name: SASS (Spring Boot Application with Security System)
+- Purpose: Comprehensive payment platform with modular architecture
+- Architecture: Dual-stack (Java/TypeScript Application Stack + Python Constitutional Tools Stack)
+- Primary goal: Secure, scalable payment processing platform with AI-assisted development
+
+## Tech Stack
+### Application Stack
+- Backend: Java 21, Spring Boot 3.5.5, Spring Modulith
+- Frontend: React, TypeScript, Vite, Tailwind CSS
+- Database: PostgreSQL, Redis
+- Payment: Stripe integration
+- Testing: JUnit 5, Testcontainers, Vitest, Playwright
+
+### Constitutional Tools Stack
+- Language: Python 3.9+
+- Purpose: AI-powered development assistance and constitutional enforcement
+- Components: Various specialized agents for code review, TDD compliance, security validation
+- Testing: pytest with coverage reporting
+
+## Key Directories and Their Purposes
+- `backend/` - Java Spring Boot application with modular architecture
+  - `auth/` - Authentication and authorization module
+  - `payment/` - Payment processing module
+  - `subscription/` - Subscription management module
+  - `user/` - User management module
+  - `audit/` - Audit logging module
+  - `shared/` - Common utilities and security components
+- `frontend/` - React/TypeScript frontend application
+- `tools/` - Python-based constitutional tools and AI agents
+- `docs/` - Docusaurus documentation site
+- `tests/` - Test organization (Java and Python tests)
+- `k8s/` - Kubernetes deployment manifests
+- `monitoring/` - Observability configuration
+- `specs/` - Project specifications and requirements
+- `.claude/` - Claude-specific agent configurations
+- `.specify/` - Specification and planning tools
+
+## Business Domain
+- Payment processing with Stripe integration
+- Multi-tenant organization support
+- Subscription management
+- OAuth2 authentication with multiple providers
+- PCI DSS compliance for payment security
+- GDPR compliance for data handling
+
+## Architecture Principles
+- Modular monolith using Spring Modulith
+- Clean architecture with separation of concerns
+- Security-first approach
+- Test-driven development compliance
+- Event-driven communication between modules
+- Constitutional development practices
+
+## Code Style Guidelines
+- Use meaningful variable and method names
+- Follow Google Java Style Guide for backend
+- Follow TypeScript/JavaScript best practices for frontend
+- Maintain high test coverage (>85%)
+- Write comprehensive documentation for public APIs
+- Follow security-first principles
+
+## Important Files and Configuration
+- `Makefile` - Primary development commands and workflows
+- `docker-compose.yml` - Local development environment
+- `docker-compose.prod.yml` - Production configuration
+- `backend/src/main/resources/application.yml` - Backend configuration
+- `frontend/vite.config.ts` - Frontend build configuration
+- `.env.example` - Environment variable documentation
+- `.env.production.example` - Production environment template
+
+## Development Workflow
+- Follow TDD (Test-Driven Development) practices
+- Write tests before implementation
+- Maintain constitutional compliance
+- Use pre-commit hooks for quality checks
+- Submit pull requests for code review
+- All changes must pass quality gates
+
+## Security Considerations
+- All user inputs must be validated and sanitized
+- Authentication and authorization for all endpoints
+- Use secure session management
+- Encrypt sensitive data in transit and at rest
+- Implement proper logging and audit trails
+- Follow OWASP Top 10 security guidelines
+- PCI DSS compliance for payment processing
+
+## Testing Strategy
+- Unit tests for all business logic
+- Integration tests for module interactions
+- E2E tests for critical user journeys
+- Security tests for authentication/authorization
+- Performance tests for critical endpoints
+- Contract tests for API consistency
+
+## Common Patterns
+- Repository pattern for data access
+- Service layer for business logic
+- DTOs for data transfer between layers
+- Event publishing/subscribing for module communication
+- Configuration properties for external configuration
+- Global exception handling
+- API versioning strategy
+
+## Error Handling
+- Use Spring's @ControllerAdvice for global exception handling
+- Return consistent error response format
+- Log errors appropriately with correlation IDs
+- Differentiate between client and server errors
+- Security-related errors should be generic to avoid information disclosure
+
+## Documentation Locations
+- API documentation: Available through Swagger UI at /swagger-ui.html
+- Architecture documentation: docs/architecture/
+- Frontend documentation: frontend/README.md
+- Backend documentation: backend/README.md
+- Constitutional tools: tools/README.md
+
+## Key Invariants
+- All code changes require tests
+- All public APIs must be documented
+- Module boundaries must be respected
+- Security controls must be implemented for all new features
+- All dependencies must be approved and scanned for vulnerabilities
+
+## Project Constitution
+- TDD compliance is mandatory
+- Code must be reviewed before merging
+- All architectural boundaries must be maintained
+- Security considerations must be addressed in all features
+- Quality gates must be passed before deployment
+- Documentation must be updated with code changes
+
+## Common Commands
+- `make setup` - Install all dependencies
+- `make dev` - Start development environment
+- `make test` - Run all tests
+- `make demo` - Run complete demo with authentication
+- `make build-all` - Build all components
+- `make lint` - Run code quality checks
+
+## Configuration Management
+- Environment variables for configuration
+- Separate config files for different environments
+- Secrets should be managed separately from config
+- Use Spring Cloud Config patterns for complex configurations
+
+## Performance Considerations
+- Use caching appropriately (Redis)
+- Optimize database queries
+- Implement pagination for large datasets
+- Use async processing for long-running operations
+- Monitor and optimize response times

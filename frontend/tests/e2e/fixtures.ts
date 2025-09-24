@@ -1,12 +1,14 @@
 import { test as base, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { EvidenceCollector, withEvidenceCollection } from './utils/evidence-collector'
 
-// Extended Playwright test that captures Istanbul coverage from the browser
-// and writes it to coverage/.nyc_output per test. This enables E2E code
-// coverage reporting with nyc/istanbul when the app is instrumented.
+// Extended Playwright test that captures Istanbul coverage and enhanced evidence
+type MyFixtures = {
+  evidenceCollector: EvidenceCollector
+}
 
-export const test = base.extend({
+export const test = base.extend<MyFixtures>({
   page: async ({ page }, use, testInfo) => {
     await use(page)
 
@@ -26,6 +28,25 @@ export const test = base.extend({
       }
     } catch {
       // Ignore coverage capture errors to not fail tests
+    }
+  },
+
+  evidenceCollector: async ({ page }, use, testInfo) => {
+    // Set up enhanced evidence collection
+    const collector = await withEvidenceCollection(page, testInfo)
+
+    // Take initial screenshot
+    await collector.takeStepScreenshot('test-start', { fullPage: true })
+
+    // Provide collector to test
+    await use(collector)
+
+    // Generate final evidence report
+    try {
+      await collector.takeStepScreenshot('test-end', { fullPage: true })
+      await collector.generateEvidenceReport()
+    } catch (error) {
+      console.warn('Failed to generate evidence report:', error)
     }
   },
 })

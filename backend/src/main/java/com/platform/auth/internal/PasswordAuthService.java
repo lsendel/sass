@@ -109,7 +109,7 @@ public class PasswordAuthService {
 
       // Log successful registration
       authAttemptRepository.save(
-          new AuthenticationAttempt(
+          AuthenticationAttempt.success(
               user.getId(),
               email,
               AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -118,7 +118,8 @@ public class PasswordAuthService {
               null));
 
       log.info("User registered successfully: {} in organization {}", email, organizationId);
-      return new PasswordRegistrationResult(true, user, null, null);
+      return new PasswordRegistrationResult(
+          true, com.platform.user.internal.UserView.fromEntity(user), null, null);
 
     } catch (Exception e) {
       log.error("Error during user registration for email: {}", email, e);
@@ -138,7 +139,7 @@ public class PasswordAuthService {
       if (userOpt.isEmpty()) {
         // Log failed attempt without user ID
         authAttemptRepository.save(
-            new AuthenticationAttempt(
+            AuthenticationAttempt.failureUnknownUser(
                 email,
                 AuthenticationAttempt.AuthenticationMethod.PASSWORD,
                 "USER_NOT_FOUND",
@@ -156,7 +157,7 @@ public class PasswordAuthService {
       // Check if user supports password authentication
       if (!user.supportsAuthenticationMethod(User.AuthenticationMethod.PASSWORD)) {
         authAttemptRepository.save(
-            new AuthenticationAttempt(
+            AuthenticationAttempt.failure(
                 user.getId(),
                 email,
                 AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -171,7 +172,7 @@ public class PasswordAuthService {
       // Check if account is locked
       if (user.isAccountLocked()) {
         authAttemptRepository.save(
-            new AuthenticationAttempt(
+            AuthenticationAttempt.failure(
                 user.getId(),
                 email,
                 AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -185,7 +186,7 @@ public class PasswordAuthService {
       // Check if email is verified
       if (!user.getEmailVerified()) {
         authAttemptRepository.save(
-            new AuthenticationAttempt(
+            AuthenticationAttempt.failure(
                 user.getId(),
                 email,
                 AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -212,7 +213,7 @@ public class PasswordAuthService {
       // Log successful authentication
       String sessionId = generateSecureToken(); // Generate session ID
       authAttemptRepository.save(
-          new AuthenticationAttempt(
+          AuthenticationAttempt.success(
               user.getId(),
               email,
               AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -221,7 +222,7 @@ public class PasswordAuthService {
               sessionId));
 
       log.info("User authenticated successfully: {}", email);
-      return new PasswordAuthenticationResult(true, user, null);
+      return new PasswordAuthenticationResult(true, com.platform.user.internal.UserView.fromEntity(user), null);
 
     } catch (Exception e) {
       log.error("Error during authentication for email: {}", email, e);
@@ -312,7 +313,7 @@ public class PasswordAuthService {
 
       // Log password reset
       authAttemptRepository.save(
-          new AuthenticationAttempt(
+          AuthenticationAttempt.success(
               user.getId(),
               user.getEmail().getValue(),
               AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -345,7 +346,7 @@ public class PasswordAuthService {
       // Verify current password
       if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
         authAttemptRepository.save(
-            new AuthenticationAttempt(
+            AuthenticationAttempt.failure(
                 user.getId(),
                 user.getEmail().getValue(),
                 AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -427,7 +428,7 @@ public class PasswordAuthService {
 
     // Log failed attempt
     authAttemptRepository.save(
-        new AuthenticationAttempt(
+        AuthenticationAttempt.failure(
             user.getId(),
             user.getEmail().getValue(),
             AuthenticationAttempt.AuthenticationMethod.PASSWORD,
@@ -465,10 +466,13 @@ public class PasswordAuthService {
   // Result classes
 
   public record PasswordRegistrationResult(
-      boolean success, User user, PasswordRegistrationError errorType, String errorMessage) {}
+      boolean success,
+      com.platform.user.internal.UserView user,
+      PasswordRegistrationError errorType,
+      String errorMessage) {}
 
   public record PasswordAuthenticationResult(
-      boolean success, User user, AuthenticationError errorType) {}
+      boolean success, com.platform.user.internal.UserView user, AuthenticationError errorType) {}
 
   public record PasswordResetRequestResult(boolean success, String message) {}
 

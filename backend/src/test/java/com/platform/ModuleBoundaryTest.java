@@ -122,6 +122,13 @@ class ModuleBoundaryTest {
             // Allow internal webhook controller implementation in payment module
             .and()
             .doNotHaveFullyQualifiedName("com.platform.payment.internal.StripeWebhookController")
+            // Allow test-profile controllers living under api package
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.auth.api.TestAuthFlowController")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.payment.api.TestPaymentController")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.subscription.api.TestSubscriptionController")
             .should()
             .resideOutsideOfPackages("..api..");
 

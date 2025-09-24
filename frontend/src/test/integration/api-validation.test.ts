@@ -32,7 +32,7 @@ describe('API Validation System', () => {
     describe('User Schema', () => {
       it('should validate correct user data', () => {
         const validUser = {
-          id: 'user-123',
+          id: '123e4567-e89b-12d3-a456-426614174000',
           email: 'test@example.com',
           firstName: 'John',
           lastName: 'Doe',
@@ -230,6 +230,9 @@ describe('API Validation System', () => {
           id: 'invalid-uuid',
           email: 'invalid-email',
           role: 'INVALID_ROLE',
+          emailVerified: true,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
         },
         timestamp: '2024-01-01T00:00:00Z',
       }

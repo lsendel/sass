@@ -22,7 +22,7 @@ spring:
     hibernate:
       ddl-auto: validate
       naming:
-        physical-strategy: org.hibernate.boot.model.naming.SnakeCasePhysicalNamingStrategy
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -106,6 +106,37 @@ server:
   port: 8082
   servlet:
     context-path: /
+
+# API Documentation Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    filter: true
+    displayRequestDuration: true
+  show-actuator: false
+  group-configs:
+    - group: 'authentication'
+      display-name: 'Authentication APIs'
+      paths-to-match: '/auth/**'
+    - group: 'payments'
+      display-name: 'Payment APIs'
+      paths-to-match: '/api/v1/payments/**'
+    - group: 'subscriptions'
+      display-name: 'Subscription APIs'
+      paths-to-match: '/api/v1/subscriptions/**'
+    - group: 'organizations'
+      display-name: 'Organization APIs'
+      paths-to-match: '/api/v1/organizations/**'
+    - group: 'users'
+      display-name: 'User APIs'
+      paths-to-match: '/api/v1/users/**'
 
 management:
   endpoints:

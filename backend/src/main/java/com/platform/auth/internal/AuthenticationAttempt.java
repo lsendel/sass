@@ -31,8 +31,7 @@ public class AuthenticationAttempt {
   @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
-  @NotNull
-  @Column(name = "user_id", nullable = false)
+  @Column(name = "user_id")
   private UUID userId;
 
   @NotBlank
@@ -77,54 +76,55 @@ public class AuthenticationAttempt {
     // JPA constructor
   }
 
-  // Constructor for successful authentication
-  public AuthenticationAttempt(
+  private AuthenticationAttempt(
       UUID userId,
       String email,
       AuthenticationMethod method,
+      boolean success,
+      String failureReason,
       String ipAddress,
       String userAgent,
       String sessionId) {
     this.userId = userId;
     this.email = email;
     this.method = method;
-    this.success = true;
+    this.success = success;
+    this.failureReason = failureReason;
     this.ipAddress = ipAddress;
     this.userAgent = userAgent;
     this.sessionId = sessionId;
   }
 
-  // Constructor for failed authentication with known user
-  public AuthenticationAttempt(
+  /** Factory method for successful authentication attempts. */
+  public static AuthenticationAttempt success(
+      UUID userId,
+      String email,
+      AuthenticationMethod method,
+      String ipAddress,
+      String userAgent,
+      String sessionId) {
+    return new AuthenticationAttempt(userId, email, method, true, null, ipAddress, userAgent, sessionId);
+  }
+
+  /** Factory method for failed authentication attempts with a known user. */
+  public static AuthenticationAttempt failure(
       UUID userId,
       String email,
       AuthenticationMethod method,
       String failureReason,
       String ipAddress,
-      String userAgent,
-      boolean isFailure) {
-    this.userId = userId;
-    this.email = email;
-    this.method = method;
-    this.success = false;
-    this.failureReason = failureReason;
-    this.ipAddress = ipAddress;
-    this.userAgent = userAgent;
+      String userAgent) {
+    return new AuthenticationAttempt(userId, email, method, false, failureReason, ipAddress, userAgent, null);
   }
 
-  // Constructor for failed authentication without user ID (user not found)
-  public AuthenticationAttempt(
+  /** Factory method for failed authentication attempts when the user is unknown. */
+  public static AuthenticationAttempt failureUnknownUser(
       String email,
       AuthenticationMethod method,
       String failureReason,
       String ipAddress,
       String userAgent) {
-    this.email = email;
-    this.method = method;
-    this.success = false;
-    this.failureReason = failureReason;
-    this.ipAddress = ipAddress;
-    this.userAgent = userAgent;
+    return new AuthenticationAttempt(null, email, method, false, failureReason, ipAddress, userAgent, null);
   }
 
   // Business methods

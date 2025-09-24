@@ -116,8 +116,8 @@ stop: ## Stop all running background processes
 stop-all: stop ## Alias for stop command
 
 # Testing commands
-.PHONY: test test-backend test-frontend test-all
-test: test-backend test-frontend ## Run all tests (backend + frontend)
+.PHONY: test test-backend test-frontend test-python test-all
+test: test-backend test-frontend test-python ## Run all tests (backend + frontend + python)
 	@echo "✅ All tests completed"
 
 test-backend: ## Run backend tests (unit + integration)
@@ -128,7 +128,11 @@ test-frontend: ## Run frontend tests (unit + e2e)
 	@echo "🧪 Running frontend tests..."
 	cd frontend && npm run test
 
-test-all: ## Run comprehensive test suite
+test-python: ## Run Python constitutional tools tests
+	@echo "🐍 Running Python constitutional tools tests..."
+	cd tools && python3 -m pytest ../tests/python/
+
+test-all: ## Run comprehensive test suite (all systems)
 	@echo "🧪 Running comprehensive test suite..."
 	@echo "Running backend contract tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*ContractTest"
@@ -138,6 +142,8 @@ test-all: ## Run comprehensive test suite
 	cd frontend && npm run test
 	@echo "Running frontend E2E tests..."
 	cd frontend && npm run test:e2e
+	@echo "Running Python constitutional tools tests..."
+	cd tools && python3 -m pytest ../tests/python/
 	@echo "✅ Comprehensive test suite completed"
 
 # Build commands

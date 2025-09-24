@@ -2,9 +2,8 @@ package com.platform.shared.security;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
+import java.util.Set;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -19,158 +18,172 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import com.platform.auth.internal.AuthenticationAttempt;
+import com.platform.auth.internal.AuthenticationAttemptRepository;
+
 /**
  * Rate limiting filter for authentication endpoints to prevent brute force attacks.
- * Implements sliding window rate limiting with automatic cleanup.
+ * Uses Redis-backed counters when available with a local fallback.
  */
 @Component
 public class RateLimitingFilter implements Filter {
 
-    private static final Logger logger = LoggerFactory.getLogger(RateLimitingFilter.class);
+  private static final Logger logger = LoggerFactory.getLogger(RateLimitingFilter.class);
 
-    // Rate limiting configuration
-    private static final int MAX_ATTEMPTS_PER_WINDOW = 5;
-    private static final Duration WINDOW_DURATION = Duration.ofMinutes(15);
-    private static final Duration CLEANUP_INTERVAL = Duration.ofMinutes(30);
+  private static final Map<String, RateLimitRule> RULES =
+      Map.of(
+          "/api/v1/auth/login", new RateLimitRule(5, Duration.ofMinutes(15)),
+          "/api/v1/auth/register", new RateLimitRule(5, Duration.ofMinutes(30)),
+          "/api/v1/auth/request-password-reset", new RateLimitRule(5, Duration.ofMinutes(30)),
+          "/api/v1/auth/reset-password", new RateLimitRule(5, Duration.ofMinutes(30)),
+          "/api/v1/auth/resend-verification", new RateLimitRule(3, Duration.ofMinutes(30)),
+          "/api/v1/auth/verify-email", new RateLimitRule(10, Duration.ofMinutes(30)),
+          "/api/v1/auth/oauth2/authorize", new RateLimitRule(30, Duration.ofMinutes(5)),
+          "/api/v1/auth/oauth2/callback", new RateLimitRule(30, Duration.ofMinutes(5)),
+          "/api/v1/auth/oauth2/session", new RateLimitRule(15, Duration.ofMinutes(10)));
 
-    // Thread-safe storage for rate limiting data
-    private final ConcurrentHashMap<String, RateLimitEntry> rateLimitStore = new ConcurrentHashMap<>();
-    private volatile Instant lastCleanup = Instant.now();
+  private final AuthenticationAttemptRepository authenticationAttemptRepository;
+  private final RateLimitService rateLimitService;
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+  public RateLimitingFilter(
+      AuthenticationAttemptRepository authenticationAttemptRepository,
+      RateLimitService rateLimitService) {
+    this.authenticationAttemptRepository = authenticationAttemptRepository;
+    this.rateLimitService = rateLimitService;
+  }
 
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+      throws IOException, ServletException {
 
-        // Only apply rate limiting to authentication endpoints
-        if (shouldApplyRateLimit(httpRequest)) {
-            String clientKey = getClientKey(httpRequest);
+    HttpServletRequest httpRequest = (HttpServletRequest) request;
+    HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-            if (isRateLimited(clientKey)) {
-                logger.warn("Rate limit exceeded for client: {} on endpoint: {}",
-                    clientKey, httpRequest.getRequestURI());
+    RateLimitRule rule = resolveRule(httpRequest);
+    if (rule != null) {
+      String clientKey = getClientKey(httpRequest);
+      String limiterKey = buildLimiterKey(httpRequest, clientKey, rule);
+      long attempts = rateLimitService.increment(limiterKey, rule.window());
 
-                sendRateLimitExceededResponse(httpResponse);
-                return;
-            }
+      if (attempts > rule.maxAttempts()) {
+        logger.warn(
+            "Rate limit exceeded for client {} on {} (limit {} in {}s)",
+            clientKey,
+            httpRequest.getRequestURI(),
+            rule.maxAttempts(),
+            rule.window().toSeconds());
+
+        recordRateLimitEvent(httpRequest, clientKey);
+        sendRateLimitExceededResponse(httpResponse, rule);
+        return;
+      }
+    }
+
+    chain.doFilter(request, response);
+  }
+
+  private RateLimitRule resolveRule(HttpServletRequest request) {
+    String path = request.getRequestURI();
+    String method = request.getMethod();
+
+    for (Map.Entry<String, RateLimitRule> entry : RULES.entrySet()) {
+      if (!path.startsWith(entry.getKey())) {
+        continue;
+      }
+
+      // GET requests only limited for OAuth flows and verification endpoints
+      if ("GET".equals(method)) {
+        if (OAUTH_ENDPOINTS.stream().noneMatch(path::contains)) {
+          return null;
         }
+      }
 
-        // Continue with the filter chain
-        chain.doFilter(request, response);
+      return entry.getValue();
     }
 
-    private boolean shouldApplyRateLimit(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        String method = request.getMethod();
+    return null;
+  }
 
-        // Apply rate limiting to authentication endpoints
-        return "POST".equals(method) && (
-            uri.startsWith("/api/v1/auth/login") ||
-            uri.startsWith("/api/v1/auth/register") ||
-            uri.startsWith("/api/v1/auth/request-password-reset") ||
-            uri.startsWith("/api/v1/auth/reset-password") ||
-            uri.startsWith("/api/v1/auth/oauth2/callback")
-        );
+  private String getClientKey(HttpServletRequest request) {
+    String ip = request.getHeader("X-Forwarded-For");
+    if (ip != null && !ip.isBlank()) {
+      return ip.split(",")[0].trim();
     }
 
-    private String getClientKey(HttpServletRequest request) {
-        // Use IP address as the primary identifier
-        String ipAddress = getClientIpAddress(request);
-
-        // For additional granularity, could combine with User-Agent or other headers
-        // String userAgent = request.getHeader("User-Agent");
-        // return ipAddress + ":" + (userAgent != null ? userAgent.hashCode() : "unknown");
-
-        return ipAddress;
+    ip = request.getHeader("X-Real-IP");
+    if (ip != null && !ip.isBlank()) {
+      return ip;
     }
 
-    private String getClientIpAddress(HttpServletRequest request) {
-        // Check for X-Forwarded-For header (proxy/load balancer)
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
+    return request.getRemoteAddr();
+  }
 
-        // Check for X-Real-IP header (nginx)
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
+  private String buildLimiterKey(
+      HttpServletRequest request, String clientKey, RateLimitRule rule) {
+    return clientKey + '|' + request.getRequestURI() + '|' + rule.maxAttempts();
+  }
 
-        // Fallback to remote address
-        return request.getRemoteAddr();
-    }
+  private void sendRateLimitExceededResponse(HttpServletResponse response, RateLimitRule rule)
+      throws IOException {
+    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+    response.setContentType("application/json");
+    response.setCharacterEncoding("UTF-8");
+    response.setHeader("X-RateLimit-Limit", String.valueOf(rule.maxAttempts()));
+    response.setHeader("X-RateLimit-Window", String.valueOf(rule.window().toSeconds()));
+    response.setHeader("Retry-After", String.valueOf(rule.window().toSeconds()));
 
-    private boolean isRateLimited(String clientKey) {
-        Instant now = Instant.now();
-
-        // Clean up old entries periodically
-        if (now.isAfter(lastCleanup.plus(CLEANUP_INTERVAL))) {
-            cleanupOldEntries(now);
-            lastCleanup = now;
-        }
-
-        RateLimitEntry entry = rateLimitStore.compute(clientKey, (key, existing) -> {
-            if (existing == null) {
-                return new RateLimitEntry(now);
-            }
-
-            // Reset window if enough time has passed
-            if (now.isAfter(existing.windowStart.plus(WINDOW_DURATION))) {
-                return new RateLimitEntry(now);
-            }
-
-            // Increment attempt count within current window
-            existing.attempts.incrementAndGet();
-            return existing;
-        });
-
-        return entry.attempts.get() > MAX_ATTEMPTS_PER_WINDOW;
-    }
-
-    private void cleanupOldEntries(Instant now) {
-        rateLimitStore.entrySet().removeIf(entry -> {
-            Instant windowEnd = entry.getValue().windowStart.plus(WINDOW_DURATION);
-            return now.isAfter(windowEnd);
-        });
-
-        logger.debug("Rate limit cleanup completed. Active entries: {}", rateLimitStore.size());
-    }
-
-    private void sendRateLimitExceededResponse(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        // Add rate limit headers
-        response.setHeader("X-RateLimit-Limit", String.valueOf(MAX_ATTEMPTS_PER_WINDOW));
-        response.setHeader("X-RateLimit-Window", String.valueOf(WINDOW_DURATION.toSeconds()));
-        response.setHeader("Retry-After", String.valueOf(WINDOW_DURATION.toSeconds()));
-
-        String jsonResponse = """
+    String body =
+        """
             {
                 "error": "RATE_LIMIT_EXCEEDED",
                 "message": "Too many authentication attempts. Please try again later.",
                 "retryAfter": %d
             }
-            """.formatted(WINDOW_DURATION.toSeconds());
+            """
+            .formatted(rule.window().toSeconds());
 
-        response.getWriter().write(jsonResponse);
-        response.getWriter().flush();
+    response.getWriter().write(body);
+    response.getWriter().flush();
+  }
+
+  private void recordRateLimitEvent(HttpServletRequest request, String clientKey) {
+    if (authenticationAttemptRepository == null) {
+      return;
     }
 
-    /**
-     * Rate limit entry storing attempt count and window start time.
-     */
-    private static class RateLimitEntry {
-        final Instant windowStart;
-        final AtomicInteger attempts;
+    try {
+      String endpoint = request.getRequestURI();
+      AuthenticationAttempt.AuthenticationMethod method =
+          endpoint.contains("/oauth2/")
+              ? AuthenticationAttempt.AuthenticationMethod.OAUTH2
+              : AuthenticationAttempt.AuthenticationMethod.PASSWORD;
 
-        RateLimitEntry(Instant windowStart) {
-            this.windowStart = windowStart;
-            this.attempts = new AtomicInteger(1);
-        }
+      String email = request.getParameter("email");
+      if (email == null || email.isBlank()) {
+        email = "limit-" + clientKey.replace(':', '_') + "@rate-limit.local";
+      }
+
+      authenticationAttemptRepository.save(
+          AuthenticationAttempt.failureUnknownUser(
+              email,
+              method,
+              "RATE_LIMIT_EXCEEDED:" + endpoint,
+              clientKey,
+              request.getHeader("User-Agent")));
+    } catch (Exception ex) {
+      logger.debug("Failed to persist rate limit audit event", ex);
     }
+  }
+
+  private static final Set<String> OAUTH_ENDPOINTS =
+      Set.of("/oauth2/authorize", "/oauth2/callback", "/oauth2/session", "/verify-email");
+
+  private record RateLimitRule(int maxAttempts, Duration window) {
+    RateLimitRule {
+      if (window == null) {
+        window = Duration.ofMinutes(15);
+      }
+    }
+  }
 }
+

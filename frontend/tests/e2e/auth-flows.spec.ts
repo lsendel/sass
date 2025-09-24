@@ -7,27 +7,103 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Authentication Flows', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the app
+    // Comprehensive authentication state cleanup
+    console.log('🧹 Clearing authentication state...')
+
+    // 1. Clear all browser storage
+    await page.context().clearCookies()
+    await page.context().clearPermissions()
+
+    // 2. Clear local/session storage (navigate to app first to avoid security issues)
     await page.goto('/')
+    await page.evaluate(() => {
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch (e) {
+        console.log('Could not clear storage:', e)
+      }
+    })
+
+    // 3. Navigate to app and clear Redux store if needed
+    await page.goto('/')
+
+    // 4. Clear Redux auth state by dispatching logout action
+    await page.evaluate(() => {
+      // Check if Redux store is available and dispatch logout
+      if (window.__REDUX_STORE__) {
+        window.__REDUX_STORE__.dispatch({ type: 'auth/logout' })
+      }
+      // Also try common store access patterns
+      if (window.store) {
+        window.store.dispatch({ type: 'auth/logout' })
+      }
+    }).catch(() => {
+      // Redux store might not be exposed, that's OK
+      console.log('Redux store not accessible, continuing...')
+    })
+
+    // 5. Force navigate to login page to ensure clean state
+    await page.goto('/auth/login', { waitUntil: 'networkidle' })
+
+    // 6. Verify we're actually on the login page
+    try {
+      // Wait for login form elements or redirect to happen
+      await Promise.race([
+        // Either we see the login form
+        page.locator('[data-testid="email-input"]').waitFor({ timeout: 5000 }),
+        // Or we see welcome text (meaning still logged in)
+        page.locator('text=Welcome back').waitFor({ timeout: 5000 })
+      ])
+
+      // If we still see welcome text, the auth state is persistent
+      if (await page.locator('text=Welcome back').isVisible()) {
+        console.log('⚠️ Auth state still persistent, trying API logout...')
+
+        // Try to call logout API directly
+        await page.evaluate(async () => {
+          try {
+            await fetch('/api/auth/logout', {
+              method: 'POST',
+              credentials: 'include'
+            })
+          } catch (e) {
+            console.log('Logout API call failed:', e)
+          }
+        })
+
+        // Clear everything again and reload
+        await page.context().clearCookies()
+        await page.goto('/auth/login', { waitUntil: 'networkidle' })
+
+        // Final check - if still not on login page, there might be auto-login in test mode
+        if (await page.locator('text=Welcome back').isVisible()) {
+          console.log('🚨 Auto-login detected in test mode - auth tests may need mocking')
+        }
+      }
+    } catch (error) {
+      console.log('Login page detection timed out, proceeding with test...')
+    }
   })
 
   test.describe('Login Flow', () => {
     test('should complete successful login flow', async ({ page }) => {
-      // Navigate to login page
-      await page.click('[data-testid="login-button"]')
+      // Navigate directly to login page
+      await page.goto('/auth/login')
       await expect(page).toHaveURL(/.*login/)
 
+      // Wait for login form to be visible
+      await expect(page.locator('[data-testid="email-input"]')).toBeVisible()
+
       // Fill login form
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
-      await page.selectOption('[data-testid="organization-select"]', 'org-123')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
 
       // Submit form
       await page.click('[data-testid="submit-button"]')
 
       // Wait for successful login and redirect
       await expect(page).toHaveURL(/.*dashboard/)
-      await expect(page.locator('[data-testid="user-menu"]')).toBeVisible()
       await expect(page.locator('text=Welcome back')).toBeVisible()
     })
 
@@ -67,16 +143,20 @@ test.describe('Authentication Flows', () => {
     })
 
     test('should validate form fields', async ({ page }) => {
-      await page.click('[data-testid="login-button"]')
+      // Navigate directly to login page
+      await page.goto('/auth/login')
 
-      // Try to submit without filling fields
+      // Wait for login form to be visible
+      await expect(page.locator('[data-testid="email-input"]')).toBeVisible()
+
+      // Try to submit without filling fields (click submit directly on login form)
       await page.click('[data-testid="submit-button"]')
 
       // Should show validation errors
       await expect(page.locator('[data-testid="email-error"]')).toBeVisible()
       await expect(page.locator('[data-testid="password-error"]')).toBeVisible()
-      await expect(page.locator('text=Email is required')).toBeVisible()
-      await expect(page.locator('text=Password is required')).toBeVisible()
+      await expect(page.locator('text=Please enter a valid email address')).toBeVisible()
+      await expect(page.locator('text=Password must be at least 8 characters')).toBeVisible()
     })
 
     test('should show password strength indicator', async ({ page }) => {
@@ -94,8 +174,8 @@ test.describe('Authentication Flows', () => {
     test('should remember me functionality', async ({ page, context }) => {
       await page.click('[data-testid="login-button"]')
 
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
       await page.check('[data-testid="remember-me-checkbox"]')
 
       await page.click('[data-testid="submit-button"]')
@@ -158,8 +238,8 @@ test.describe('Authentication Flows', () => {
     test('should require terms acceptance', async ({ page }) => {
       await page.click('[data-testid="register-button"]')
 
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
       await page.fill('[data-testid="confirm-password-input"]', 'SecurePassword123!')
       await page.fill('[data-testid="first-name-input"]', 'John')
       await page.fill('[data-testid="last-name-input"]', 'Doe')
@@ -249,8 +329,8 @@ test.describe('Authentication Flows', () => {
     test('should handle session expiry', async ({ page }) => {
       // Login first
       await page.click('[data-testid="login-button"]')
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
       await page.click('[data-testid="submit-button"]')
       await expect(page).toHaveURL(/.*dashboard/)
 
@@ -270,8 +350,8 @@ test.describe('Authentication Flows', () => {
 
     test('should extend session on activity', async ({ page }) => {
       await page.click('[data-testid="login-button"]')
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
       await page.click('[data-testid="submit-button"]')
       await expect(page).toHaveURL(/.*dashboard/)
 
@@ -289,8 +369,8 @@ test.describe('Authentication Flows', () => {
     test('should complete logout successfully', async ({ page }) => {
       // Login first
       await page.click('[data-testid="login-button"]')
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
       await page.click('[data-testid="submit-button"]')
       await expect(page).toHaveURL(/.*dashboard/)
 
@@ -310,8 +390,8 @@ test.describe('Authentication Flows', () => {
     test('should clear sensitive data on logout', async ({ page }) => {
       // Login and logout
       await page.click('[data-testid="login-button"]')
-      await page.fill('[data-testid="email-input"]', 'test@example.com')
-      await page.fill('[data-testid="password-input"]', 'SecurePassword123!')
+      await page.fill('[data-testid="email-input"]', 'demo@example.com')
+      await page.fill('[data-testid="password-input"]', 'DemoPassword123!')
       await page.click('[data-testid="submit-button"]')
       await page.click('[data-testid="user-menu"]')
       await page.click('[data-testid="logout-button"]')

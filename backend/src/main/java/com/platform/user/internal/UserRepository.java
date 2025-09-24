@@ -72,8 +72,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   /** Find users with specific preference */
   @Query(
-      "SELECT u FROM User u WHERE JSON_EXTRACT(u.preferences, :jsonPath) = :value AND u.deletedAt IS NULL")
-  List<User> findByPreference(@Param("jsonPath") String jsonPath, @Param("value") String value);
+      value =
+          "SELECT * FROM users u WHERE (u.preferences::jsonb) ->> :preferenceKey = :value AND u.deleted_at IS NULL",
+      nativeQuery = true)
+  List<User> findByPreference(
+      @Param("preferenceKey") String preferenceKey, @Param("value") String value);
 
   /** Check if email exists in organization (excluding soft-deleted) */
   @Query(

@@ -24,6 +24,19 @@ vi.mock('../../store/api/paymentApi', () => ({
     isLoading: false,
     error: null,
   }),
+  useGetOrganizationPaymentsQuery: () => ({
+    data: [
+      {
+        id: '1',
+        amount: 100.00,
+        currency: 'usd',
+        status: 'succeeded',
+        createdAt: '2024-01-01T00:00:00Z',
+      }
+    ],
+    isLoading: false,
+    error: null,
+  }),
   useGetPaymentMethodsQuery: () => ({
     data: {
       paymentMethods: [
@@ -33,6 +46,27 @@ vi.mock('../../store/api/paymentApi', () => ({
           card: { last4: '4242', brand: 'visa' },
           isDefault: true,
         }
+      ]
+    },
+    isLoading: false,
+    error: null,
+  }),
+  useGetPaymentStatisticsQuery: () => ({
+    data: {
+      totalAmount: 1000,
+      totalSuccessfulPayments: 10,
+      failedPayments: 2,
+    },
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+vi.mock('../../store/api/organizationApi', () => ({
+  useGetUserOrganizationsQuery: () => ({
+    data: {
+      organizations: [
+        { id: '1', name: 'Test Org', slug: 'test-org' }
       ]
     },
     isLoading: false,

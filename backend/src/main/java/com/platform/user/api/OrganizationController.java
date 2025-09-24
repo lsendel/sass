@@ -1,233 +1,208 @@
 package com.platform.user.api;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
-import com.platform.user.internal.*;
+import com.platform.shared.security.PlatformUserPrincipal;
+import com.platform.user.api.UserDto.CreateOrganizationRequest;
+import com.platform.user.api.UserDto.InvitationResponse;
+import com.platform.user.api.UserDto.InviteUserRequest;
+import com.platform.user.api.UserDto.OrganizationMemberInfoResponse;
+import com.platform.user.api.UserDto.OrganizationMemberResponse;
+import com.platform.user.api.UserDto.OrganizationResponse;
+import com.platform.user.api.UserDto.UpdateMemberRoleRequest;
+import com.platform.user.api.UserDto.UpdateOrganizationRequest;
+import com.platform.user.api.UserDto.UpdateSettingsRequest;
 
 @RestController
 @RequestMapping("/api/v1/organizations")
+@PreAuthorize("isAuthenticated()")
 public class OrganizationController {
 
-  private final OrganizationService organizationService;
+  private final OrganizationManagementService organizationManagementService;
 
-  public OrganizationController(OrganizationService organizationService) {
-    this.organizationService = organizationService;
+  public OrganizationController(OrganizationManagementService organizationManagementService) {
+    this.organizationManagementService = organizationManagementService;
   }
 
   @PostMapping
   public ResponseEntity<OrganizationResponse> createOrganization(
+      @AuthenticationPrincipal PlatformUserPrincipal principal,
       @Valid @RequestBody CreateOrganizationRequest request) {
-    Organization organization =
-        organizationService.createOrganization(request.name(), request.slug(), request.settings());
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .body(OrganizationResponse.fromOrganization(organization));
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    OrganizationResponse organization =
+        organizationManagementService.createOrganization(
+            request.name(), request.slug(), request.settings());
+    return ResponseEntity.status(HttpStatus.CREATED).body(organization);
   }
 
   @GetMapping("/{organizationId}")
-  public ResponseEntity<OrganizationResponse> getOrganization(@PathVariable UUID organizationId) {
-    Optional<Organization> organization = organizationService.findById(organizationId);
-    return organization
-        .map(org -> ResponseEntity.ok(OrganizationResponse.fromOrganization(org)))
+  @PreAuthorize("@tenantGuard.canAccessOrganization(#principal, #organizationId)")
+  public ResponseEntity<OrganizationResponse> getOrganization(
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+
+    return organizationManagementService
+        .findById(organizationId)
+        .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
   @GetMapping("/slug/{slug}")
-  public ResponseEntity<OrganizationResponse> getOrganizationBySlug(@PathVariable String slug) {
-    Optional<Organization> organization = organizationService.findBySlug(slug);
-    return organization
-        .map(org -> ResponseEntity.ok(OrganizationResponse.fromOrganization(org)))
-        .orElse(ResponseEntity.notFound().build());
+  public ResponseEntity<OrganizationResponse> getOrganizationBySlug(
+      @AuthenticationPrincipal PlatformUserPrincipal principal, @PathVariable String slug) {
+    Optional<OrganizationResponse> organization = organizationManagementService.findBySlug(slug);
+    if (organization.isPresent()
+        && (principal == null || !principal.belongsToOrganization(organization.get().id()))) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    return organization.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
   }
 
   @GetMapping
-  public ResponseEntity<List<OrganizationResponse>> getUserOrganizations() {
-    List<Organization> organizations = organizationService.getUserOrganizations();
-    List<OrganizationResponse> responses =
-        organizations.stream().map(OrganizationResponse::fromOrganization).toList();
+  public ResponseEntity<List<OrganizationResponse>> getUserOrganizations(
+      @AuthenticationPrincipal PlatformUserPrincipal principal) {
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    List<OrganizationResponse> responses = organizationManagementService.getUserOrganizations();
+    return ResponseEntity.ok(responses);
+  }
+
+  @GetMapping("/all")
+  @org.springframework.context.annotation.Profile("test")
+  public ResponseEntity<List<OrganizationResponse>> getAllOrganizations() {
+    List<OrganizationResponse> responses = organizationManagementService.getAllOrganizations();
     return ResponseEntity.ok(responses);
   }
 
   @PutMapping("/{organizationId}")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationResponse> updateOrganization(
-      @PathVariable UUID organizationId, @Valid @RequestBody UpdateOrganizationRequest request) {
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId,
+      @Valid @RequestBody UpdateOrganizationRequest request) {
 
-    Organization organization =
-        organizationService.updateOrganization(organizationId, request.name(), request.settings());
-    return ResponseEntity.ok(OrganizationResponse.fromOrganization(organization));
+    OrganizationResponse organization =
+        organizationManagementService.updateOrganization(
+            organizationId, request.name(), request.settings());
+    return ResponseEntity.ok(organization);
   }
 
   @PutMapping("/{organizationId}/settings")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationResponse> updateSettings(
-      @PathVariable UUID organizationId, @Valid @RequestBody UpdateSettingsRequest request) {
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId,
+      @Valid @RequestBody UpdateSettingsRequest request) {
 
-    Organization organization =
-        organizationService.updateSettings(organizationId, request.settings());
-    return ResponseEntity.ok(OrganizationResponse.fromOrganization(organization));
+    OrganizationResponse organization =
+        organizationManagementService.updateSettings(organizationId, request.settings());
+    return ResponseEntity.ok(organization);
   }
 
   @DeleteMapping("/{organizationId}")
-  public ResponseEntity<Void> deleteOrganization(@PathVariable UUID organizationId) {
-    organizationService.deleteOrganization(organizationId);
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
+  public ResponseEntity<Void> deleteOrganization(
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+    organizationManagementService.deleteOrganization(organizationId);
     return ResponseEntity.noContent().build();
   }
 
   @GetMapping("/{organizationId}/members")
+  @PreAuthorize("@tenantGuard.canAccessOrganization(#principal, #organizationId)")
   public ResponseEntity<List<OrganizationMemberInfoResponse>> getMembers(
-      @PathVariable UUID organizationId) {
-    List<OrganizationService.OrganizationMemberInfo> members =
-        organizationService.getOrganizationMembers(organizationId);
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+
     List<OrganizationMemberInfoResponse> responses =
-        members.stream().map(OrganizationMemberInfoResponse::fromMemberInfo).toList();
+        organizationManagementService.getMembers(organizationId);
     return ResponseEntity.ok(responses);
   }
 
   @PostMapping("/{organizationId}/invitations")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<InvitationResponse> inviteUser(
-      @PathVariable UUID organizationId, @Valid @RequestBody InviteUserRequest request) {
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId,
+      @Valid @RequestBody InviteUserRequest request) {
 
-    Invitation invitation =
-        organizationService.inviteUser(organizationId, request.email(), request.role());
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .body(InvitationResponse.fromInvitation(invitation));
+    InvitationResponse invitation =
+        organizationManagementService.inviteUser(organizationId, request.email(), request.role());
+    return ResponseEntity.status(HttpStatus.CREATED).body(invitation);
   }
 
   @PostMapping("/invitations/{token}/accept")
+  @PreAuthorize("permitAll()")
   public ResponseEntity<OrganizationMemberResponse> acceptInvitation(@PathVariable String token) {
-    OrganizationMember member = organizationService.acceptInvitation(token);
-    return ResponseEntity.ok(OrganizationMemberResponse.fromMember(member));
+    OrganizationMemberResponse member = organizationManagementService.acceptInvitation(token);
+    return ResponseEntity.ok(member);
   }
 
   @PostMapping("/invitations/{token}/decline")
+  @PreAuthorize("permitAll()")
   public ResponseEntity<Void> declineInvitation(@PathVariable String token) {
-    organizationService.declineInvitation(token);
+    organizationManagementService.declineInvitation(token);
     return ResponseEntity.noContent().build();
   }
 
   @GetMapping("/{organizationId}/invitations")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<List<InvitationResponse>> getPendingInvitations(
-      @PathVariable UUID organizationId) {
-    List<Invitation> invitations = organizationService.getPendingInvitations(organizationId);
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId) {
+
     List<InvitationResponse> responses =
-        invitations.stream().map(InvitationResponse::fromInvitation).toList();
+        organizationManagementService.getPendingInvitations(organizationId);
     return ResponseEntity.ok(responses);
   }
 
   @DeleteMapping("/invitations/{invitationId}")
-  public ResponseEntity<Void> revokeInvitation(@PathVariable UUID invitationId) {
-    organizationService.revokeInvitation(invitationId);
+  @PreAuthorize("@tenantGuard.isAdmin(#principal)")
+  public ResponseEntity<Void> revokeInvitation(
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable UUID invitationId) {
+    organizationManagementService.revokeInvitation(invitationId);
     return ResponseEntity.noContent().build();
   }
 
   @DeleteMapping("/{organizationId}/members/{userId}")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<Void> removeMember(
-      @PathVariable UUID organizationId, @PathVariable UUID userId) {
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId,
+      @PathVariable UUID userId) {
 
-    organizationService.removeMember(organizationId, userId);
+    organizationManagementService.removeMember(organizationId, userId);
     return ResponseEntity.noContent().build();
   }
 
   @PutMapping("/{organizationId}/members/{userId}/role")
+  @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationMemberResponse> updateMemberRole(
-      @PathVariable UUID organizationId,
+      @AuthenticationPrincipal @P("principal") PlatformUserPrincipal principal,
+      @PathVariable("organizationId") @P("organizationId") UUID organizationId,
       @PathVariable UUID userId,
       @Valid @RequestBody UpdateMemberRoleRequest request) {
 
-    OrganizationMember member =
-        organizationService.updateMemberRole(organizationId, userId, request.role());
-    return ResponseEntity.ok(OrganizationMemberResponse.fromMember(member));
+    OrganizationMemberResponse member =
+        organizationManagementService.updateMemberRole(organizationId, userId, request.role());
+    return ResponseEntity.ok(member);
   }
-
-  public record OrganizationResponse(
-      UUID id,
-      String name,
-      String slug,
-      UUID ownerId,
-      Map<String, Object> settings,
-      Instant createdAt,
-      Instant updatedAt) {
-    public static OrganizationResponse fromOrganization(Organization organization) {
-      return new OrganizationResponse(
-          organization.getId(),
-          organization.getName(),
-          organization.getSlug(),
-          organization.getOwnerId(),
-          organization.getSettings(),
-          organization.getCreatedAt(),
-          organization.getUpdatedAt());
-    }
-  }
-
-  public record OrganizationMemberInfoResponse(
-      UUID userId,
-      String userEmail,
-      String userName,
-      OrganizationMember.Role role,
-      Instant joinedAt) {
-    public static OrganizationMemberInfoResponse fromMemberInfo(
-        OrganizationService.OrganizationMemberInfo info) {
-      return new OrganizationMemberInfoResponse(
-          info.userId(), info.userEmail(), info.userName(), info.role(), info.joinedAt());
-    }
-  }
-
-  public record OrganizationMemberResponse(
-      UUID id, UUID userId, UUID organizationId, OrganizationMember.Role role, Instant joinedAt) {
-    public static OrganizationMemberResponse fromMember(OrganizationMember member) {
-      return new OrganizationMemberResponse(
-          member.getId(),
-          member.getUserId(),
-          member.getOrganizationId(),
-          member.getRole(),
-          member.getJoinedAt());
-    }
-  }
-
-  public record InvitationResponse(
-      UUID id,
-      UUID organizationId,
-      UUID invitedBy,
-      String email,
-      OrganizationMember.Role role,
-      Invitation.Status status,
-      String token,
-      Instant expiresAt,
-      Instant createdAt) {
-    public static InvitationResponse fromInvitation(Invitation invitation) {
-      return new InvitationResponse(
-          invitation.getId(),
-          invitation.getOrganizationId(),
-          invitation.getInvitedBy(),
-          invitation.getEmail(),
-          invitation.getRole(),
-          invitation.getStatus(),
-          invitation.getToken(),
-          invitation.getExpiresAt(),
-          invitation.getCreatedAt());
-    }
-  }
-
-  public record CreateOrganizationRequest(
-      @NotBlank String name, @NotBlank String slug, Map<String, Object> settings) {}
-
-  public record UpdateOrganizationRequest(@NotBlank String name, Map<String, Object> settings) {}
-
-  public record UpdateSettingsRequest(@NotNull Map<String, Object> settings) {}
-
-  public record InviteUserRequest(
-      @Email @NotBlank String email, @NotNull OrganizationMember.Role role) {}
-
-  public record UpdateMemberRoleRequest(@NotNull OrganizationMember.Role role) {}
 }

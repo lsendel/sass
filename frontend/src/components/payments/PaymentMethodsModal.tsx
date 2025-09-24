@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { logger } from '../../utils/logger'
 import {
   useGetOrganizationPaymentMethodsQuery,
@@ -10,9 +10,11 @@ import {
   CreditCardIcon,
   PlusIcon,
   CheckIcon,
+  ArrowLeftIcon,
 } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import LoadingSpinner from '../ui/LoadingSpinner'
+import AddPaymentMethodForm from './AddPaymentMethodForm'
 import { clsx } from 'clsx'
 
 type PaymentMethodsModalProps = {
@@ -26,6 +28,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
   onClose,
   organizationId,
 }) => {
+  const [showAddForm, setShowAddForm] = useState(false)
   const {
     data: paymentMethods,
     isLoading,
@@ -71,9 +74,14 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
     }
   }
 
-  const handleAddPaymentMethod = () => {
-    // In a real app, this would open Stripe's payment method setup
-    toast('Stripe payment method setup would open here')
+  const handleAddPaymentMethodSuccess = () => {
+    setShowAddForm(false)
+    refetch()
+  }
+
+  const handleCloseModal = () => {
+    setShowAddForm(false)
+    onClose()
   }
 
   if (!isOpen) {return null}
@@ -83,7 +91,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
       <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
+          onClick={handleCloseModal}
         />
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen">
@@ -95,7 +103,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
             <button
               type="button"
               className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              onClick={onClose}
+              onClick={handleCloseModal}
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -103,16 +111,38 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
 
           <div className="sm:flex sm:items-start">
             <div className="w-full mt-3 text-center sm:mt-0 sm:text-left">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Payment Methods
-              </h3>
-              <div className="mt-2">
-                <p className="text-sm text-gray-500">
-                  Manage your payment methods for subscriptions and purchases.
-                </p>
-              </div>
+              {showAddForm ? (
+                <div>
+                  <div className="flex items-center mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddForm(false)}
+                      className="mr-3 p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+                    </button>
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Add Payment Method
+                    </h3>
+                  </div>
+                  <AddPaymentMethodForm
+                    organizationId={organizationId}
+                    onSuccess={handleAddPaymentMethodSuccess}
+                    onCancel={() => setShowAddForm(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Payment Methods
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Manage your payment methods for subscriptions and purchases.
+                    </p>
+                  </div>
 
-              <div className="mt-6">
+                  <div className="mt-6">
                 {isLoading ? (
                   <div className="flex justify-center py-8">
                     <LoadingSpinner size="lg" />
@@ -136,21 +166,22 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {method.displayName}
+                                {method.type === 'CARD'
+                                  ? `${method.brand || 'Card'} ending in ••••${method.last4 || '****'}`
+                                  : method.type.replace('_', ' ').toLowerCase()
+                                }
                               </p>
-                              {method.cardDetails && (
+                              {method.type === 'CARD' && method.brand && method.last4 && (
                                 <p className="text-sm text-gray-500">
-                                  {method.cardDetails.brand} ••••{' '}
-                                  {method.cardDetails.lastFour} (Expires{' '}
-                                  {method.cardDetails.expMonth}/
-                                  {method.cardDetails.expYear})
+                                  {method.brand} ••••{method.last4}
+                                  {method.expiryMonth && method.expiryYear && (
+                                    <span> (Expires {method.expiryMonth}/{method.expiryYear})</span>
+                                  )}
                                 </p>
                               )}
-                              {method.billingDetails?.email && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {method.billingDetails.email}
-                                </p>
-                              )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                Added {new Date(method.createdAt).toLocaleDateString()}
+                              </p>
                             </div>
                           </div>
 
@@ -194,17 +225,19 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                   </div>
                 )}
 
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={handleAddPaymentMethod}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                    Add Payment Method
-                  </button>
-                </div>
-              </div>
+                    <div className="mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddForm(true)}
+                        className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      >
+                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                        Add Payment Method
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

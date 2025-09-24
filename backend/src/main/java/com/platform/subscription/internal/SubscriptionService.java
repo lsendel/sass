@@ -966,7 +966,9 @@ public class SubscriptionService {
     if (currentUserId == null) {
       throw new SecurityException("Authentication required");
     }
-    // Additional organization access validation would go here
+    if (!TenantContext.belongsToOrganization(organizationId)) {
+      throw new SecurityException("Access denied to organization: " + organizationId);
+    }
   }
 
   public record SubscriptionStatistics(

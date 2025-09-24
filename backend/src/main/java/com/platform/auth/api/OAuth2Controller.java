@@ -14,11 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import com.platform.auth.internal.OAuth2AuditService;
+import com.platform.auth.internal.OAuth2ConfigurationService;
 import com.platform.auth.internal.OAuth2SessionService;
 import com.platform.auth.internal.OAuth2UserService;
 import com.platform.shared.security.PlatformUserPrincipal;
@@ -28,6 +28,7 @@ import com.platform.shared.security.PlatformUserPrincipal;
  * authorization flows, provider configuration, and session management.
  */
 @RestController
+@org.springframework.context.annotation.Profile("!test")
 @RequestMapping("/auth/oauth2")
 @CrossOrigin(
     origins = {"${app.frontend-url}", "http://localhost:3000"},
@@ -39,17 +40,17 @@ public class OAuth2Controller {
   @Value("${app.frontend-url}")
   private String frontendUrl;
 
-  private final ClientRegistrationRepository clientRegistrationRepository;
+  private final OAuth2ConfigurationService configurationService;
   private final OAuth2SessionService sessionService;
   private final OAuth2UserService userService;
   private final OAuth2AuditService auditService;
 
   public OAuth2Controller(
-      ClientRegistrationRepository clientRegistrationRepository,
+      OAuth2ConfigurationService configurationService,
       OAuth2SessionService sessionService,
       OAuth2UserService userService,
       OAuth2AuditService auditService) {
-    this.clientRegistrationRepository = clientRegistrationRepository;
+    this.configurationService = configurationService;
     this.sessionService = sessionService;
     this.userService = userService;
     this.auditService = auditService;
@@ -278,19 +279,19 @@ public class OAuth2Controller {
               "success",
               true,
               "session",
-              Map.of(
-                  "sessionId", sessionResult.session().getSessionId(),
-                  "userId", sessionResult.userInfo().getProviderUniqueId(),
+                  Map.of(
+                  "sessionId", sessionResult.sessionId(),
+                  "userId", sessionResult.userInfo().providerUniqueId(),
                   "provider", provider,
                   "isAuthenticated", true,
-                  "expiresAt", sessionResult.session().getExpiresAt(),
+                  "expiresAt", sessionResult.expiresAt(),
                   "userInfo",
                       Map.of(
-                          "sub", sessionResult.userInfo().getProviderUserId(),
-                          "email", sessionResult.userInfo().getEmail(),
-                          "name", sessionResult.userInfo().getDisplayName(),
-                          "picture", Objects.toString(sessionResult.userInfo().getPicture(), ""),
-                          "email_verified", sessionResult.userInfo().isEmailVerified(),
+                          "sub", sessionResult.userInfo().providerUserId(),
+                          "email", sessionResult.userInfo().email(),
+                          "name", sessionResult.userInfo().displayName(),
+                          "picture", Objects.toString(sessionResult.userInfo().picture(), ""),
+                          "email_verified", sessionResult.userInfo().emailVerified(),
                           "provider", provider)),
               "redirectTo",
               frontendUrl + "/dashboard",
@@ -343,7 +344,7 @@ public class OAuth2Controller {
               "session",
                   Map.of(
                       "sessionId", sessionInfo.sessionId(),
-                      "userId", sessionInfo.userInfo().getProviderUniqueId(),
+                      "userId", sessionInfo.userInfo().providerUniqueId(),
                       "provider", sessionInfo.provider(),
                       "isValid", sessionInfo.isValid(),
                       "expiresAt", sessionInfo.expiresAt(),
@@ -352,11 +353,11 @@ public class OAuth2Controller {
                       "timeToExpirationSeconds", sessionInfo.timeToExpirationSeconds(),
                       "userInfo",
                           Map.of(
-                              "sub", sessionInfo.userInfo().getProviderUserId(),
-                              "email", sessionInfo.userInfo().getEmail(),
-                              "name", sessionInfo.userInfo().getDisplayName(),
-                              "picture", Objects.toString(sessionInfo.userInfo().getPicture(), ""),
-                              "email_verified", sessionInfo.userInfo().isEmailVerified(),
+                              "sub", sessionInfo.userInfo().providerUserId(),
+                              "email", sessionInfo.userInfo().email(),
+                              "name", sessionInfo.userInfo().displayName(),
+                              "picture", Objects.toString(sessionInfo.userInfo().picture(), ""),
+                              "email_verified", sessionInfo.userInfo().emailVerified(),
                               "provider", sessionInfo.provider())),
               "timestamp", Instant.now());
 
@@ -421,28 +422,21 @@ public class OAuth2Controller {
   // Private helper methods
 
   private List<OAuth2ProviderDto> getAvailableProviders() {
-    return List.of("google", "github", "microsoft").stream()
-        .map(this::getClientRegistration)
-        .filter(Objects::nonNull)
+    return configurationService.getAvailableProviders().stream()
         .map(this::mapToProviderDto)
         .collect(Collectors.toList());
   }
 
   private ClientRegistration getClientRegistration(String provider) {
-    try {
-      return clientRegistrationRepository.findByRegistrationId(provider);
-    } catch (Exception e) {
-      logger.debug("Provider {} not configured", provider);
-      return null;
-    }
+    return configurationService.getClientRegistration(provider);
   }
 
-  private OAuth2ProviderDto mapToProviderDto(ClientRegistration registration) {
+  private OAuth2ProviderDto mapToProviderDto(OAuth2ConfigurationService.ProviderInfo providerInfo) {
     return new OAuth2ProviderDto(
-        registration.getRegistrationId(),
-        getProviderDisplayName(registration.getRegistrationId()),
-        registration.getProviderDetails().getAuthorizationUri(),
-        registration.getScopes());
+        providerInfo.registrationId(),
+        getProviderDisplayName(providerInfo.registrationId()),
+        providerInfo.authorizationUri(),
+        providerInfo.scopes());
   }
 
   private String getProviderDisplayName(String provider) {
