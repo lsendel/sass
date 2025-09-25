@@ -1,0 +1,314 @@
+# Prometheus Operator Helm Values
+fullnameOverride: "prometheus-operator"
+
+prometheus:
+  prometheusSpec:
+    storageSpec:
+%{ if enable_persistent_storage }
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ${storage_class}
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+%{ endif }
+
+    retention: "30d"
+    retentionSize: "45GB"
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "1000m"
+
+    ruleSelector:
+      matchLabels:
+        prometheus: "kube-prometheus"
+        role: "alert-rules"
+
+    serviceMonitorSelector:
+      matchLabels:
+        app: "payment-platform"
+
+    additionalScrapeConfigs:
+      - job_name: 'payment-platform-backend'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - payment-platform-${environment}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: payment-platform-backend-${environment}
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: actuator
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: service
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        metrics_path: /actuator/prometheus
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+%{ if enable_persistent_storage }
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ${storage_class}
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+%{ endif }
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+  config:
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@payment-platform.com'
+      slack_api_url: '${slack_webhook_url}'
+
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+      routes:
+        - match:
+            severity: critical
+          receiver: critical-alerts
+          continue: true
+        - match:
+            severity: warning
+          receiver: warning-alerts
+
+    receivers:
+      - name: 'web.hook'
+        webhook_configs:
+          - url: 'http://localhost:5001/'
+
+      - name: 'critical-alerts'
+        slack_configs:
+          - api_url: '${slack_webhook_url}'
+            channel: '#alerts-critical'
+            title: 'Critical Alert - {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Service:* {{ .Labels.service }}
+              *Runbook:* {{ .Annotations.runbook_url }}
+              {{ end }}
+            actions:
+              - type: button
+                text: 'Runbook :green_book:'
+                url: '{{ (index .Alerts 0).Annotations.runbook_url }}'
+              - type: button
+                text: 'Query :mag:'
+                url: 'https://grafana.payment-platform.com'
+
+      - name: 'warning-alerts'
+        slack_configs:
+          - api_url: '${slack_webhook_url}'
+            channel: '#alerts-warning'
+            title: 'Warning Alert - {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Service:* {{ .Labels.service }}
+              {{ end }}
+
+grafana:
+  enabled: true
+
+  adminPassword: ${grafana_admin_password}
+
+  persistence:
+    enabled: ${enable_persistent_storage}
+%{ if enable_persistent_storage }
+    storageClassName: ${storage_class}
+    size: 10Gi
+%{ endif }
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+  grafana.ini:
+    server:
+      domain: grafana.payment-platform.com
+      root_url: "https://grafana.payment-platform.com"
+
+    security:
+      allow_embedding: true
+      cookie_secure: true
+      cookie_samesite: strict
+
+    auth:
+      disable_login_form: false
+
+    auth.anonymous:
+      enabled: false
+
+    alerting:
+      enabled: true
+
+    unified_alerting:
+      enabled: true
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-operator-kube-p-prometheus:9090
+          access: proxy
+          isDefault: true
+
+        - name: Jaeger
+          type: jaeger
+          url: http://jaeger-query:16686
+          access: proxy
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+        - name: 'payment-platform'
+          orgId: 1
+          folder: 'Payment Platform'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/payment-platform
+
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      folder: /tmp/dashboards
+      searchNamespace: ${environment}
+
+    datasources:
+      enabled: true
+      label: grafana_datasource
+
+kube-state-metrics:
+  enabled: true
+
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+nodeExporter:
+  enabled: true
+
+  resources:
+    requests:
+      memory: "32Mi"
+      cpu: "25m"
+    limits:
+      memory: "64Mi"
+      cpu: "50m"
+
+prometheusOperator:
+  enabled: true
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "100m"
+
+kubeApiServer:
+  enabled: true
+
+kubelet:
+  enabled: true
+
+kubeControllerManager:
+  enabled: true
+
+coreDns:
+  enabled: true
+
+kubeEtcd:
+  enabled: true
+
+kubeScheduler:
+  enabled: true
+
+kubeProxy:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: true
+    general: true
+    k8s: true
+    kubeApiserver: true
+    kubeApiserverAvailability: true
+    kubeApiserverError: true
+    kubeApiserverSlos: true
+    kubelet: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeAlerting: true
+    kubePrometheusNodeRecording: true
+    kubernetesAbsent: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    network: true
+    node: true
+    prometheus: true
+    prometheusOperator: true
+    time: true

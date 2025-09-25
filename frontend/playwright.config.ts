@@ -115,7 +115,8 @@ export default defineConfig({
     timeout: 120 * 1000,
     env: {
       NODE_ENV: 'test',
-      VITE_API_BASE_URL: 'http://localhost:8080/api',
+      // Use proxy instead of direct backend connection to respect CSP
+      // VITE_API_BASE_URL defaults to '/api/v1' which goes through Vite proxy
     },
   },
 

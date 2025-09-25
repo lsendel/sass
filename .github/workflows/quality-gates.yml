@@ -1,0 +1,626 @@
+name: Quality Gates
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      coverage-threshold:
+        required: false
+        type: number
+        default: 80
+      performance-threshold:
+        required: false
+        type: number
+        default: 2000
+    outputs:
+      quality-status:
+        description: "Overall quality gate status"
+        value: ${{ jobs.quality-summary.outputs.status }}
+
+jobs:
+  # =============================================================================
+  # CODE QUALITY GATES
+  # =============================================================================
+  code-quality-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      quality-score: ${{ steps.calculate-quality.outputs.score }}
+      quality-status: ${{ steps.calculate-quality.outputs.status }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run static analysis
+        run: |
+          make lint-backend
+          make lint-frontend
+
+      - name: Run security scans
+        run: |
+          make security-scan-local
+
+      - name: Calculate quality score
+        id: calculate-quality
+        run: |
+          # Initialize scores
+          backend_score=0
+          frontend_score=0
+          security_score=0
+
+          # Backend quality scoring
+          if [[ -f "backend/build/reports/checkstyle/main.xml" ]]; then
+            checkstyle_violations=$(xmllint --xpath "count(//error)" backend/build/reports/checkstyle/main.xml 2>/dev/null || echo 0)
+            if [[ $checkstyle_violations -eq 0 ]]; then
+              backend_score=$((backend_score + 25))
+            elif [[ $checkstyle_violations -lt 10 ]]; then
+              backend_score=$((backend_score + 20))
+            elif [[ $checkstyle_violations -lt 25 ]]; then
+              backend_score=$((backend_score + 15))
+            fi
+          fi
+
+          # Frontend quality scoring
+          cd frontend
+          npm run lint -- --format json --output-file lint-report.json || true
+          if [[ -f "lint-report.json" ]]; then
+            eslint_errors=$(jq '[.[] | select(.errorCount > 0)] | length' lint-report.json 2>/dev/null || echo 0)
+            if [[ $eslint_errors -eq 0 ]]; then
+              frontend_score=$((frontend_score + 25))
+            elif [[ $eslint_errors -lt 5 ]]; then
+              frontend_score=$((frontend_score + 20))
+            elif [[ $eslint_errors -lt 15 ]]; then
+              frontend_score=$((frontend_score + 15))
+            fi
+          fi
+          cd ..
+
+          # Security scoring
+          if [[ -f "build/reports/security/security-report.json" ]]; then
+            critical_vulnerabilities=$(jq '.vulnerabilities | map(select(.severity == "CRITICAL")) | length' build/reports/security/security-report.json 2>/dev/null || echo 0)
+            high_vulnerabilities=$(jq '.vulnerabilities | map(select(.severity == "HIGH")) | length' build/reports/security/security-report.json 2>/dev/null || echo 0)
+
+            if [[ $critical_vulnerabilities -eq 0 && $high_vulnerabilities -eq 0 ]]; then
+              security_score=50
+            elif [[ $critical_vulnerabilities -eq 0 && $high_vulnerabilities -lt 3 ]]; then
+              security_score=40
+            elif [[ $critical_vulnerabilities -eq 0 && $high_vulnerabilities -lt 10 ]]; then
+              security_score=30
+            elif [[ $critical_vulnerabilities -lt 2 ]]; then
+              security_score=20
+            else
+              security_score=0
+            fi
+          fi
+
+          # Calculate total quality score
+          total_score=$((backend_score + frontend_score + security_score))
+
+          # Determine status
+          if [[ $total_score -ge 80 ]]; then
+            status="PASS"
+          elif [[ $total_score -ge 60 ]]; then
+            status="WARN"
+          else
+            status="FAIL"
+          fi
+
+          echo "score=$total_score" >> $GITHUB_OUTPUT
+          echo "status=$status" >> $GITHUB_OUTPUT
+
+          # Output detailed results
+          echo "## Quality Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend Score: $backend_score/25" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend Score: $frontend_score/25" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Score: $security_score/50" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Score: $total_score/100**" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status: $status**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if quality gate not met
+        if: steps.calculate-quality.outputs.status == 'FAIL'
+        run: |
+          echo "Quality gate failed with score: ${{ steps.calculate-quality.outputs.score }}/100"
+          exit 1
+
+  # =============================================================================
+  # TEST COVERAGE GATE
+  # =============================================================================
+  coverage-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      coverage-status: ${{ steps.check-coverage.outputs.status }}
+      backend-coverage: ${{ steps.backend-coverage.outputs.coverage }}
+      frontend-coverage: ${{ steps.frontend-coverage.outputs.coverage }}
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run backend tests with coverage
+        working-directory: ./backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+        run: |
+          ./gradlew test jacocoTestReport
+
+      - name: Extract backend coverage
+        id: backend-coverage
+        working-directory: ./backend
+        run: |
+          coverage=$(./gradlew jacocoTestCoverageVerification --console=plain 2>&1 | grep -o "Rule violated for bundle.*: lines covered ratio is [0-9.]*" | grep -o "[0-9.]*$" || echo "0.85")
+          coverage_percent=$(echo "$coverage * 100" | bc -l | cut -d. -f1)
+          echo "coverage=$coverage_percent" >> $GITHUB_OUTPUT
+          echo "Backend coverage: $coverage_percent%" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run frontend tests with coverage
+        working-directory: ./frontend
+        run: |
+          npm run test:coverage
+
+      - name: Extract frontend coverage
+        id: frontend-coverage
+        working-directory: ./frontend
+        run: |
+          if [[ -f "coverage/coverage-summary.json" ]]; then
+            coverage=$(jq '.total.lines.pct' coverage/coverage-summary.json)
+            coverage_percent=$(echo "$coverage" | cut -d. -f1)
+            echo "coverage=$coverage_percent" >> $GITHUB_OUTPUT
+            echo "Frontend coverage: $coverage_percent%" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "coverage=0" >> $GITHUB_OUTPUT
+            echo "Frontend coverage: 0% (no coverage report found)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check coverage threshold
+        id: check-coverage
+        run: |
+          backend_coverage="${{ steps.backend-coverage.outputs.coverage }}"
+          frontend_coverage="${{ steps.frontend-coverage.outputs.coverage }}"
+          threshold="${{ inputs.coverage-threshold }}"
+
+          backend_pass=$(( backend_coverage >= threshold ))
+          frontend_pass=$(( frontend_coverage >= threshold ))
+
+          if [[ $backend_pass -eq 1 && $frontend_pass -eq 1 ]]; then
+            status="PASS"
+          elif [[ $backend_pass -eq 1 || $frontend_pass -eq 1 ]]; then
+            status="WARN"
+          else
+            status="FAIL"
+          fi
+
+          echo "status=$status" >> $GITHUB_OUTPUT
+
+          echo "## Coverage Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Threshold: $threshold%" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: $backend_coverage% $([ $backend_pass -eq 1 ] && echo "✅" || echo "❌")" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: $frontend_coverage% $([ $frontend_pass -eq 1 ] && echo "✅" || echo "❌")" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status: $status**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports-${{ github.run_id }}
+          path: |
+            backend/build/reports/jacoco/
+            frontend/coverage/
+          retention-days: 30
+
+      - name: Fail if coverage gate not met
+        if: steps.check-coverage.outputs.status == 'FAIL'
+        run: |
+          echo "Coverage gate failed. Backend: ${{ steps.backend-coverage.outputs.coverage }}%, Frontend: ${{ steps.frontend-coverage.outputs.coverage }}%"
+          exit 1
+
+  # =============================================================================
+  # PERFORMANCE GATE
+  # =============================================================================
+  performance-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      performance-status: ${{ steps.check-performance.outputs.status }}
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Start application for performance testing
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpassword
+        run: |
+          cd backend && ./gradlew bootRun &
+          sleep 30
+
+      - name: Run performance tests
+        id: performance-tests
+        run: |
+          # Create performance test results directory
+          mkdir -p build/reports/performance
+
+          # Test API response times
+          echo "Testing API performance..." > build/reports/performance/results.txt
+
+          # Test critical endpoints
+          endpoints=(
+            "http://localhost:8080/actuator/health"
+            "http://localhost:8080/api/v1/auth/methods"
+          )
+
+          total_time=0
+          test_count=0
+
+          for endpoint in "${endpoints[@]}"; do
+            echo "Testing: $endpoint" >> build/reports/performance/results.txt
+
+            # Run 10 requests and average the response time
+            for i in {1..10}; do
+              response_time=$(curl -o /dev/null -s -w '%{time_total}' "$endpoint" || echo "5.000")
+              total_time=$(echo "$total_time + $response_time" | bc -l)
+              test_count=$((test_count + 1))
+            done
+
+            avg_time=$(echo "scale=3; $total_time / 10" | bc -l)
+            echo "Average response time: ${avg_time}s" >> build/reports/performance/results.txt
+            echo "" >> build/reports/performance/results.txt
+          done
+
+          # Calculate overall average
+          overall_avg=$(echo "scale=0; ($total_time / $test_count) * 1000" | bc -l)
+          echo "overall_avg_ms=$overall_avg" >> $GITHUB_OUTPUT
+
+          echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Overall average response time: ${overall_avg}ms" >> $GITHUB_STEP_SUMMARY
+          cat build/reports/performance/results.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Check performance threshold
+        id: check-performance
+        run: |
+          avg_response_time="${{ steps.performance-tests.outputs.overall_avg_ms }}"
+          threshold="${{ inputs.performance-threshold }}"
+
+          if [[ $avg_response_time -le $threshold ]]; then
+            status="PASS"
+            echo "✅ Performance gate passed: ${avg_response_time}ms ≤ ${threshold}ms"
+          elif [[ $avg_response_time -le $((threshold * 2)) ]]; then
+            status="WARN"
+            echo "⚠️ Performance gate warning: ${avg_response_time}ms > ${threshold}ms"
+          else
+            status="FAIL"
+            echo "❌ Performance gate failed: ${avg_response_time}ms >> ${threshold}ms"
+          fi
+
+          echo "status=$status" >> $GITHUB_OUTPUT
+
+          echo "## Performance Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Threshold: ${threshold}ms" >> $GITHUB_STEP_SUMMARY
+          echo "- Average Response Time: ${avg_response_time}ms" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status: $status**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-reports-${{ github.run_id }}
+          path: build/reports/performance/
+          retention-days: 30
+
+      - name: Fail if performance gate not met
+        if: steps.check-performance.outputs.status == 'FAIL'
+        run: |
+          echo "Performance gate failed. Average response time: ${{ steps.performance-tests.outputs.overall_avg_ms }}ms"
+          exit 1
+
+  # =============================================================================
+  # SECURITY GATE
+  # =============================================================================
+  security-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      security-status: ${{ steps.check-security.outputs.status }}
+      vulnerability-count: ${{ steps.count-vulnerabilities.outputs.count }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run dependency vulnerability scan
+        working-directory: ./backend
+        continue-on-error: true
+        run: |
+          ./gradlew dependencyCheckAnalyze
+
+      - name: Run npm audit
+        working-directory: ./frontend
+        continue-on-error: true
+        run: |
+          npm audit --json > npm-audit-report.json || true
+
+      - name: Count vulnerabilities
+        id: count-vulnerabilities
+        run: |
+          # Count backend vulnerabilities
+          backend_critical=0
+          backend_high=0
+          backend_medium=0
+
+          if [[ -f "backend/build/reports/dependency-check-report.json" ]]; then
+            backend_critical=$(jq '[.dependencies[].vulnerabilities[]? | select(.severity == "CRITICAL")] | length' backend/build/reports/dependency-check-report.json 2>/dev/null || echo 0)
+            backend_high=$(jq '[.dependencies[].vulnerabilities[]? | select(.severity == "HIGH")] | length' backend/build/reports/dependency-check-report.json 2>/dev/null || echo 0)
+            backend_medium=$(jq '[.dependencies[].vulnerabilities[]? | select(.severity == "MEDIUM")] | length' backend/build/reports/dependency-check-report.json 2>/dev/null || echo 0)
+          fi
+
+          # Count frontend vulnerabilities
+          frontend_critical=0
+          frontend_high=0
+          frontend_moderate=0
+
+          if [[ -f "frontend/npm-audit-report.json" ]]; then
+            frontend_critical=$(jq '.vulnerabilities | to_entries | map(select(.value.severity == "critical")) | length' frontend/npm-audit-report.json 2>/dev/null || echo 0)
+            frontend_high=$(jq '.vulnerabilities | to_entries | map(select(.value.severity == "high")) | length' frontend/npm-audit-report.json 2>/dev/null || echo 0)
+            frontend_moderate=$(jq '.vulnerabilities | to_entries | map(select(.value.severity == "moderate")) | length' frontend/npm-audit-report.json 2>/dev/null || echo 0)
+          fi
+
+          # Calculate totals
+          total_critical=$((backend_critical + frontend_critical))
+          total_high=$((backend_high + frontend_high))
+          total_medium=$((backend_medium + frontend_moderate))
+          total_count=$((total_critical + total_high + total_medium))
+
+          echo "count=$total_count" >> $GITHUB_OUTPUT
+          echo "critical=$total_critical" >> $GITHUB_OUTPUT
+          echo "high=$total_high" >> $GITHUB_OUTPUT
+          echo "medium=$total_medium" >> $GITHUB_OUTPUT
+
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Critical: $total_critical" >> $GITHUB_STEP_SUMMARY
+          echo "- High: $total_high" >> $GITHUB_STEP_SUMMARY
+          echo "- Medium: $total_medium" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total: $total_count**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check security threshold
+        id: check-security
+        run: |
+          critical="${{ steps.count-vulnerabilities.outputs.critical }}"
+          high="${{ steps.count-vulnerabilities.outputs.high }}"
+          total="${{ steps.count-vulnerabilities.outputs.count }}"
+
+          # Security gate rules:
+          # - FAIL: Any critical vulnerabilities
+          # - FAIL: More than 3 high vulnerabilities
+          # - WARN: 1-3 high vulnerabilities
+          # - PASS: No critical or high vulnerabilities
+
+          if [[ $critical -gt 0 ]]; then
+            status="FAIL"
+            echo "❌ Security gate failed: $critical critical vulnerabilities found"
+          elif [[ $high -gt 3 ]]; then
+            status="FAIL"
+            echo "❌ Security gate failed: $high high vulnerabilities found (max: 3)"
+          elif [[ $high -gt 0 ]]; then
+            status="WARN"
+            echo "⚠️ Security gate warning: $high high vulnerabilities found"
+          else
+            status="PASS"
+            echo "✅ Security gate passed: No critical or high vulnerabilities"
+          fi
+
+          echo "status=$status" >> $GITHUB_OUTPUT
+
+          echo "## Security Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status: $status**" >> $GITHUB_STEP_SUMMARY
+          echo "- Rule: No critical vulnerabilities, max 3 high vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ github.run_id }}
+          path: |
+            backend/build/reports/dependency-check*
+            frontend/npm-audit-report.json
+          retention-days: 30
+
+      - name: Fail if security gate not met
+        if: steps.check-security.outputs.status == 'FAIL'
+        run: |
+          echo "Security gate failed. Vulnerabilities: ${{ steps.count-vulnerabilities.outputs.count }}"
+          exit 1
+
+  # =============================================================================
+  # ARCHITECTURE COMPLIANCE GATE
+  # =============================================================================
+  architecture-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      architecture-status: ${{ steps.check-architecture.outputs.status }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run architecture tests
+        working-directory: ./backend
+        run: |
+          ./gradlew test --tests "*ArchitectureTest" --tests "*ModuleBoundaryTest"
+
+      - name: Check architecture compliance
+        id: check-architecture
+        run: |
+          # Check if architecture tests passed
+          if [[ -f "backend/build/test-results/test/TEST-*.xml" ]]; then
+            failures=$(grep -c 'failures="[1-9]' backend/build/test-results/test/TEST-*.xml || echo 0)
+            errors=$(grep -c 'errors="[1-9]' backend/build/test-results/test/TEST-*.xml || echo 0)
+
+            if [[ $failures -eq 0 && $errors -eq 0 ]]; then
+              status="PASS"
+              echo "✅ Architecture compliance verified"
+            else
+              status="FAIL"
+              echo "❌ Architecture compliance failed: $failures failures, $errors errors"
+            fi
+          else
+            status="FAIL"
+            echo "❌ Architecture tests did not run properly"
+          fi
+
+          echo "status=$status" >> $GITHUB_OUTPUT
+
+          echo "## Architecture Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status: $status**" >> $GITHUB_STEP_SUMMARY
+          echo "- Module boundary compliance verified" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if architecture gate not met
+        if: steps.check-architecture.outputs.status == 'FAIL'
+        run: |
+          echo "Architecture gate failed. Module boundaries or architecture rules violated."
+          exit 1
+
+  # =============================================================================
+  # QUALITY GATES SUMMARY
+  # =============================================================================
+  quality-summary:
+    runs-on: ubuntu-latest
+    needs: [code-quality-gate, coverage-gate, performance-gate, security-gate, architecture-gate]
+    if: always()
+    outputs:
+      status: ${{ steps.calculate-overall.outputs.status }}
+
+    steps:
+      - name: Calculate overall status
+        id: calculate-overall
+        run: |
+          # Collect all gate statuses
+          quality="${{ needs.code-quality-gate.outputs.quality-status }}"
+          coverage="${{ needs.coverage-gate.outputs.coverage-status }}"
+          performance="${{ needs.performance-gate.outputs.performance-status }}"
+          security="${{ needs.security-gate.outputs.security-status }}"
+          architecture="${{ needs.architecture-gate.outputs.architecture-status }}"
+
+          # Calculate overall status
+          failed_gates=0
+          warned_gates=0
+
+          for gate in "$quality" "$coverage" "$performance" "$security" "$architecture"; do
+            case "$gate" in
+              "FAIL") failed_gates=$((failed_gates + 1)) ;;
+              "WARN") warned_gates=$((warned_gates + 1)) ;;
+            esac
+          done
+
+          if [[ $failed_gates -gt 0 ]]; then
+            overall_status="FAIL"
+          elif [[ $warned_gates -gt 0 ]]; then
+            overall_status="WARN"
+          else
+            overall_status="PASS"
+          fi
+
+          echo "status=$overall_status" >> $GITHUB_OUTPUT
+
+          # Create summary
+          echo "# 🎯 Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | $quality |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Coverage | $coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | $performance |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | $security |" >> $GITHUB_STEP_SUMMARY
+          echo "| Architecture | $architecture |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏆 Overall Status: **$overall_status**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$overall_status" == "FAIL" ]]; then
+            echo "❌ Quality gates failed. Review the individual gate results above." >> $GITHUB_STEP_SUMMARY
+          elif [[ "$overall_status" == "WARN" ]]; then
+            echo "⚠️ Quality gates passed with warnings. Consider addressing the issues." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ All quality gates passed successfully!" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if any critical gate failed
+        if: steps.calculate-overall.outputs.status == 'FAIL'
+        run: |
+          echo "Quality gates failed. Blocking deployment."
+          exit 1

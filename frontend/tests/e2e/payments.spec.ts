@@ -8,12 +8,27 @@ test.describe('Payments', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          user: {
-            id: 'user-123',
-            name: 'Test User',
-            email: 'test@example.com',
+          success: true,
+          data: {
+            user: {
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              email: 'test@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'USER',
+              emailVerified: true,
+              organizationId: '987fcdeb-51d2-43a1-b456-426614174000',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+              lastLoginAt: '2024-01-01T10:00:00Z',
+            },
+            session: {
+              activeTokens: 1,
+              lastActiveAt: '2024-01-01T10:00:00Z',
+              createdAt: '2024-01-01T00:00:00Z',
+            },
           },
-          authenticated: true,
+          timestamp: '2024-01-01T10:00:00Z',
         }),
       })
     })
@@ -23,22 +38,30 @@ test.describe('Payments', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'org-123',
-            name: 'Test Organization',
-            slug: 'test-org',
-            status: 'ACTIVE',
-            userRole: 'OWNER',
-            memberCount: 1,
-            createdAt: '2024-01-01T00:00:00Z',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            items: [
+              {
+                id: '987fcdeb-51d2-43a1-b456-426614174000',
+                name: 'Test Organization',
+                plan: 'PRO',
+                status: 'ACTIVE',
+                billingEmail: 'billing@example.com',
+                maxUsers: 50,
+                currentUsers: 1,
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
           },
-        ]),
+          timestamp: '2024-01-01T10:00:00Z',
+        }),
       })
     })
 
     // Mock payment statistics
-    await page.route('/api/v1/organizations/org-123/payments/statistics', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payments/statistics', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -51,7 +74,7 @@ test.describe('Payments', () => {
     })
 
     // Mock payments list
-    await page.route('/api/v1/organizations/org-123/payments', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payments', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -88,7 +111,7 @@ test.describe('Payments', () => {
     })
 
     // Mock payment methods
-    await page.route('/api/v1/organizations/org-123/payment-methods', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -213,7 +236,7 @@ test.describe('Payments', () => {
 
   test('should set default payment method', async ({ page }) => {
     // Mock set default payment method API
-    await page.route('/api/v1/organizations/org-123/payment-methods/pm-456/set-default', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods/pm-456/set-default', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -235,7 +258,7 @@ test.describe('Payments', () => {
 
   test('should remove payment method', async ({ page }) => {
     // Mock remove payment method API
-    await page.route('/api/v1/organizations/org-123/payment-methods/pm-456/detach', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods/pm-456/detach', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -274,7 +297,7 @@ test.describe('Payments', () => {
 
   test('should handle empty payment methods state', async ({ page }) => {
     // Mock empty payment methods response
-    await page.route('/api/v1/organizations/org-123/payment-methods', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -294,7 +317,7 @@ test.describe('Payments', () => {
 
   test('should handle empty payments state', async ({ page }) => {
     // Mock empty payments response
-    await page.route('/api/v1/organizations/org-123/payments', async (route) => {
+    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payments', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

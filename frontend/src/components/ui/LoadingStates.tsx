@@ -4,7 +4,7 @@ import LoadingSpinner from './LoadingSpinner'
 
 // Standard loading button component
 interface LoadingButtonProps {
-  isLoading: boolean
+  isLoading?: boolean
   disabled?: boolean
   loadingText?: string
   children: React.ReactNode
@@ -13,10 +13,11 @@ interface LoadingButtonProps {
   className?: string
   type?: 'button' | 'submit' | 'reset'
   onClick?: () => void
+  'data-testid'?: string
 }
 
 export const LoadingButton: React.FC<LoadingButtonProps> = ({
-  isLoading,
+  isLoading = false,
   disabled,
   loadingText = 'Processing...',
   children,
@@ -25,6 +26,7 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   className = '',
   type = 'button',
   onClick,
+  'data-testid': dataTestId,
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
 
@@ -46,6 +48,7 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
       type={type}
       onClick={onClick}
       disabled={isLoading || disabled}
+      data-testid={dataTestId}
       className={clsx(
         baseClasses,
         variantClasses[variant],

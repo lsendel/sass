@@ -5,6 +5,7 @@ plugins {
     id 'checkstyle'
     id 'jacoco'
     id 'org.sonarqube' version '5.1.0.4882'
+    id 'org.owasp.dependencycheck' version '10.0.4'
 }
 
 group = 'com.platform'
@@ -144,5 +145,17 @@ sonar {
         property "sonar.exclusions", "**/build/**,**/target/**,**/.gradle/**"
         property "sonar.coverage.exclusions", "**/test/**,**/config/**"
         property "sonar.gradle.skipCompile", "true"
+    }
+}
+
+dependencyCheck {
+    formats = ['HTML', 'JSON']
+    outputDirectory = 'build/reports/dependency-check'
+    failBuildOnCVSS = 7.0
+    suppressionFile = 'config/dependency-check-suppressions.xml'
+    analyzers {
+        assemblyEnabled = false
+        nuspecEnabled = false
+        nugetconfEnabled = false
     }
 }

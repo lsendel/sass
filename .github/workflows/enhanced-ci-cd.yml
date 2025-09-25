@@ -1,0 +1,692 @@
+name: Enhanced CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, 'feature/*', 'hotfix/*']
+  pull_request:
+    branches: [main, develop]
+  release:
+    types: [published]
+
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================================
+  # DETECT CHANGES
+  # =============================================================================
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      docs: ${{ steps.changes.outputs.docs }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure }}
+      e2e: ${{ steps.changes.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'Makefile*'
+              - '.github/workflows/enhanced-ci-cd.yml'
+            frontend:
+              - 'frontend/**'
+              - 'Makefile*'
+              - '.github/workflows/enhanced-ci-cd.yml'
+            docs:
+              - 'docs/**'
+              - '*.md'
+              - '.github/workflows/docs.yml'
+            infrastructure:
+              - 'docker-compose*.yml'
+              - 'Dockerfile*'
+              - 'k8s/**'
+              - 'terraform/**'
+            e2e:
+              - 'backend/**'
+              - 'frontend/**'
+              - 'tests/e2e/**'
+
+  # =============================================================================
+  # CODE QUALITY & SECURITY
+  # =============================================================================
+  quality-check:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run code quality checks
+        run: make test-quality
+
+      - name: Security scanning
+        run: make security-scan-local
+
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports-${{ github.run_id }}
+          path: |
+            build/reports/
+            backend/build/reports/
+            frontend/coverage/
+          retention-days: 30
+
+  # =============================================================================
+  # BACKEND PIPELINE
+  # =============================================================================
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, quality-check]
+    if: needs.detect-changes.outputs.backend == 'true'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    strategy:
+      matrix:
+        test-type: [unit, integration, contract]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run ${{ matrix.test-type }} tests
+        working-directory: ./backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+        run: |
+          case "${{ matrix.test-type }}" in
+            unit)
+              ./gradlew test --tests "*UnitTest" jacocoTestReport
+              ;;
+            integration)
+              ./gradlew integrationTest
+              ;;
+            contract)
+              ./gradlew contractTest
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.test-type }}-results-${{ github.run_id }}
+          path: |
+            backend/build/reports/
+            backend/build/test-results/
+          retention-days: 14
+
+  backend-build:
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+    if: needs.detect-changes.outputs.backend == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Build backend
+        run: make build-backend
+
+      - name: Build Docker image
+        run: make docker-build-backend
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-artifacts-${{ github.run_id }}
+          path: |
+            backend/build/libs/
+            build/artifacts/
+          retention-days: 7
+
+  # =============================================================================
+  # FRONTEND PIPELINE
+  # =============================================================================
+  frontend-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, quality-check]
+    if: needs.detect-changes.outputs.frontend == 'true'
+
+    strategy:
+      matrix:
+        test-type: [unit, integration, component]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Install Playwright browsers
+        if: matrix.test-type == 'component'
+        run: cd frontend && npx playwright install --with-deps
+
+      - name: Run ${{ matrix.test-type }} tests
+        working-directory: ./frontend
+        run: |
+          case "${{ matrix.test-type }}" in
+            unit)
+              npm run test:unit -- --reporter=junit --outputFile=junit.xml
+              ;;
+            integration)
+              npm run test:integration
+              ;;
+            component)
+              npm run test:e2e -- --reporter=junit
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ matrix.test-type }}-results-${{ github.run_id }}
+          path: |
+            frontend/test-results/
+            frontend/coverage/
+          retention-days: 14
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    needs: [frontend-test]
+    if: needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Build frontend
+        run: make build-frontend
+
+      - name: Build Docker image
+        run: make docker-build-frontend
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-artifacts-${{ github.run_id }}
+          path: |
+            frontend/dist/
+            build/artifacts/
+          retention-days: 7
+
+  # =============================================================================
+  # END-TO-END TESTING
+  # =============================================================================
+  e2e-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, backend-build, frontend-build]
+    if: needs.detect-changes.outputs.e2e == 'true' || github.event_name == 'pull_request'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        shard: [1/3, 2/3, 3/3]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps
+
+      - name: Download backend artifacts
+        if: needs.backend-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-artifacts-${{ github.run_id }}
+          path: build/artifacts/
+
+      - name: Download frontend artifacts
+        if: needs.frontend-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-artifacts-${{ github.run_id }}
+          path: build/artifacts/
+
+      - name: Start application
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+        run: |
+          make dev-backend &
+          sleep 30
+          make dev-frontend &
+          sleep 15
+
+      - name: Run E2E tests
+        working-directory: ./frontend
+        run: |
+          npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }} --reporter=html
+        env:
+          CI: true
+
+      - name: Upload E2E results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.browser }}-${{ github.run_id }}-${{ strategy.job-index }}
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 30
+
+  # =============================================================================
+  # PERFORMANCE TESTING
+  # =============================================================================
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, backend-build, frontend-build]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache dependencies
+        uses: ./.github/actions/cache-dependencies
+
+      - name: Run performance tests
+        run: make test-performance
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-${{ github.run_id }}
+          path: build/reports/performance/
+          retention-days: 30
+
+  # =============================================================================
+  # SECURITY TESTING
+  # =============================================================================
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Run security scans
+        run: make test-security
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-results-${{ github.run_id }}
+          path: build/reports/security/
+          retention-days: 30
+
+  # =============================================================================
+  # CODE COVERAGE AGGREGATION
+  # =============================================================================
+  coverage:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: always() && (needs.backend-test.result != 'skipped' || needs.frontend-test.result != 'skipped')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-results-${{ github.run_id }}"
+          merge-multiple: true
+
+      - name: Generate coverage report
+        run: make coverage-report
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: |
+            backend/build/reports/jacoco/test/jacocoTestReport.xml
+            frontend/coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: |
+            backend/build/reports/jacoco/test/jacocoTestReport.xml
+            frontend/coverage/lcov.info
+
+  # =============================================================================
+  # SONAR ANALYSIS
+  # =============================================================================
+  sonar-scan:
+    runs-on: ubuntu-latest
+    needs: [coverage]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-results-${{ github.run_id }}"
+          merge-multiple: true
+
+      - name: Run SonarQube analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: make sonar-scan
+
+  # =============================================================================
+  # BUILD & PACKAGE
+  # =============================================================================
+  package:
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build, e2e-test]
+    if: always() && (needs.backend-build.result == 'success' || needs.frontend-build.result == 'success')
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-artifacts-${{ github.run_id }}"
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker images
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # =============================================================================
+  # DEPLOYMENT
+  # =============================================================================
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [package, security-scan]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging.payment-platform.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          make deploy-staging
+        env:
+          ENVIRONMENT: staging
+          APP_VERSION: ${{ needs.package.outputs.image-tag }}
+          KUBE_CONFIG: ${{ secrets.STAGING_KUBE_CONFIG }}
+
+      - name: Run smoke tests
+        run: |
+          sleep 60  # Wait for deployment
+          make health
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          text: 'Staging deployment completed: ${{ needs.package.outputs.image-tag }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [package, security-scan]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: production
+      url: https://payment-platform.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          make deploy-production
+        env:
+          ENVIRONMENT: production
+          APP_VERSION: ${{ github.event.release.tag_name }}
+          KUBE_CONFIG: ${{ secrets.PRODUCTION_KUBE_CONFIG }}
+
+      - name: Run smoke tests
+        run: |
+          sleep 120  # Wait for deployment
+          make health
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          text: 'Production deployment completed: ${{ github.event.release.tag_name }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # =============================================================================
+  # CLEANUP
+  # =============================================================================
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Delete old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const oldArtifacts = artifacts.data.artifacts.filter(
+              artifact => Date.now() - new Date(artifact.created_at).getTime() > 7 * 24 * 60 * 60 * 1000
+            );
+
+            for (const artifact of oldArtifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner,
+                repo,
+                artifact_id: artifact.id
+              });
+            }

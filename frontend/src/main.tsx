@@ -8,6 +8,11 @@ import { stripePromise } from './lib/stripe'
 import App from './App'
 import './index.css'
 
+// Expose store to window for debugging and testing
+if (import.meta.env.DEV || import.meta.env.NODE_ENV === 'test') {
+  ;(window as any).__REDUX_STORE__ = store
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>

@@ -1,13 +1,14 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
+import { vi } from 'vitest'
 import { useOptimisticUpdates, useOptimisticList } from './useOptimisticUpdates'
 
 describe('useOptimisticUpdates', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('should add optimistic update and confirm on success', async () => {

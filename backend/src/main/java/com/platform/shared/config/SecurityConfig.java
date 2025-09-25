@@ -102,13 +102,17 @@ public class SecurityConfig {
                         (request, response) -> {
                           response.setHeader("X-Content-Type-Options", "nosniff");
                           response.setHeader("X-Frame-Options", "DENY");
-                          response.setHeader("X-XSS-Protection", "1; mode=block");
+                          response.setHeader("X-XSS-Protection", "0"); // Modern browsers ignore this
+                          response.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+                          response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                          response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                          response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
                           response.setHeader(
-                              "Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+                              "Permissions-Policy", 
+                              "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
                           response.setHeader(
                               "Content-Security-Policy",
-                              "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-                                  + "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
+                              buildContentSecurityPolicy());
                         }))
 
         // Configure authorization
@@ -257,5 +261,25 @@ public class SecurityConfig {
   @Bean
   public InputSanitizer inputSanitizer() {
     return new InputSanitizer();
+  }
+
+  private String buildContentSecurityPolicy() {
+    if (isProduction()) {
+      return "default-src 'self'; " +
+             "script-src 'self'; " +
+             "style-src 'self'; " +
+             "img-src 'self' data: https:; " +
+             "font-src 'self'; " +
+             "connect-src 'self'; " +
+             "frame-ancestors 'none'; " +
+             "base-uri 'self'; " +
+             "form-action 'self'";
+    } else {
+      return "default-src 'self'; " +
+             "script-src 'self' 'unsafe-inline'; " +
+             "style-src 'self' 'unsafe-inline'; " +
+             "img-src 'self' data: https:; " +
+             "connect-src 'self' ws: wss:";
+    }
   }
 }

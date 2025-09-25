@@ -22,7 +22,7 @@ import com.platform.auth.internal.AuthenticationAttempt;
 import com.platform.auth.internal.AuthenticationAttemptRepository;
 
 /**
- * Rate limiting filter for authentication endpoints to prevent brute force attacks.
+ * Rate limiting filter for all endpoints to prevent abuse and brute force attacks.
  * Uses Redis-backed counters when available with a local fallback.
  */
 @Component
@@ -30,24 +30,15 @@ public class RateLimitingFilter implements Filter {
 
   private static final Logger logger = LoggerFactory.getLogger(RateLimitingFilter.class);
 
-  private static final Map<String, RateLimitRule> RULES =
-      Map.of(
-          "/api/v1/auth/login", new RateLimitRule(5, Duration.ofMinutes(15)),
-          "/api/v1/auth/register", new RateLimitRule(5, Duration.ofMinutes(30)),
-          "/api/v1/auth/request-password-reset", new RateLimitRule(5, Duration.ofMinutes(30)),
-          "/api/v1/auth/reset-password", new RateLimitRule(5, Duration.ofMinutes(30)),
-          "/api/v1/auth/resend-verification", new RateLimitRule(3, Duration.ofMinutes(30)),
-          "/api/v1/auth/verify-email", new RateLimitRule(10, Duration.ofMinutes(30)),
-          "/api/v1/auth/oauth2/authorize", new RateLimitRule(30, Duration.ofMinutes(5)),
-          "/api/v1/auth/oauth2/callback", new RateLimitRule(30, Duration.ofMinutes(5)),
-          "/api/v1/auth/oauth2/session", new RateLimitRule(15, Duration.ofMinutes(10)));
-
+  private final Map<String, RateLimitRule> rules;
   private final AuthenticationAttemptRepository authenticationAttemptRepository;
   private final RateLimitService rateLimitService;
 
   public RateLimitingFilter(
+      Map<String, RateLimitRule> rules,
       AuthenticationAttemptRepository authenticationAttemptRepository,
       RateLimitService rateLimitService) {
+    this.rules = rules;
     this.authenticationAttemptRepository = authenticationAttemptRepository;
     this.rateLimitService = rateLimitService;
   }

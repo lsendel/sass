@@ -1,17 +1,18 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
+import { vi } from 'vitest'
 import { useAutoSave } from './useAutoSave'
 
 describe('useAutoSave', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('should save data after delay', async () => {
-    const mockSave = jest.fn().mockResolvedValue(undefined)
+    const mockSave = vi.fn().mockResolvedValue(undefined)
     const data = { name: 'Test', slug: 'test' }
 
     const { result } = renderHook(() =>
@@ -26,7 +27,7 @@ describe('useAutoSave', () => {
 
     // Fast forward time to trigger save
     act(() => {
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
 
     await waitFor(() => {
@@ -40,7 +41,7 @@ describe('useAutoSave', () => {
 
   it('should show saving state during save', async () => {
     let resolveSave: () => void
-    const mockSave = jest.fn(() => new Promise<void>(resolve => {
+    const mockSave = vi.fn(() => new Promise<void>(resolve => {
       resolveSave = resolve
     }))
 
@@ -53,7 +54,7 @@ describe('useAutoSave', () => {
     )
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     await waitFor(() => {
@@ -72,8 +73,8 @@ describe('useAutoSave', () => {
 
   it('should handle save errors', async () => {
     const mockError = new Error('Save failed')
-    const mockSave = jest.fn().mockRejectedValue(mockError)
-    const mockOnError = jest.fn()
+    const mockSave = vi.fn().mockRejectedValue(mockError)
+    const mockOnError = vi.fn()
 
     const data = { name: 'Test' }
     const { result } = renderHook(() =>
@@ -85,7 +86,7 @@ describe('useAutoSave', () => {
     )
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     await waitFor(() => {
@@ -96,7 +97,7 @@ describe('useAutoSave', () => {
   })
 
   it('should retry failed saves', async () => {
-    const mockSave = jest.fn()
+    const mockSave = vi.fn()
       .mockRejectedValueOnce(new Error('First fail'))
       .mockResolvedValueOnce(undefined)
 
@@ -110,7 +111,7 @@ describe('useAutoSave', () => {
 
     // Initial save attempt
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     await waitFor(() => {
@@ -129,7 +130,7 @@ describe('useAutoSave', () => {
   })
 
   it('should detect unsaved changes', () => {
-    const mockSave = jest.fn().mockResolvedValue(undefined)
+    const mockSave = vi.fn().mockResolvedValue(undefined)
     const data = { name: 'Test', slug: 'test' }
 
     const { result, rerender } = renderHook(
@@ -147,7 +148,7 @@ describe('useAutoSave', () => {
   })
 
   it('should not save empty data', () => {
-    const mockSave = jest.fn().mockResolvedValue(undefined)
+    const mockSave = vi.fn().mockResolvedValue(undefined)
     const emptyData = {}
 
     renderHook(() =>
@@ -158,14 +159,14 @@ describe('useAutoSave', () => {
     )
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     expect(mockSave).not.toHaveBeenCalled()
   })
 
   it('should debounce rapid changes', async () => {
-    const mockSave = jest.fn().mockResolvedValue(undefined)
+    const mockSave = vi.fn().mockResolvedValue(undefined)
 
     const { result, rerender } = renderHook(
       ({ data }) => useAutoSave(data, { delay: 1000, onSave: mockSave }),
@@ -175,17 +176,17 @@ describe('useAutoSave', () => {
     // Rapid changes
     rerender({ data: { name: 'Test2' } })
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     rerender({ data: { name: 'Test3' } })
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     rerender({ data: { name: 'Test4' } })
     act(() => {
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
 
     await waitFor(() => {
@@ -195,7 +196,7 @@ describe('useAutoSave', () => {
   })
 
   it('should provide manual save function', async () => {
-    const mockSave = jest.fn().mockResolvedValue(undefined)
+    const mockSave = vi.fn().mockResolvedValue(undefined)
     const data = { name: 'Test' }
 
     const { result } = renderHook(() =>

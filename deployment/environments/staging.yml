@@ -1,0 +1,221 @@
+# Staging Environment Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: staging-config
+  namespace: payment-platform-staging
+data:
+  # Application Configuration
+  ENVIRONMENT: "staging"
+  LOG_LEVEL: "DEBUG"
+
+  # Database Configuration
+  DATABASE_HOST: "postgres-staging.internal"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "platform_staging"
+  DATABASE_SSL_MODE: "require"
+
+  # Redis Configuration
+  REDIS_HOST: "redis-staging.internal"
+  REDIS_PORT: "6379"
+  REDIS_SSL: "true"
+
+  # API Configuration
+  API_BASE_URL: "https://staging-api.payment-platform.com"
+  CORS_ALLOWED_ORIGINS: "https://staging.payment-platform.com"
+
+  # Stripe Configuration (Test Mode)
+  STRIPE_WEBHOOK_ENDPOINT_SECRET: "whsec_test_staging"
+
+  # Feature Flags
+  FEATURE_PAYMENT_PROCESSING: "true"
+  FEATURE_SUBSCRIPTION_MANAGEMENT: "true"
+  FEATURE_AUDIT_LOGGING: "true"
+  FEATURE_DEBUG_MODE: "true"
+
+  # Performance Settings
+  JVM_OPTS: "-Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+  THREAD_POOL_SIZE: "20"
+  CONNECTION_POOL_SIZE: "10"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-platform-backend-staging
+  namespace: payment-platform-staging
+  labels:
+    app: payment-platform-backend
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-platform-backend
+      environment: staging
+  template:
+    metadata:
+      labels:
+        app: payment-platform-backend
+        environment: staging
+    spec:
+      containers:
+      - name: backend
+        image: payment-platform-backend:staging
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "staging"
+        envFrom:
+        - configMapRef:
+            name: staging-config
+        - secretRef:
+            name: staging-secrets
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-platform-frontend-staging
+  namespace: payment-platform-staging
+  labels:
+    app: payment-platform-frontend
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-platform-frontend
+      environment: staging
+  template:
+    metadata:
+      labels:
+        app: payment-platform-frontend
+        environment: staging
+    spec:
+      containers:
+      - name: frontend
+        image: payment-platform-frontend:staging
+        ports:
+        - containerPort: 80
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        - name: VITE_API_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: staging-config
+              key: API_BASE_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-platform-backend-staging
+  namespace: payment-platform-staging
+spec:
+  selector:
+    app: payment-platform-backend
+    environment: staging
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-platform-frontend-staging
+  namespace: payment-platform-staging
+spec:
+  selector:
+    app: payment-platform-frontend
+    environment: staging
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: payment-platform-staging-ingress
+  namespace: payment-platform-staging
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - staging.payment-platform.com
+    - staging-api.payment-platform.com
+    secretName: staging-tls
+  rules:
+  - host: staging.payment-platform.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: payment-platform-frontend-staging
+            port:
+              number: 80
+  - host: staging-api.payment-platform.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: payment-platform-backend-staging
+            port:
+              number: 80
