@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -11,7 +12,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,8 +34,8 @@ import com.platform.user.internal.UserRepository;
  * Integration tests for subscription lifecycle management.
  * Tests plan management, subscription creation, billing cycles, and cross-module integration.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@AutoConfigureMockMvc
 @Testcontainers
 @ActiveProfiles("test")
 @Transactional
@@ -88,6 +89,9 @@ class SubscriptionLifecycleIntegrationTest {
         Plan plan = new Plan("Pro Plan", "price_pro_test",
                            new Money(new BigDecimal("29.99"), "USD"),
                            Plan.BillingInterval.MONTH);
+        // Use reflection to set required fields for test
+        setField(plan, "slug", "pro-plan");
+        setField(plan, "active", true);
         plan = planRepository.save(plan);
         planId = plan.getId();
     }
@@ -127,6 +131,9 @@ class SubscriptionLifecycleIntegrationTest {
         Plan premiumPlan = new Plan("Premium Plan", "price_premium_test",
                                   new Money(new BigDecimal("99.99"), "USD"),
                                   Plan.BillingInterval.MONTH);
+        // Use reflection to set required fields for test
+        setField(premiumPlan, "slug", "premium-plan-2");
+        setField(premiumPlan, "active", true);
         premiumPlan = planRepository.save(premiumPlan);
 
         String upgradeRequest = String.format("""
@@ -298,6 +305,9 @@ class SubscriptionLifecycleIntegrationTest {
         Plan premiumPlan = new Plan("Premium Plan", "price_premium_test",
                                   new Money(new BigDecimal("99.99"), "USD"),
                                   Plan.BillingInterval.MONTH);
+        // Use reflection to set required fields for test
+        setField(premiumPlan, "slug", "premium-plan");
+        setField(premiumPlan, "active", true);
         premiumPlan = planRepository.save(premiumPlan);
 
         String upgradeRequest = String.format("""
@@ -341,5 +351,16 @@ class SubscriptionLifecycleIntegrationTest {
         // 1. AuditEvent was published for subscription creation
         // 2. Payment module was notified for billing setup
         // 3. User module received organization status update
+    }
+
+    // Utility method for setting private fields via reflection
+    private void setField(Object obj, String fieldName, Object value) {
+        try {
+            Field field = obj.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(obj, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set field " + fieldName, e);
+        }
     }
 }

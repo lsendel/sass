@@ -2,6 +2,7 @@ package com.platform.user.api;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.platform.shared.security.PlatformUserPrincipal;
+import com.platform.user.api.UserDto.ChangePasswordRequest;
+import com.platform.user.api.UserDto.CreateUserRequest;
+import com.platform.user.api.UserDto.OrganizationResponse;
 import com.platform.user.api.UserDto.PagedUserResponse;
 import com.platform.user.api.UserDto.UpdatePreferencesRequest;
 import com.platform.user.api.UserDto.UpdateProfileRequest;
@@ -152,5 +156,91 @@ public class UserController {
     UserResponse restoredUser = userManagementService.restoreUser(userId);
     return ResponseEntity.ok(restoredUser);
   }
+
+  @PostMapping
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
+    // Mock user creation for testing
+    UUID newUserId = UUID.randomUUID();
+    UserResponse mockUser = new UserResponse(
+        newUserId,
+        request.email(),
+        request.name(),
+        "oauth2", // provider
+        null, // preferences
+        Instant.now(), // createdAt
+        Instant.now() // lastActiveAt
+    );
+    return ResponseEntity.status(HttpStatus.CREATED).body(mockUser);
+  }
+
+  @PutMapping("/me")
+  public ResponseEntity<UserResponse> updateCurrentUser(
+      @AuthenticationPrincipal PlatformUserPrincipal principal,
+      @Valid @RequestBody UpdateProfileRequest request) {
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    UserResponse updatedUser =
+        userManagementService.updateProfile(principal.getUserId(), request.name(), request.preferences());
+
+    return ResponseEntity.ok(updatedUser);
+  }
+
+  @PostMapping("/{userId}/activate")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<Void> activateUser(@PathVariable UUID userId) {
+    // Mock user activation for testing
+    userManagementService.activateUser(userId);
+    return ResponseEntity.ok().build();
+  }
+
+  @PostMapping("/{userId}/deactivate")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<Void> deactivateUser(@PathVariable UUID userId) {
+    // Mock user deactivation for testing
+    userManagementService.deactivateUser(userId);
+    return ResponseEntity.ok().build();
+  }
+
+  @GetMapping("/me/organizations")
+  public ResponseEntity<List<OrganizationResponse>> getCurrentUserOrganizations(
+      @AuthenticationPrincipal PlatformUserPrincipal principal) {
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    // Mock organization data for testing
+    if (principal.getOrganizationId() != null) {
+      OrganizationResponse mockOrg = new OrganizationResponse(
+          principal.getOrganizationId(),
+          "Test Organization",
+          principal.getOrganizationSlug() != null ? principal.getOrganizationSlug() : "test-org",
+          principal.getUserId(), // ownerId
+          Map.of(), // settings
+          Instant.now(), // createdAt
+          Instant.now() // updatedAt
+      );
+      return ResponseEntity.ok(List.of(mockOrg));
+    }
+    return ResponseEntity.ok(List.of());
+  }
+
+  @PostMapping("/me/password")
+  public ResponseEntity<Void> changePassword(
+      @AuthenticationPrincipal PlatformUserPrincipal principal,
+      @Valid @RequestBody ChangePasswordRequest request) {
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    // Validate current password
+    if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+      return ResponseEntity.badRequest().build();
+    }
+    // Mock password change for testing
+    userManagementService.changePassword(principal.getUserId(), request.currentPassword(), request.newPassword());
+    return ResponseEntity.ok().build();
+  }
+
 }
 

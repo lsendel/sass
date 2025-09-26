@@ -247,6 +247,14 @@ public class OAuth2Provider {
     this.sortOrder = sortOrder;
   }
 
+  public void setCreatedAt(Instant createdAt) {
+    this.createdAt = createdAt;
+  }
+
+  public void setUpdatedAt(Instant updatedAt) {
+    this.updatedAt = updatedAt;
+  }
+
   public Instant getCreatedAt() {
     return createdAt;
   }

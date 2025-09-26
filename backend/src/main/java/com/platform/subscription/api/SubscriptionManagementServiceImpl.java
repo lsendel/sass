@@ -1,6 +1,8 @@
 package com.platform.subscription.api;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -97,6 +99,7 @@ public class SubscriptionManagementServiceImpl implements SubscriptionManagement
         null // lastPaymentDate not available in current stats
     );
   }
+
 
   /**
    * Maps internal Subscription entity to API SubscriptionResponse DTO.

@@ -123,6 +123,37 @@ public class OAuth2AuditService {
     logger.info("OAuth2 authorization denied: user={}, provider={}", userId, provider);
   }
 
+  /** Log PKCE code verifier validation failure */
+  public void logPkceValidationFailure(String provider, String sessionId, String ipAddress) {
+    OAuth2AuditEvent event =
+        new OAuth2AuditEvent(
+            OAuth2AuditEvent.OAuth2EventType.PKCE_VALIDATION_FAILED,
+            "PKCE code verifier validation failed for provider: " + provider);
+
+    event.setSessionId(sessionId);
+    event.setProvider(provider);
+    event.markAsError("PKCE_VALIDATION_FAILED", "PKCE code verifier does not match");
+    event.setRequestContext(ipAddress, null, generateCorrelationId());
+
+    saveAuditEvent(event);
+    logger.warn("PKCE validation failed: provider={}, sessionId={}", provider, sessionId);
+  }
+
+  /** Log session expired event */
+  public void logSessionExpired(String provider, String sessionId, String ipAddress) {
+    OAuth2AuditEvent event =
+        new OAuth2AuditEvent(
+            OAuth2AuditEvent.OAuth2EventType.SESSION_EXPIRED,
+            "OAuth2 session expired for provider: " + provider);
+
+    event.setSessionId(sessionId);
+    event.setProvider(provider);
+    event.setRequestContext(ipAddress, null, generateCorrelationId());
+
+    saveAuditEvent(event);
+    logger.info("Session expired: provider={}, sessionId={}", provider, sessionId);
+  }
+
   // Token Events
 
   /** Log OAuth2 token exchange started */

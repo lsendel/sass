@@ -162,4 +162,208 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   @Query(
       "SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email.value = :email AND u.deletedAt IS NULL")
   boolean existsByEmailAndDeletedAtIsNull(@Param("email") String email);
+
+  /** Count users with activity after a specific date */
+  @Query("SELECT COUNT(u) FROM User u WHERE u.updatedAt >= :sinceDate AND u.deletedAt IS NULL")
+  long countUsersActiveAfter(@Param("sinceDate") Instant sinceDate);
+
+  /** Find users with activity after a specific date */
+  @Query("SELECT u FROM User u WHERE u.updatedAt >= :sinceDate AND u.deletedAt IS NULL ORDER BY u.updatedAt DESC")
+  List<User> findUsersActiveAfter(@Param("sinceDate") Instant sinceDate);
+
+  // ===== ADVANCED ANALYTICS QUERIES =====
+
+  /** User growth analytics - count users created by month */
+  @Query(value = """
+      SELECT
+          DATE_TRUNC('month', created_at) as month,
+          COUNT(*) as user_count
+      FROM users u
+      WHERE u.deleted_at IS NULL
+          AND u.created_at >= :startDate
+          AND u.created_at <= :endDate
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month
+      """, nativeQuery = true)
+  List<Object[]> getUserGrowthByMonth(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
+
+  /** User retention analytics - find users active in both periods */
+  @Query(value = """
+      SELECT
+          COUNT(DISTINCT u1.id) as retained_users,
+          COUNT(DISTINCT u2.id) as total_previous_users,
+          CASE WHEN COUNT(DISTINCT u2.id) > 0 THEN
+              ROUND((COUNT(DISTINCT u1.id) * 100.0 / COUNT(DISTINCT u2.id)), 2)
+          ELSE 0 END as retention_rate
+      FROM users u1
+      JOIN users u2 ON u1.id = u2.id
+      WHERE u1.updated_at BETWEEN :currentPeriodStart AND :currentPeriodEnd
+          AND u2.updated_at BETWEEN :previousPeriodStart AND :previousPeriodEnd
+          AND u1.deleted_at IS NULL AND u2.deleted_at IS NULL
+      """, nativeQuery = true)
+  List<Object[]> getUserRetentionRate(
+      @Param("currentPeriodStart") Instant currentPeriodStart,
+      @Param("currentPeriodEnd") Instant currentPeriodEnd,
+      @Param("previousPeriodStart") Instant previousPeriodStart,
+      @Param("previousPeriodEnd") Instant previousPeriodEnd);
+
+  /** Authentication method distribution analytics */
+  @Query(value = """
+      SELECT
+          u.provider,
+          COUNT(*) as user_count,
+          ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER()), 2) as percentage
+      FROM users u
+      WHERE u.deleted_at IS NULL
+      GROUP BY u.provider
+      ORDER BY user_count DESC
+      """, nativeQuery = true)
+  List<Object[]> getAuthenticationMethodDistribution();
+
+  /** Organization size analytics */
+  @Query(value = """
+      SELECT
+          o.name as organization_name,
+          COUNT(u.id) as user_count,
+          AVG(EXTRACT(EPOCH FROM (NOW() - u.created_at)) / 86400) as avg_user_age_days
+      FROM users u
+      JOIN organizations o ON u.organization_id = o.id
+      WHERE u.deleted_at IS NULL
+      GROUP BY o.id, o.name
+      HAVING COUNT(u.id) >= :minUsers
+      ORDER BY user_count DESC
+      """, nativeQuery = true)
+  List<Object[]> getOrganizationUserAnalytics(@Param("minUsers") int minUsers);
+
+  /** User activity patterns - daily, weekly, monthly */
+  @Query(value = """
+      SELECT
+          EXTRACT(DOW FROM updated_at) as day_of_week,
+          EXTRACT(HOUR FROM updated_at) as hour_of_day,
+          COUNT(*) as activity_count
+      FROM users u
+      WHERE u.updated_at >= :startDate
+          AND u.updated_at <= :endDate
+          AND u.deleted_at IS NULL
+      GROUP BY EXTRACT(DOW FROM updated_at), EXTRACT(HOUR FROM updated_at)
+      ORDER BY day_of_week, hour_of_day
+      """, nativeQuery = true)
+  List<Object[]> getUserActivityPatterns(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
+
+  /** Find users with suspicious email patterns */
+  @Query(value = """
+      SELECT
+          SUBSTRING(email FROM '@(.*)$') as domain,
+          COUNT(*) as user_count,
+          STRING_AGG(DISTINCT email, ', ') as sample_emails
+      FROM users
+      WHERE deleted_at IS NULL
+      GROUP BY SUBSTRING(email FROM '@(.*)$')
+      HAVING COUNT(*) >= :threshold
+      ORDER BY user_count DESC
+      """, nativeQuery = true)
+  List<Object[]> findSuspiciousEmailDomains(@Param("threshold") int threshold);
+
+  /** User lifecycle funnel analytics */
+  @Query(value = """
+      SELECT
+          CASE
+              WHEN email_verified = false THEN 'unverified'
+              WHEN lockout_expires_at > NOW() THEN 'locked'
+              WHEN updated_at < :inactiveThreshold THEN 'inactive'
+              ELSE 'active'
+          END as user_status,
+          COUNT(*) as count
+      FROM users
+      WHERE deleted_at IS NULL
+      GROUP BY
+          CASE
+              WHEN email_verified = false THEN 'unverified'
+              WHEN lockout_expires_at > NOW() THEN 'locked'
+              WHEN updated_at < :inactiveThreshold THEN 'inactive'
+              ELSE 'active'
+          END
+      ORDER BY count DESC
+      """, nativeQuery = true)
+  List<Object[]> getUserLifecycleFunnel(@Param("inactiveThreshold") Instant inactiveThreshold);
+
+  /** Geographic distribution by organization */
+  @Query(value = """
+      SELECT
+          o.name as organization,
+          COALESCE(u.preferences::jsonb ->> 'timezone', 'unknown') as timezone,
+          COUNT(*) as user_count
+      FROM users u
+      JOIN organizations o ON u.organization_id = o.id
+      WHERE u.deleted_at IS NULL
+      GROUP BY o.name, COALESCE(u.preferences::jsonb ->> 'timezone', 'unknown')
+      HAVING COUNT(*) > 0
+      ORDER BY o.name, user_count DESC
+      """, nativeQuery = true)
+  List<Object[]> getUserGeographicDistribution();
+
+  /** Churn risk analysis - users inactive for specified period */
+  @Query(value = """
+      SELECT
+          u.id,
+          u.email,
+          u.name,
+          o.name as organization,
+          u.updated_at as last_activity,
+          EXTRACT(EPOCH FROM (NOW() - u.updated_at)) / 86400 as days_inactive
+      FROM users u
+      JOIN organizations o ON u.organization_id = o.id
+      WHERE u.updated_at < :churnThreshold
+          AND u.deleted_at IS NULL
+      ORDER BY u.updated_at ASC
+      LIMIT :maxResults
+      """, nativeQuery = true)
+  List<Object[]> getChurnRiskUsers(@Param("churnThreshold") Instant churnThreshold, @Param("maxResults") int maxResults);
+
+  /** User engagement scoring */
+  @Query(value = """
+      SELECT
+          u.id,
+          u.email,
+          u.name,
+          CASE
+              WHEN u.updated_at >= :highlyActiveThreshold THEN 'highly_active'
+              WHEN u.updated_at >= :moderatelyActiveThreshold THEN 'moderately_active'
+              WHEN u.updated_at >= :lowActiveThreshold THEN 'low_active'
+              ELSE 'inactive'
+          END as engagement_level,
+          u.updated_at as last_activity
+      FROM users u
+      WHERE u.organization_id = :organizationId AND u.deleted_at IS NULL
+      ORDER BY u.updated_at DESC
+      """, nativeQuery = true)
+  List<Object[]> getUserEngagementScores(
+      @Param("organizationId") UUID organizationId,
+      @Param("highlyActiveThreshold") Instant highlyActiveThreshold,
+      @Param("moderatelyActiveThreshold") Instant moderatelyActiveThreshold,
+      @Param("lowActiveThreshold") Instant lowActiveThreshold);
+
+  /** Advanced search with filters */
+  @Query(value = """
+      SELECT u.* FROM users u
+      JOIN organizations o ON u.organization_id = o.id
+      WHERE u.deleted_at IS NULL
+          AND (:searchTerm IS NULL OR
+               LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+               LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))
+          AND (:organizationId IS NULL OR u.organization_id = :organizationId)
+          AND (:provider IS NULL OR u.provider = :provider)
+          AND (:emailVerified IS NULL OR u.email_verified = :emailVerified)
+          AND (:createdAfter IS NULL OR u.created_at >= :createdAfter)
+          AND (:createdBefore IS NULL OR u.created_at <= :createdBefore)
+      ORDER BY u.created_at DESC
+      """, nativeQuery = true)
+  List<User> advancedUserSearch(
+      @Param("searchTerm") String searchTerm,
+      @Param("organizationId") UUID organizationId,
+      @Param("provider") String provider,
+      @Param("emailVerified") Boolean emailVerified,
+      @Param("createdAfter") Instant createdAfter,
+      @Param("createdBefore") Instant createdBefore,
+      Pageable pageable);
 }

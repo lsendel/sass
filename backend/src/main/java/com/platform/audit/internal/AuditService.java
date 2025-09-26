@@ -21,9 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.shared.security.TenantContext;
 
-@Service
 @Transactional
-public class AuditService {
+public class AuditService implements com.platform.shared.audit.AuditService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuditService.class);
   private static final String REDACTED_PLACEHOLDER = "[REDACTED]";

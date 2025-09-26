@@ -7,6 +7,7 @@ plugins {
     id 'org.sonarqube' version '5.1.0.4882'
     id 'org.owasp.dependencycheck' version '10.0.4'
     id 'org.jetbrains.dokka' version '1.9.10'
+    id 'com.github.ben-manes.versions' version '0.53.0'
 }
 
 group = 'com.platform'
@@ -145,14 +146,14 @@ sonar {
         property "sonar.java.source", "21"
         property "sonar.exclusions", "**/build/**,**/target/**,**/.gradle/**"
         property "sonar.coverage.exclusions", "**/test/**,**/config/**"
-        property "sonar.gradle.skipCompile", "true"
+        
     }
 }
 
 dependencyCheck {
     formats = ['HTML', 'JSON']
     outputDirectory = 'build/reports/dependency-check'
-    failBuildOnCVSS = 7.0
+    failBuildOnCVSS = 5.0
     suppressionFile = 'config/dependency-check-suppressions.xml'
     analyzers {
         assemblyEnabled = false
@@ -161,40 +162,30 @@ dependencyCheck {
     }
 }
 
-dokkaHtml {
-    dependsOn compileJava
+tasks.withType(org.jetbrains.dokka.gradle.DokkaTask.class) {
     outputDirectory.set(file("../docs/docs/backend-api"))
-    dokkaSourceSets.register("backendMain") {
-        displayName.set("Backend API")
-        platform.set(org.jetbrains.dokka.Platform.jvm)
-        jdkVersion.set(21)
-        includeNonPublic.set(false)
-        skipEmptyPackages.set(false)
-        reportUndocumented.set(false)
-        suppress.set(false)
-        javaSourceRoots.setFrom(file("src/main/java"))
-        classpath.setFrom(configurations.compileClasspath)
-        perPackageOption(".*\\.internal(\\..*)?") {
+    dokkaSourceSets {
+        configureEach {
+            displayName.set("Backend API")
+            platform.set(org.jetbrains.dokka.Platform.jvm)
+            jdkVersion.set(21)
+            includeNonPublic.set(false)
+            skipEmptyPackages.set(false)
+            reportUndocumented.set(false)
             suppress.set(false)
+            javaSourceRoots.setFrom(file("src/main/java"))
+            classpath.setFrom(configurations.compileClasspath)
+            perPackageOption(".*\\.internal(\\..*)?") {
+                suppress.set(false)
+            }
         }
     }
 }
 
 dokkaGfm {
     outputDirectory.set(file("../docs/docs/backend-api-gfm"))
-    dokkaSourceSets.register("backendMain") {
-        displayName.set("Backend API")
-        platform.set(org.jetbrains.dokka.Platform.jvm)
-        jdkVersion.set(21)
-        includeNonPublic.set(false)
-        skipEmptyPackages.set(false)
+    dokkaSourceSets.configureEach {
         reportUndocumented.set(true)
-        suppress.set(false)
-        javaSourceRoots.setFrom(file("src/main/java"))
-        classpath.setFrom(configurations.compileClasspath)
-        perPackageOption(".*\\.internal(\\..*)?") {
-            suppress.set(false)
-        }
     }
 }
 

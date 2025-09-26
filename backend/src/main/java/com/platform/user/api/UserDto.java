@@ -169,4 +169,21 @@ public class UserDto {
   public record UpdateMemberRoleRequest(
       @NotNull Role role) {
   }
+
+  /**
+   * Request DTO for creating a user.
+   */
+  public record CreateUserRequest(
+      @Email @NotBlank String email,
+      @NotBlank String name,
+      String role) {
+  }
+
+  /**
+   * Request DTO for changing password.
+   */
+  public record ChangePasswordRequest(
+      @NotBlank String currentPassword,
+      @NotBlank String newPassword) {
+  }
 }

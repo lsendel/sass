@@ -1,0 +1,56 @@
+# types/api
+
+## Type Aliases
+
+- [ApiErrorResponse](type-aliases/ApiErrorResponse.md)
+- [ApiSuccessResponse](type-aliases/ApiSuccessResponse.md)
+- [AuditEvent](type-aliases/AuditEvent.md)
+- [AuthMethodsResponse](type-aliases/AuthMethodsResponse.md)
+- [AuthUrlResponse](type-aliases/AuthUrlResponse.md)
+- [CallbackRequest](type-aliases/CallbackRequest.md)
+- [Invoice](type-aliases/Invoice.md)
+- [LoginRequest](type-aliases/LoginRequest.md)
+- [LoginResponse](type-aliases/LoginResponse.md)
+- [OAuth2Provider](type-aliases/OAuth2Provider.md)
+- [Organization](type-aliases/Organization.md)
+- [PaginatedResponse](type-aliases/PaginatedResponse.md)
+- [PasswordLoginRequest](type-aliases/PasswordLoginRequest.md)
+- [PasswordRegisterRequest](type-aliases/PasswordRegisterRequest.md)
+- [Payment](type-aliases/Payment.md)
+- [PaymentMethod](type-aliases/PaymentMethod.md)
+- [Plan](type-aliases/Plan.md)
+- [Refund](type-aliases/Refund.md)
+- [SessionInfo](type-aliases/SessionInfo.md)
+- [Subscription](type-aliases/Subscription.md)
+- [User](type-aliases/User.md)
+
+## Variables
+
+- [ApiErrorResponseSchema](variables/ApiErrorResponseSchema.md)
+- [AuditEventSchema](variables/AuditEventSchema.md)
+- [AuthMethodsResponseSchema](variables/AuthMethodsResponseSchema.md)
+- [AuthUrlResponseSchema](variables/AuthUrlResponseSchema.md)
+- [CallbackRequestSchema](variables/CallbackRequestSchema.md)
+- [InvoiceSchema](variables/InvoiceSchema.md)
+- [LoginRequestSchema](variables/LoginRequestSchema.md)
+- [LoginResponseSchema](variables/LoginResponseSchema.md)
+- [OAuth2ProviderSchema](variables/OAuth2ProviderSchema.md)
+- [OrganizationPlanSchema](variables/OrganizationPlanSchema.md)
+- [OrganizationSchema](variables/OrganizationSchema.md)
+- [PasswordLoginRequestSchema](variables/PasswordLoginRequestSchema.md)
+- [PasswordRegisterRequestSchema](variables/PasswordRegisterRequestSchema.md)
+- [PaymentMethodSchema](variables/PaymentMethodSchema.md)
+- [PaymentSchema](variables/PaymentSchema.md)
+- [PaymentStatusSchema](variables/PaymentStatusSchema.md)
+- [PlanSchema](variables/PlanSchema.md)
+- [RefundSchema](variables/RefundSchema.md)
+- [SessionInfoSchema](variables/SessionInfoSchema.md)
+- [SubscriptionSchema](variables/SubscriptionSchema.md)
+- [SubscriptionStatusSchema](variables/SubscriptionStatusSchema.md)
+- [UserRoleSchema](variables/UserRoleSchema.md)
+- [UserSchema](variables/UserSchema.md)
+
+## Functions
+
+- [ApiSuccessResponseSchema](functions/ApiSuccessResponseSchema.md)
+- [PaginatedResponseSchema](functions/PaginatedResponseSchema.md)

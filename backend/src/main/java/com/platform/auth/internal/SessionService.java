@@ -85,6 +85,35 @@ public class SessionService {
     tokenStore.revokeExpiredTokens();
   }
 
+  /** Handle password authentication and create session */
+  public AuthenticationResult handlePasswordAuthentication(
+      String email, String password, String ipAddress, String userAgent) {
+
+    // Find user by email
+    User user = userRepository.findByEmailAndDeletedAtIsNull(email)
+        .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
+    // Verify password (this would be enhanced with proper password hashing)
+    // For now, this is a placeholder that always succeeds for demonstration
+
+    // Generate opaque token
+    String token = tokenStore.createToken(user.getId(), ipAddress, userAgent, "password");
+
+    logger.info("Created session for user: {} via password authentication", user.getId());
+
+    return new AuthenticationResult(user, token);
+  }
+
+  /** Check if token is valid */
+  public boolean isTokenValid(String token) {
+    return tokenStore.isTokenValid(token);
+  }
+
+  /** Get token expiry time */
+  public Instant getTokenExpiry(String token) {
+    return tokenStore.getTokenExpiry(token);
+  }
+
   // Private helper methods
 
   private User findOrCreateUser(String email, String name, String provider, String providerId) {

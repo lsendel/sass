@@ -53,7 +53,7 @@ spring:
           max-active: 10
           max-idle: 5
           min-idle: 2
-          max-wait: -1ms
+          max-wait: 5000ms
 
   # Production Session Configuration
   session:

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src",
+    ".storybook",
+    "tests",
+    "*.js",
+    "*.ts",
+    "*.d.ts"
+  ]
+}

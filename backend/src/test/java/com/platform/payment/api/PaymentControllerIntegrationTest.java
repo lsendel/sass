@@ -1,19 +1,25 @@
 package com.platform.payment.api;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -23,10 +29,15 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.platform.payment.internal.PaymentService;
+import com.platform.payment.api.PaymentDto;
+import com.platform.shared.security.PlatformUserPrincipal;
+import com.platform.shared.security.TenantGuard;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureWebMvc
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
     "platform.stripe.publishable-key=pk_test_fake",
@@ -44,34 +55,69 @@ class PaymentControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private PaymentService paymentService;
+    @MockBean
+    private PaymentManagementService paymentManagementService;
+
+    @MockBean
+    private TenantGuard tenantGuard;
 
     @BeforeEach
     void setUp() {
         log.info("Setting up PaymentControllerIntegrationTest");
+
+        // Mock tenant guard to allow organization access
+        when(tenantGuard.canManageOrganization(any(), any())).thenReturn(true);
+        when(tenantGuard.canAccessOrganization(any(), any())).thenReturn(true);
+
+        // Set up tenant context for the test user and organization
+        UUID testUserId = UUID.fromString("01847b7f-d037-4c51-a4af-0c7688a1ec18");
+        UUID testOrgId = UUID.fromString("01847b7f-d037-4c51-a4af-0c7688a1ec17");
+        com.platform.shared.security.TenantContext.setTenantInfo(testOrgId, "test-org", testUserId);
+
+        // Mock PaymentManagementService methods to avoid actual Stripe API calls
+        try {
+            PaymentDto.PaymentIntentResponse mockPaymentIntentResponse = createMockPaymentIntentResponse();
+            when(paymentManagementService.createPaymentIntent(any()))
+                .thenReturn(mockPaymentIntentResponse);
+
+            // Mock other PaymentManagementService methods used by other tests
+            when(paymentManagementService.confirmPaymentIntent(any(), any(), any()))
+                .thenReturn(mockPaymentIntentResponse);
+            when(paymentManagementService.getOrganizationPayments(any()))
+                .thenReturn(java.util.List.of());
+            when(paymentManagementService.getOrganizationPaymentMethods(any()))
+                .thenReturn(java.util.List.of());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to setup PaymentManagementService mocks", e);
+        }
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Clean up tenant context after each test
+        com.platform.shared.security.TenantContext.clear();
     }
 
     @Test
     @WithMockUser(username = "test@example.com", authorities = {"USER"})
     void testCreatePayment_ShouldReturnPaymentIntent() throws Exception {
-        log.info("Testing POST /api/v1/payments");
+        log.info("Testing POST /api/v1/payments/intents");
 
         Map<String, Object> paymentRequest = Map.of(
             "amount", 2500,
             "currency", "usd",
-            "customerId", "cust_test123",
+            "organizationId", "01847b7f-d037-4c51-a4af-0c7688a1ec17", // Need organization ID for authorization
             "description", "Test payment"
         );
 
         String requestBody = objectMapper.writeValueAsString(paymentRequest);
 
-        MvcResult result = mockMvc.perform(post("/api/v1/payments")
+        MvcResult result = mockMvc.perform(post("/api/v1/payments/intents")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.clientSecret").exists())
-                .andExpect(jsonPath("$.amount").value(2500))
+                .andExpect(jsonPath("$.amount").value(25.00))
                 .andExpect(jsonPath("$.currency").value("usd"))
                 .andReturn();
 
@@ -80,7 +126,7 @@ class PaymentControllerIntegrationTest {
         Map<String, Object> paymentResponse = objectMapper.readValue(response, Map.class);
 
         assertTrue(paymentResponse.containsKey("clientSecret"));
-        assertEquals(2500, paymentResponse.get("amount"));
+        assertEquals(25.00, paymentResponse.get("amount"));
         assertEquals("usd", paymentResponse.get("currency"));
 
         log.info("Payment creation successful with client secret: {}", paymentResponse.get("clientSecret"));
@@ -131,7 +177,6 @@ class PaymentControllerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "test@example.com", authorities = {"USER"})
     void testConfirmPayment_ShouldConfirmPaymentIntent() throws Exception {
         log.info("Testing POST /api/v1/payments/{paymentIntentId}/confirm");
 
@@ -142,7 +187,18 @@ class PaymentControllerIntegrationTest {
 
         String requestBody = objectMapper.writeValueAsString(confirmRequest);
 
-        MvcResult result = mockMvc.perform(post("/api/v1/payments/{paymentIntentId}/confirm", paymentIntentId)
+        // Create a proper PlatformUserPrincipal with organization ID
+        PlatformUserPrincipal principal = PlatformUserPrincipal.organizationMember(
+            UUID.fromString("01847b7f-d037-4c51-a4af-0c7688a1ec18"),
+            "test@example.com",
+            "Test User",
+            UUID.fromString("01847b7f-d037-4c51-a4af-0c7688a1ec17"),
+            "test-org",
+            "USER"
+        );
+
+        MvcResult result = mockMvc.perform(post("/api/v1/payments/intents/{paymentIntentId}/confirm", paymentIntentId)
+                .with(withPrincipal(principal))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
                 .andExpect(status().isOk())
@@ -300,5 +356,27 @@ class PaymentControllerIntegrationTest {
         assertTrue(statusResponse.containsKey("status"));
 
         log.info("Payment status retrieved: {}", statusResponse.get("status"));
+    }
+
+    private PaymentDto.PaymentIntentResponse createMockPaymentIntentResponse() {
+        // Create a mock PaymentIntentResponse with minimal required fields
+        return new PaymentDto.PaymentIntentResponse(
+            "pi_test123456789",
+            "pi_test123456789_secret_abc123",
+            "requires_payment_method",
+            java.math.BigDecimal.valueOf(25.00),
+            "usd",
+            "Test payment",
+            java.util.Map.of()
+        );
+    }
+
+    private RequestPostProcessor withPrincipal(PlatformUserPrincipal principal) {
+        UsernamePasswordAuthenticationToken authenticationToken =
+            new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                principal.getAuthorities());
+        return authentication(authenticationToken);
     }
 }

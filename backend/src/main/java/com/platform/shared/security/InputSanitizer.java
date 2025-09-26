@@ -1,8 +1,15 @@
 package com.platform.shared.security;
 
+import java.io.IOException;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 
 /**
  * Comprehensive input sanitization utility for preventing XSS, injection attacks,
@@ -10,6 +17,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class InputSanitizer {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // Common XSS patterns
     private static final Pattern SCRIPT_PATTERN = Pattern.compile(
@@ -287,18 +296,40 @@ public class InputSanitizer {
      * Sanitizes JSON input by escaping dangerous characters.
      */
     public String sanitizeJsonValue(String jsonValue) {
-        if (jsonValue == null) {
+        if (jsonValue == null || jsonValue.isBlank()) {
+            return jsonValue;
+        }
+
+        try {
+            JsonNode parsed = OBJECT_MAPPER.readTree(jsonValue);
+            JsonNode sanitized = sanitizeJsonNode(parsed);
+            return OBJECT_MAPPER.writeValueAsString(sanitized);
+        } catch (IOException ex) {
+            throw new IllegalArgumentException("Invalid JSON payload", ex);
+        }
+    }
+
+    private JsonNode sanitizeJsonNode(JsonNode node) {
+        if (node == null) {
             return null;
         }
 
-        // Escape JSON special characters
-        return jsonValue
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\b", "\\b")
-            .replace("\f", "\\f")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t");
+        if (node.isTextual()) {
+            return TextNode.valueOf(sanitizeUserInput(node.asText()));
+        }
+
+        if (node.isObject()) {
+            ObjectNode objectNode = OBJECT_MAPPER.createObjectNode();
+            node.fields().forEachRemaining(entry -> objectNode.set(entry.getKey(), sanitizeJsonNode(entry.getValue())));
+            return objectNode;
+        }
+
+        if (node.isArray()) {
+            ArrayNode arrayNode = OBJECT_MAPPER.createArrayNode();
+            node.forEach(child -> arrayNode.add(sanitizeJsonNode(child)));
+            return arrayNode;
+        }
+
+        return node;
     }
 }

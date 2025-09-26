@@ -149,6 +149,22 @@ public class OpaqueTokenStore {
     return resolveTokenMetadata(token);
   }
 
+  /** Check if a token is valid */
+  @Transactional(readOnly = true)
+  public boolean isTokenValid(String token) {
+    return resolveTokenMetadata(token)
+        .map(metadata -> metadata.isValid() && !metadata.isExpired())
+        .orElse(false);
+  }
+
+  /** Get token expiry time */
+  @Transactional(readOnly = true)
+  public Instant getTokenExpiry(String token) {
+    return resolveTokenMetadata(token)
+        .map(TokenMetadata::getExpiresAt)
+        .orElse(Instant.now()); // Return current time if token not found
+  }
+
   /** Count active sessions for a user */
   @Transactional(readOnly = true)
   public long countActiveUserSessions(UUID userId) {

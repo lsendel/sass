@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.platform.shared.security.PasswordProperties;
 import com.platform.shared.types.Email;
@@ -17,6 +19,8 @@ import com.platform.user.internal.Organization;
 import com.platform.user.internal.User;
 
 /** Simple tests to exercise basic entity creation and establish code coverage */
+@SpringBootTest
+@ActiveProfiles("test")
 class SimpleCoverageTest {
 
   private static final BigDecimal AMOUNT_99_99 = BigDecimal.valueOf(99.99);

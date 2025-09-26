@@ -149,6 +149,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/webhooks/**")
                     .permitAll()
+                    .requestMatchers("/api/v1/analytics")
+                    .permitAll()
                     .requestMatchers("/actuator/health")
                     .permitAll()
                     .requestMatchers("/actuator/info")

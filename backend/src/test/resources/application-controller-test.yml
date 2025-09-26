@@ -1,0 +1,59 @@
+spring:
+  main:
+    lazy-initialization: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+  datasource:
+    url: jdbc:h2:mem:controller-test;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  # Disable Redis for controller tests
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  # Disable security auto-configuration for controller tests
+  security:
+    oauth2:
+      client:
+        registration: {}
+        provider: {}
+
+  # Disable session management for controller tests
+  session:
+    store-type: none
+
+# Disable management endpoints for controller tests
+management:
+  endpoints:
+    enabled-by-default: false
+
+# Application specific properties for controller tests
+app:
+  frontend-url: http://localhost:3000
+
+platform:
+  security:
+    password:
+      enabled: true
+      min-length: 12
+      max-length: 128
+      require-uppercase: true
+      require-lowercase: true
+      require-digits: true
+      require-special-chars: true
+      history-count: 5
+
+# Logging configuration for tests
+logging:
+  level:
+    com.platform: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.mockito: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

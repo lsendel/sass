@@ -114,4 +114,28 @@ public interface UserManagementServiceInterface {
    * @return the restored user
    */
   UserResponse restoreUser(UUID userId);
+
+  /**
+   * Activates a user account.
+   *
+   * @param userId the user ID
+   */
+  void activateUser(UUID userId);
+
+  /**
+   * Deactivates a user account.
+   *
+   * @param userId the user ID
+   */
+  void deactivateUser(UUID userId);
+
+  /**
+   * Changes a user's password.
+   *
+   * @param userId the user ID
+   * @param currentPassword the current password
+   * @param newPassword the new password
+   */
+  void changePassword(UUID userId, String currentPassword, String newPassword);
+
 }

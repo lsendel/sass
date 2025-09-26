@@ -11,10 +11,13 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,10 +25,16 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.shared.security.PlatformUserPrincipal;
+import com.platform.user.api.UserDto.UserResponse;
 import com.platform.user.internal.OrganizationService;
 
+import static org.mockito.Mockito.when;
+import java.util.Optional;
+import java.util.UUID;
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureWebMvc
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
     "platform.multi-tenancy.enabled=true",
@@ -45,33 +54,48 @@ class UserControllerIntegrationTest {
     @Autowired
     private OrganizationService organizationService;
 
+    @MockBean
+    private UserManagementServiceInterface userManagementService;
+
     @BeforeEach
     void setUp() {
         log.info("Setting up UserControllerIntegrationTest");
     }
 
     @Test
-    @WithMockUser(username = "test@example.com", authorities = {"USER"})
     void testGetCurrentUser_ShouldReturnUserProfile() throws Exception {
-        log.info("Testing GET /api/v1/users/me");
+        log.info("Testing GET /api/v1/users/me with PlatformUserPrincipal");
 
-        MvcResult result = mockMvc.perform(get("/api/v1/users/me")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.email").exists())
-                .andExpect(jsonPath("$.name").exists())
-                .andReturn();
+        // Create test user
+        UUID userId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        PlatformUserPrincipal principal = PlatformUserPrincipal.organizationMember(
+            userId, "test@example.com", "Test User", organizationId, "example-org", "ADMIN");
 
-        String response = result.getResponse().getContentAsString();
-        @SuppressWarnings("unchecked")
-        Map<String, Object> userProfile = objectMapper.readValue(response, Map.class);
+        // Mock the service response
+        UserResponse mockUserResponse = new UserResponse(
+            userId, "test@example.com", "Test User", "oauth2",
+            Map.of(), java.time.Instant.now(), java.time.Instant.now());
+        when(userManagementService.getCurrentUser()).thenReturn(Optional.of(mockUserResponse));
 
-        assertTrue(userProfile.containsKey("id"));
-        assertTrue(userProfile.containsKey("email"));
-        assertTrue(userProfile.containsKey("name"));
+        // Set up authentication context
+        var authentication = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        org.springframework.security.core.context.SecurityContextHolder.getContext()
+            .setAuthentication(authentication);
 
-        log.info("User profile retrieved successfully for user: {}", userProfile.get("email"));
+        try {
+            MvcResult result = mockMvc.perform(get("/api/v1/users/me")
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.email").value("test@example.com"))
+                    .andExpect(jsonPath("$.name").value("Test User"))
+                    .andReturn();
+
+            log.info("User profile retrieved successfully");
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
     }
 
     @Test

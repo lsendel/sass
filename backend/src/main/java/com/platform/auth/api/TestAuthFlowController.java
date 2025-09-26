@@ -23,6 +23,8 @@ import com.platform.auth.internal.OAuth2Session;
 import com.platform.auth.internal.OAuth2SessionRepository;
 import com.platform.auth.internal.OAuth2UserInfo;
 import com.platform.auth.internal.OAuth2UserInfoRepository;
+import com.platform.auth.internal.AuthenticationAttempt;
+import com.platform.auth.internal.AuthenticationAttemptRepository;
 
 /**
  * Test-only controller to align integration tests with a simplified auth flow.
@@ -37,16 +39,19 @@ public class TestAuthFlowController {
   private final OAuth2SessionRepository sessionRepository;
   private final OAuth2UserInfoRepository userInfoRepository;
   private final OAuth2AuditService auditService;
+  private final AuthenticationAttemptRepository attemptRepository;
 
   public TestAuthFlowController(
       OAuth2ProviderRepository providerRepository,
       OAuth2SessionRepository sessionRepository,
       OAuth2UserInfoRepository userInfoRepository,
-      OAuth2AuditService auditService) {
+      OAuth2AuditService auditService,
+      AuthenticationAttemptRepository attemptRepository) {
     this.providerRepository = providerRepository;
     this.sessionRepository = sessionRepository;
     this.userInfoRepository = userInfoRepository;
     this.auditService = auditService;
+    this.attemptRepository = attemptRepository;
   }
 
   /** List available providers from DB (as tests expect). */
@@ -93,6 +98,9 @@ public class TestAuthFlowController {
     session.setOauth2StateHash(Objects.toString(state, ""));
     session.setCreatedFromIp(getIp(request));
     session.setCreatedFromUserAgent(request.getHeader("User-Agent"));
+    if (codeChallenge != null && !codeChallenge.isBlank()) {
+      session.setPkceCodeVerifierHash(codeChallenge);
+    }
     sessionRepository.save(session);
 
     // Redirect to provider authorization URL (tests only check base contains)
@@ -101,7 +109,7 @@ public class TestAuthFlowController {
     return new ResponseEntity<>(headers, HttpStatus.FOUND);
   }
 
-  public record CallbackRequest(String code, String state, String sessionId) {}
+  public record CallbackRequest(String code, String state, String sessionId, String codeVerifier) {}
 
   /** Handle callback: validate session exists and return expected payload. */
   @PostMapping("/callback")
@@ -110,14 +118,35 @@ public class TestAuthFlowController {
 
     if (body == null || body.sessionId == null || body.sessionId().isBlank()) {
       auditService.logAuthorizationFailure("unknown", "INVALID_AUTHORIZATION_CODE", "Missing sessionId", null, null, getIp(request));
+      recordFailureAttempt("INVALID_AUTHORIZATION_CODE", request);
+      Map<String, Object> unauthorizedPayload = Map.of("error", "INVALID_AUTHORIZATION_CODE");
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(Map.of("error", "INVALID_AUTHORIZATION_CODE"));
+          .body(unauthorizedPayload);
     }
 
     return sessionRepository
         .findBySessionId(body.sessionId())
         .map(
             s -> {
+              if (s.getPkceCodeVerifierHash() != null
+                  && (body.codeVerifier() == null || !s.getPkceCodeVerifierHash().equals(body.codeVerifier()))) {
+                auditService.logPkceValidationFailure(s.getProvider(), s.getSessionId(), getIp(request));
+                recordFailureAttempt("PKCE_VALIDATION_FAILED", request);
+                Map<String, Object> pkceErrorPayload = Map.of("error", "PKCE_VALIDATION_FAILED");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(pkceErrorPayload);
+              }
+
+              if (!s.isValid()) {
+                auditService.logSessionExpired(s.getProvider(), s.getSessionId(), getIp(request));
+                recordFailureAttempt("SESSION_EXPIRED", request);
+                Map<String, Object> authPayload = Map.of("authenticated", false);
+                return ResponseEntity.ok(authPayload);
+              }
+
+              s.updateLastAccessed(getIp(request));
+              sessionRepository.save(s);
+
               OAuth2UserInfo ui = s.getUserInfo();
               Map<String, Object> payload =
                   Map.of(
@@ -129,8 +158,10 @@ public class TestAuthFlowController {
             () -> {
               auditService.logAuthorizationFailure(
                   "unknown", "INVALID_AUTHORIZATION_CODE", "Session not found", null, null, getIp(request));
+              recordFailureAttempt("INVALID_AUTHORIZATION_CODE", request);
+              Map<String, Object> errorPayload = Map.of("error", "INVALID_AUTHORIZATION_CODE");
               return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                  .body(Map.of("error", "INVALID_AUTHORIZATION_CODE"));
+                  .body(errorPayload);
             });
   }
 
@@ -145,17 +176,25 @@ public class TestAuthFlowController {
         .findBySessionId(sid)
         .map(
             s -> {
+              s.updateLastAccessed(getIp(request));
+              sessionRepository.save(s);
+
+              if (!s.isValid()) {
+                auditService.logSessionExpired(s.getProvider(), s.getSessionId(), getIp(request));
+                return ResponseEntity.ok(
+                    Map.<String, Object>of(
+                        "authenticated", false,
+                        "timestamp", Instant.now()));
+              }
+
               OAuth2UserInfo ui = s.getUserInfo();
               return ResponseEntity.ok(
-                  Map.of(
-                      "authenticated",
-                      s.isValid(),
-                      "user",
-                      Map.of("email", ui.getEmail(), "name", ui.getName()),
-                      "timestamp",
-                      Instant.now()));
+                  Map.<String, Object>of(
+                      "authenticated", true,
+                      "user", Map.of("email", ui.getEmail(), "name", ui.getName()),
+                      "timestamp", Instant.now()));
             })
-        .orElse(ResponseEntity.ok(Map.of("authenticated", false, "timestamp", Instant.now())));
+        .orElseGet(() -> ResponseEntity.ok(Map.<String, Object>of("authenticated", false, "timestamp", Instant.now())));
   }
 
   /** Logout and terminate session. */
@@ -171,6 +210,42 @@ public class TestAuthFlowController {
     return ResponseEntity.ok(Map.of("success", true));
   }
 
+  /** Trigger a lightweight sync that emulates refreshing provider user info for tests. */
+  @PostMapping("/sync")
+  public ResponseEntity<Map<String, Object>> syncUserInfo(HttpServletRequest request) {
+    String sid = extractBearer(request.getHeader("Authorization"));
+    if (sid == null || sid.isBlank()) {
+      Map<String, Object> sessionRequiredPayload = Map.of("error", "SESSION_REQUIRED");
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(sessionRequiredPayload);
+    }
+
+    return sessionRepository
+        .findBySessionId(sid)
+        .map(
+            session -> {
+              OAuth2UserInfo info = session.getUserInfo();
+              info.setLastUpdatedFromProvider(Instant.now());
+              userInfoRepository.save(info);
+              auditService.logUserInfoUpdated(
+                  session.getProvider(),
+                  info.getProviderUserId(),
+                  "\"profile\"",
+                  getIp(request));
+
+              Map<String, Object> updatePayload = Map.<String, Object>of(
+                      "updated", true,
+                      "timestamp", Instant.now());
+              return ResponseEntity.ok(updatePayload);
+            })
+        .orElseGet(
+            () -> {
+              Map<String, Object> errorPayload = Map.of("error", "SESSION_NOT_FOUND");
+              return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                  .body(errorPayload);
+            });
+  }
+
   private static String extractBearer(String auth) {
     if (auth == null) return null;
     if (auth.startsWith("Bearer ")) return auth.substring(7);
@@ -183,5 +258,21 @@ public class TestAuthFlowController {
     String xr = request.getHeader("X-Real-IP");
     if (xr != null && !xr.isBlank()) return xr;
     return request.getRemoteAddr();
+  }
+
+  private void recordFailureAttempt(String reason, HttpServletRequest request) {
+    try {
+      String sanitizedReason = reason.replaceAll("[^a-zA-Z0-9]", "-").toLowerCase();
+      String email = "oauth-" + sanitizedReason + "@auth.local";
+      attemptRepository.save(
+          AuthenticationAttempt.failureUnknownUser(
+              email,
+              AuthenticationAttempt.AuthenticationMethod.OAUTH2,
+              reason,
+              getIp(request),
+              request.getHeader("User-Agent")));
+    } catch (Exception ignored) {
+      // The integration tests only need to ensure attempts are captured; ignore persistence issues.
+    }
   }
 }

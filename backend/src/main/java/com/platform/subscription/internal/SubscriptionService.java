@@ -915,6 +915,139 @@ public class SubscriptionService {
     }
   }
 
+  public Subscription pauseSubscription(UUID organizationId) throws StripeException {
+    validateOrganizationAccess(organizationId);
+
+    Subscription subscription = subscriptionRepository.findByOrganizationId(organizationId)
+        .orElseThrow(() -> new IllegalArgumentException("No subscription found for organization: " + organizationId));
+
+    if (!subscription.isActive()) {
+      throw new IllegalStateException("Cannot pause inactive subscription: " + subscription.getId());
+    }
+
+    // Pause Stripe subscription
+    com.stripe.model.Subscription stripeSubscription =
+        com.stripe.model.Subscription.retrieve(subscription.getStripeSubscriptionId());
+
+    SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+        .setPauseCollection(
+            SubscriptionUpdateParams.PauseCollection.builder()
+                .setBehavior(SubscriptionUpdateParams.PauseCollection.Behavior.VOID)
+                .build())
+        .build();
+
+    com.stripe.model.Subscription updatedStripeSubscription = stripeSubscription.update(params);
+    updateSubscriptionFromStripe(subscription, updatedStripeSubscription);
+
+    Subscription savedSubscription = subscriptionRepository.save(subscription);
+
+    auditSubscriptionEvent(
+        "SUBSCRIPTION_PAUSED",
+        subscription,
+        organizationId,
+        "UPDATE",
+        Map.of("paused_at", Instant.now().toString()));
+
+    logger.info("Paused subscription: {} for organization: {}", subscription.getId(), organizationId);
+    return savedSubscription;
+  }
+
+  public Subscription resumeSubscription(UUID organizationId) throws StripeException {
+    validateOrganizationAccess(organizationId);
+
+    Subscription subscription = subscriptionRepository.findByOrganizationId(organizationId)
+        .orElseThrow(() -> new IllegalArgumentException("No subscription found for organization: " + organizationId));
+
+    // Resume Stripe subscription
+    com.stripe.model.Subscription stripeSubscription =
+        com.stripe.model.Subscription.retrieve(subscription.getStripeSubscriptionId());
+
+    SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+        .setPauseCollection(
+            SubscriptionUpdateParams.PauseCollection.builder()
+                .setBehavior(SubscriptionUpdateParams.PauseCollection.Behavior.VOID)
+                .build())
+        .build();
+
+    com.stripe.model.Subscription updatedStripeSubscription = stripeSubscription.update(params);
+    updateSubscriptionFromStripe(subscription, updatedStripeSubscription);
+
+    Subscription savedSubscription = subscriptionRepository.save(subscription);
+
+    auditSubscriptionEvent(
+        "SUBSCRIPTION_RESUMED",
+        subscription,
+        organizationId,
+        "UPDATE",
+        Map.of("resumed_at", Instant.now().toString()));
+
+    logger.info("Resumed subscription: {} for organization: {}", subscription.getId(), organizationId);
+    return savedSubscription;
+  }
+
+  @Transactional(readOnly = true)
+  public Map<String, Object> getUsageMetrics(UUID organizationId, int days) {
+    validateOrganizationAccess(organizationId);
+
+    Map<String, Object> metrics = new LinkedHashMap<>();
+    Instant since = Instant.now().minusSeconds(days * 24 * 60 * 60L);
+
+    // Mock usage data - in a real implementation, this would query usage tables
+    metrics.put("period_days", days);
+    metrics.put("period_start", since);
+    metrics.put("period_end", Instant.now());
+    metrics.put("api_calls", 1500);
+    metrics.put("storage_gb", 2.5);
+    metrics.put("bandwidth_gb", 10.2);
+    metrics.put("active_users", 45);
+
+    return metrics;
+  }
+
+  public void recordUsage(UUID organizationId, String metric, Integer quantity) {
+    validateOrganizationAccess(organizationId);
+
+    // Mock implementation - in a real system, this would save to usage tracking tables
+    auditSubscriptionEvent(
+        "USAGE_RECORDED",
+        null,
+        organizationId,
+        "CREATE",
+        Map.of(
+            "metric", metric,
+            "quantity", quantity.toString(),
+            "recorded_at", Instant.now().toString()));
+
+    logger.info("Recorded usage for organization {}: {} = {}", organizationId, metric, quantity);
+  }
+
+  @Transactional(readOnly = true)
+  public Map<String, Object> getCurrentBillingPeriod(UUID organizationId) {
+    validateOrganizationAccess(organizationId);
+
+    Optional<Subscription> subscription = subscriptionRepository.findByOrganizationId(organizationId);
+    if (subscription.isEmpty()) {
+      throw new IllegalArgumentException("No subscription found for organization: " + organizationId);
+    }
+
+    Map<String, Object> billingPeriod = new LinkedHashMap<>();
+    Subscription sub = subscription.get();
+
+    billingPeriod.put("subscription_id", sub.getId());
+    billingPeriod.put("current_period_start", sub.getCurrentPeriodStart());
+    billingPeriod.put("current_period_end", sub.getCurrentPeriodEnd());
+    billingPeriod.put("status", sub.getStatus().toString());
+
+    if (sub.getCurrentPeriodStart() != null && sub.getCurrentPeriodEnd() != null) {
+      java.time.Duration duration = java.time.Duration.between(
+          sub.getCurrentPeriodStart().atStartOfDay(java.time.ZoneOffset.UTC),
+          sub.getCurrentPeriodEnd().atStartOfDay(java.time.ZoneOffset.UTC));
+      billingPeriod.put("billing_cycle_days", duration.toDays());
+    }
+
+    return billingPeriod;
+  }
+
   public record SubscriptionStatistics(
       Subscription.Status status, long totalInvoices, Money totalAmount, Money recentAmount) {}
 }

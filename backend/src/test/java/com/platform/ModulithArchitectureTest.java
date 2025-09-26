@@ -11,7 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
  * Architecture tests to enforce Spring Boot Modulith module boundaries. These tests ensure the
  * constitutional requirement for proper module separation.
  */
-@SpringBootTest
+@SpringBootTest(classes = {PaymentPlatformApplication.class, com.platform.config.TestRedisConfiguration.class})
 @ActiveProfiles("test")
 class ModulithArchitectureTest {
 

@@ -1,6 +1,7 @@
 package com.platform.subscription.api;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -92,4 +93,7 @@ public interface SubscriptionManagementService {
    * @return subscription statistics
    */
   SubscriptionStatisticsResponse getSubscriptionStatistics(UUID organizationId);
+
+
+
 }

@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.stripe.exception.StripeException;
 
+import org.springframework.stereotype.Component;
+
 @RestControllerAdvice
+@Component("webGlobalExceptionHandler")
 public class GlobalExceptionHandler {
 
   @ExceptionHandler(IllegalArgumentException.class)
