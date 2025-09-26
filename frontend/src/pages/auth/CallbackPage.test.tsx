@@ -2,10 +2,11 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
-import { configureStore } from '@reduxjs/toolkit'
 import CallbackPage from './CallbackPage'
-import authSlice from '../../store/slices/authSlice'
-import uiSlice from '../../store/slices/uiSlice'
+import {
+  createMockStore,
+  type PartialTestState,
+} from '@/test/utils/mockStore'
 
 // Mock useSearchParams
 const mockUseSearchParams = vi.fn()
@@ -30,38 +31,10 @@ vi.mock('../../components/ui/LoadingSpinner', () => ({
   default: () => <div data-testid="loading-spinner">Loading...</div>,
 }))
 
-const createMockStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      auth: authSlice,
-      ui: uiSlice,
-    },
-    preloadedState: {
-      auth: {
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-        ...initialState.auth,
-      },
-      ui: {
-        theme: 'light',
-        sidebarOpen: false,
-        loading: { global: false, components: {} },
-        notifications: [],
-        modals: {
-          isPaymentMethodModalOpen: false,
-          isSubscriptionModalOpen: false,
-          isInviteUserModalOpen: false,
-        },
-        ...initialState.ui,
-      },
-    },
-  })
-}
-
-const renderWithProviders = (component: React.ReactElement, initialState = {}) => {
+const renderWithProviders = (
+  component: React.ReactElement,
+  initialState: PartialTestState = {}
+) => {
   const store = createMockStore(initialState)
   return render(
     <Provider store={store}>

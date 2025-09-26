@@ -77,7 +77,7 @@ public class RateLimitingFilter implements Filter {
     String path = request.getRequestURI();
     String method = request.getMethod();
 
-    for (Map.Entry<String, RateLimitRule> entry : RULES.entrySet()) {
+    for (Map.Entry<String, RateLimitRule> entry : rules.entrySet()) {
       if (!path.startsWith(entry.getKey())) {
         continue;
       }
@@ -169,8 +169,8 @@ public class RateLimitingFilter implements Filter {
   private static final Set<String> OAUTH_ENDPOINTS =
       Set.of("/oauth2/authorize", "/oauth2/callback", "/oauth2/session", "/verify-email");
 
-  private record RateLimitRule(int maxAttempts, Duration window) {
-    RateLimitRule {
+  public record RateLimitRule(int maxAttempts, Duration window) {
+    public RateLimitRule {
       if (window == null) {
         window = Duration.ofMinutes(15);
       }

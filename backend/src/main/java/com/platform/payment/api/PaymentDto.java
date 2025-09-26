@@ -2,11 +2,14 @@ package com.platform.payment.api;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+
+import com.stripe.model.PaymentIntent;
 
 /**
  * Data transfer objects for payment-related operations.
@@ -65,6 +68,46 @@ public class PaymentDto {
       long totalSuccessfulPayments,
       BigDecimal totalAmount,
       BigDecimal recentAmount) {
+  }
+
+  /**
+   * Request DTO for creating a payment intent.
+   */
+  public record CreatePaymentIntentRequest(
+      @NotNull UUID organizationId,
+      @NotNull @Positive BigDecimal amount,
+      @NotBlank String currency,
+      String description,
+      Map<String, String> metadata) {
+  }
+
+  /**
+   * Request DTO for confirming an existing payment intent.
+   */
+  public record ConfirmPaymentIntentRequest(@NotBlank String paymentMethodId) {}
+
+  /**
+   * Response DTO for Stripe payment intent details.
+   */
+  public record PaymentIntentResponse(
+      String id,
+      String clientSecret,
+      String status,
+      BigDecimal amount,
+      String currency,
+      String description,
+      Map<String, String> metadata) {
+
+    public static PaymentIntentResponse fromStripePaymentIntent(PaymentIntent intent) {
+      return new PaymentIntentResponse(
+          intent.getId(),
+          intent.getClientSecret(),
+          intent.getStatus(),
+          BigDecimal.valueOf(intent.getAmount(), 2),
+          intent.getCurrency(),
+          intent.getDescription(),
+          intent.getMetadata());
+    }
   }
 
   /**

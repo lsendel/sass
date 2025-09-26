@@ -2,7 +2,6 @@ package com.platform.payment.api;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -10,11 +9,14 @@ import org.springframework.stereotype.Service;
 import com.platform.payment.api.PaymentDto.BillingAddress;
 import com.platform.payment.api.PaymentDto.BillingDetails;
 import com.platform.payment.api.PaymentDto.CardDetails;
+import com.platform.payment.api.PaymentDto.ConfirmPaymentIntentRequest;
+import com.platform.payment.api.PaymentDto.CreatePaymentIntentRequest;
 import com.platform.payment.api.PaymentDto.PaymentMethodResponse;
-import com.platform.payment.api.PaymentDto.PaymentMethodType;
 import com.platform.payment.api.PaymentDto.PaymentResponse;
 import com.platform.payment.api.PaymentDto.PaymentStatisticsResponse;
 import com.platform.payment.api.PaymentDto.PaymentStatus;
+import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
+import com.platform.payment.internal.Payment;
 import com.platform.payment.internal.PaymentService;
 import com.platform.payment.internal.PaymentView;
 import com.platform.payment.internal.PaymentMethod;
@@ -42,27 +44,65 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
       String paymentMethodId,
       String description,
       boolean confirm) throws StripeException {
+    var money = new com.platform.shared.types.Money(amount, currency);
+    var paymentIntent = paymentService.createPaymentIntent(
+        organizationId, money, currency, description, null);
 
-    // This method needs to be implemented using the existing PaymentService methods
-    throw new UnsupportedOperationException("Method not yet implemented");
+    if (confirm) {
+      if (paymentMethodId == null || paymentMethodId.isBlank()) {
+        throw new IllegalArgumentException("paymentMethodId is required when confirm is true");
+      }
+      paymentIntent =
+          paymentService.confirmPaymentIntent(paymentIntent.getId(), paymentMethodId);
+    }
+
+    return paymentService
+        .findByStripePaymentIntentId(paymentIntent.getId())
+        .map(PaymentDtoMapper::toView)
+        .map(this::mapToPaymentResponse)
+        .orElseThrow(() -> new IllegalStateException("Payment record missing for intent"));
   }
 
   @Override
   public PaymentResponse confirmPayment(UUID organizationId, String paymentIntentId) throws StripeException {
-    // This method needs to be implemented using the existing PaymentService methods
-    throw new UnsupportedOperationException("Method not yet implemented");
+    var defaultMethod =
+        paymentService.getOrganizationPaymentMethods(organizationId).stream()
+            .filter(PaymentMethodView::isDefault)
+            .findFirst()
+            .orElseThrow(
+                () -> new IllegalStateException(
+                    "No default payment method configured for organization"));
+
+    paymentService.confirmPaymentIntent(paymentIntentId, defaultMethod.stripePaymentMethodId());
+
+    return paymentService
+        .findByStripePaymentIntentId(paymentIntentId)
+        .map(PaymentDtoMapper::toView)
+        .map(this::mapToPaymentResponse)
+        .orElseThrow(() -> new IllegalStateException("Payment record missing for intent"));
   }
 
   @Override
   public PaymentResponse cancelPayment(UUID organizationId, String paymentIntentId) throws StripeException {
-    // This method needs to be implemented using the existing PaymentService methods
-    throw new UnsupportedOperationException("Method not yet implemented");
+    paymentService.cancelPaymentIntent(paymentIntentId);
+    return paymentService
+        .findByStripePaymentIntentId(paymentIntentId)
+        .map(PaymentDtoMapper::toView)
+        .map(this::mapToPaymentResponse)
+        .orElseThrow(() -> new IllegalStateException("Payment record missing for intent"));
   }
 
   @Override
   public List<PaymentResponse> getOrganizationPayments(UUID organizationId) {
     return paymentService.getOrganizationPayments(organizationId)
         .stream()
+        .map(this::mapToPaymentResponse)
+        .toList();
+  }
+
+  @Override
+  public List<PaymentResponse> getOrganizationPaymentsByStatus(UUID organizationId, String status) {
+    return paymentService.getOrganizationPaymentsByStatus(organizationId, status).stream()
         .map(this::mapToPaymentResponse)
         .toList();
   }
@@ -90,9 +130,19 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
       UUID paymentMethodId,
       String displayName,
       BillingDetails billingDetails) {
+    PaymentMethod.BillingAddress internalAddress =
+        billingDetails != null ? mapToBillingAddress(billingDetails) : null;
 
-    // This method needs to be implemented using the existing PaymentService methods
-    throw new UnsupportedOperationException("Method not yet implemented");
+    PaymentMethod paymentMethod =
+        paymentService.updatePaymentMethod(
+            organizationId,
+            paymentMethodId,
+            displayName,
+            billingDetails != null ? billingDetails.name() : null,
+            billingDetails != null ? billingDetails.email() : null,
+            internalAddress);
+
+    return mapToPaymentMethodResponse(paymentMethod);
   }
 
   @Override
@@ -111,6 +161,38 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
         stats.totalAmount().getAmount(),
         stats.recentAmount().getAmount()
     );
+  }
+
+  @Override
+  public PaymentIntentResponse createPaymentIntent(CreatePaymentIntentRequest request)
+      throws StripeException {
+    var money = new com.platform.shared.types.Money(request.amount(), request.currency());
+    var intent =
+        paymentService.createPaymentIntent(
+            request.organizationId(),
+            money,
+            request.currency(),
+            request.description(),
+            request.metadata());
+    return PaymentIntentResponse.fromStripePaymentIntent(intent);
+  }
+
+  @Override
+  public PaymentIntentResponse confirmPaymentIntent(
+      UUID organizationId, String paymentIntentId, ConfirmPaymentIntentRequest request)
+      throws StripeException {
+    if (request.paymentMethodId() == null || request.paymentMethodId().isBlank()) {
+      throw new IllegalArgumentException("paymentMethodId is required");
+    }
+    var intent = paymentService.confirmPaymentIntent(paymentIntentId, request.paymentMethodId());
+    return PaymentIntentResponse.fromStripePaymentIntent(intent);
+  }
+
+  @Override
+  public PaymentIntentResponse cancelPaymentIntent(UUID organizationId, String paymentIntentId)
+      throws StripeException {
+    var intent = paymentService.cancelPaymentIntent(paymentIntentId);
+    return PaymentIntentResponse.fromStripePaymentIntent(intent);
   }
 
   /**
@@ -207,14 +289,29 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
    * Maps internal Payment status string to API PaymentStatus.
    */
   private PaymentStatus mapToApiPaymentStatus(String internalStatus) {
-    return switch (internalStatus) {
-      case "PENDING" -> PaymentStatus.PENDING;
-      case "PROCESSING" -> PaymentStatus.PROCESSING;
-      case "SUCCEEDED" -> PaymentStatus.SUCCEEDED;
-      case "FAILED" -> PaymentStatus.FAILED;
-      case "CANCELED" -> PaymentStatus.CANCELED;
-      case "REQUIRES_ACTION" -> PaymentStatus.REQUIRES_ACTION;
-      default -> PaymentStatus.PENDING;
-    };
+    try {
+      Payment.Status status = Payment.Status.valueOf(internalStatus);
+      return switch (status) {
+        case SUCCEEDED -> PaymentStatus.SUCCEEDED;
+        case FAILED -> PaymentStatus.FAILED;
+        case CANCELED -> PaymentStatus.CANCELED;
+        case PROCESSING, REQUIRES_CAPTURE -> PaymentStatus.PROCESSING;
+        case PENDING -> PaymentStatus.PENDING;
+        case REQUIRES_PAYMENT_METHOD,
+            REQUIRES_CONFIRMATION,
+            REQUIRES_ACTION -> PaymentStatus.REQUIRES_ACTION;
+      };
+    } catch (IllegalArgumentException e) {
+      return PaymentStatus.PENDING;
+    }
+  }
+
+  private static final class PaymentDtoMapper {
+
+    private PaymentDtoMapper() {}
+
+    static PaymentView toView(Payment payment) {
+      return PaymentView.fromEntity(payment);
+    }
   }
 }

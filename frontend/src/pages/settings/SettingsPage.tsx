@@ -21,6 +21,7 @@ import {
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import PageHeader from '../../components/ui/PageHeader'
 
 const profileSchema = z.object({
   name: z
@@ -47,6 +48,11 @@ const SettingsPage: React.FC = () => {
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation()
   const { syncUserData } = useCrossComponentSync()
   const { showSuccess, showError } = useNotifications()
+
+  const headerDescription = 'Manage your account settings and preferences.'
+  const renderHeader = () => (
+    <PageHeader title="Settings" description={headerDescription} />
+  )
 
   const {
     register,
@@ -89,17 +95,7 @@ const SettingsPage: React.FC = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Settings
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your account settings and preferences.
-            </p>
-          </div>
-        </div>
+        {renderHeader()}
 
         <ApiErrorDisplay
           error={error}
@@ -145,17 +141,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Settings
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your account settings and preferences.
-          </p>
-        </div>
-      </div>
+      {renderHeader()}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         {/* Tabs */}

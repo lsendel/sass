@@ -1,5 +1,7 @@
 package com.platform.shared.security;
 
+import java.util.UUID;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -24,19 +26,27 @@ public class TenantIsolationAspect {
         }
 
         PlatformUserPrincipal principal = (PlatformUserPrincipal) auth.getPrincipal();
-        String currentTenant = principal.getOrganizationId();
-        
-        if (currentTenant == null) {
+        UUID organizationId = principal.getOrganizationId();
+
+        if (organizationId == null) {
             throw new AccessDeniedException("Tenant context required");
         }
 
         // Set tenant context for the operation
-        TenantContext.setCurrentTenant(currentTenant);
-        
+        TenantContext.TenantInfo previous = TenantContext.getCurrentTenant();
+        TenantContext.setTenantInfo(
+            organizationId,
+            principal.getOrganizationSlug(),
+            principal.getUserId());
+
         try {
             return joinPoint.proceed();
         } finally {
-            TenantContext.clear();
+            if (previous != null) {
+                TenantContext.setTenantInfo(previous);
+            } else {
+                TenantContext.clear();
+            }
         }
     }
 }

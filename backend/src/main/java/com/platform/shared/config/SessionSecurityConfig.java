@@ -29,8 +29,8 @@ public class SessionSecurityConfig {
     public DefaultCookieSerializer cookieSerializer() {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("SESSIONID");
-        serializer.setHttpOnly(true);
-        serializer.setSecure(isProduction());
+        serializer.setUseHttpOnlyCookie(true);
+        serializer.setUseSecureCookie(isProduction());
         serializer.setSameSite("Strict");
         serializer.setCookieMaxAge(3600); // 1 hour
         serializer.setUseBase64Encoding(false);

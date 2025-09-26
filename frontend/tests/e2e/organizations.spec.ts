@@ -1,53 +1,36 @@
 import { test, expect } from './fixtures'
+import {
+  mockAuthentication,
+  mockOrganizations,
+  mockOrganizationMembers,
+  createTestOrganization,
+} from './utils/test-utils'
 
 test.describe('Organizations', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock authentication
-    await page.route('/api/v1/auth/session', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: {
-            id: 'user-123',
-            name: 'Test User',
-            email: 'demo@example.com',
-          },
-          authenticated: true,
-        }),
-      })
+    await mockAuthentication(page, {
+      email: 'demo@example.com',
+      firstName: 'Demo',
     })
 
-    // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'org-123',
-            name: 'Test Organization',
-            slug: 'test-org',
-            status: 'ACTIVE',
-            userRole: 'OWNER',
-            memberCount: 3,
-            createdAt: '2024-01-01T00:00:00Z',
-            settings: {
-              description: 'A test organization for development',
-            },
-          },
-          {
-            id: 'org-456',
-            name: 'Another Organization',
-            slug: 'another-org',
-            status: 'ACTIVE',
-            userRole: 'ADMIN',
-            memberCount: 8,
-            createdAt: '2024-02-01T00:00:00Z',
-          },
-        ]),
-      })
-    })
+    await mockOrganizations(page, [
+      createTestOrganization({
+        id: 'org-123',
+        name: 'Test Organization',
+        slug: 'test-org',
+        memberCount: 3,
+        settings: {
+          description: 'A test organization for development',
+        },
+      }),
+      createTestOrganization({
+        id: 'org-456',
+        name: 'Another Organization',
+        slug: 'another-org',
+        userRole: 'ADMIN',
+        memberCount: 8,
+      }),
+    ])
   })
 
   test('should display organizations list', async ({ page }) => {
@@ -74,36 +57,30 @@ test.describe('Organizations', () => {
 
   test('should navigate to organization detail page', async ({ page }) => {
     // Mock organization members
-    await page.route('/api/v1/organizations/org-123/members', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'member-1',
-            email: 'demo@example.com',
-            role: 'OWNER',
-            status: 'ACTIVE',
-            user: {
-              id: 'user-123',
-              name: 'Test User',
-            },
-            joinedAt: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: 'member-2',
-            email: 'member@example.com',
-            role: 'MEMBER',
-            status: 'ACTIVE',
-            user: {
-              id: 'user-456',
-              name: 'Team Member',
-            },
-            joinedAt: '2024-01-15T00:00:00Z',
-          },
-        ]),
-      })
-    })
+    await mockOrganizationMembers(page, 'org-123', [
+      {
+        id: 'member-1',
+        email: 'demo@example.com',
+        role: 'OWNER',
+        status: 'ACTIVE',
+        user: {
+          id: 'user-123',
+          name: 'Test User',
+        },
+        joinedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'member-2',
+        email: 'member@example.com',
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        user: {
+          id: 'user-456',
+          name: 'Team Member',
+        },
+        joinedAt: '2024-01-15T00:00:00Z',
+      },
+    ])
 
     await page.goto('/organizations')
 
@@ -120,32 +97,26 @@ test.describe('Organizations', () => {
 
   test('should display organization members', async ({ page }) => {
     // Mock organization members
-    await page.route('/api/v1/organizations/org-123/members', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'member-1',
-            email: 'demo@example.com',
-            role: 'OWNER',
-            status: 'ACTIVE',
-            user: {
-              id: 'user-123',
-              name: 'Test User',
-            },
-            joinedAt: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: 'member-2',
-            email: 'member@example.com',
-            role: 'MEMBER',
-            status: 'PENDING',
-            invitedAt: '2024-01-20T00:00:00Z',
-          },
-        ]),
-      })
-    })
+    await mockOrganizationMembers(page, 'org-123', [
+      {
+        id: 'member-1',
+        email: 'demo@example.com',
+        role: 'OWNER',
+        status: 'ACTIVE',
+        user: {
+          id: 'user-123',
+          name: 'Test User',
+        },
+        joinedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'member-2',
+        email: 'member@example.com',
+        role: 'MEMBER',
+        status: 'PENDING',
+        invitedAt: '2024-01-20T00:00:00Z',
+      },
+    ])
 
     await page.goto('/organizations/test-org')
 

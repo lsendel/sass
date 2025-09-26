@@ -1,5 +1,4 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { RootState } from '../index'
 import { createValidatedBaseQuery, createValidatedEndpoint, wrapSuccessResponse } from '@/lib/api/validation'
 import {
   PaymentSchema,
@@ -9,6 +8,7 @@ import {
   type PaymentMethod,
 } from '@/types/api'
 import { z } from 'zod'
+import { withAuthHeader } from './utils'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '/api/v1'
@@ -72,13 +72,7 @@ export type AttachPaymentMethodRequest = z.infer<typeof AttachPaymentMethodReque
 export const paymentApi = createApi({
   reducerPath: 'paymentApi',
   baseQuery: createValidatedBaseQuery(`${API_BASE_URL}/payments`, {
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`)
-      }
-      return headers
-    },
+    prepareHeaders: (headers, { getState }) => withAuthHeader(headers, getState),
   }),
   tagTypes: ['Payment', 'PaymentMethod', 'PaymentStatistics', 'SetupIntent'],
   endpoints: builder => ({

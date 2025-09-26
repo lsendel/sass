@@ -1,4 +1,9 @@
 import { test, expect } from './fixtures'
+import {
+  mockJsonRoute,
+  createTestUser,
+  createTestOrganization,
+} from './utils/test-utils'
 
 test.describe('Authentication Flow Debug', () => {
   test('should debug complete authentication flow step by step', async ({ page }) => {
@@ -43,67 +48,46 @@ test.describe('Authentication Flow Debug', () => {
     })
 
     // Mock authentication session with detailed logging
-    await page.route('/api/v1/auth/session', async (route) => {
-      console.log('🔒 AUTH SESSION ROUTE INTERCEPTED!')
-      const mockResponse = {
-        success: true,
-        data: {
-          user: {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            email: 'test@example.com',
-            firstName: 'Test',
-            lastName: 'User',
-            role: 'USER',
-            emailVerified: true,
-            organizationId: '987fcdeb-51d2-43a1-b456-426614174000',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-            lastLoginAt: '2024-01-01T10:00:00Z',
-          },
-          session: {
-            activeTokens: 1,
-            lastActiveAt: '2024-01-01T10:00:00Z',
-            createdAt: '2024-01-01T00:00:00Z',
-          },
+    const authResponse = {
+      success: true,
+      data: {
+        user: {
+          ...createTestUser({ id: '123e4567-e89b-12d3-a456-426614174000' }),
+          firstName: 'Test',
+          lastName: 'User',
         },
-        timestamp: '2024-01-01T10:00:00Z',
-      }
+        session: {
+          activeTokens: 1,
+          lastActiveAt: '2024-01-01T10:00:00Z',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      },
+      timestamp: '2024-01-01T10:00:00Z',
+    }
 
-      console.log('📤 Sending auth response:', JSON.stringify(mockResponse, null, 2))
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockResponse),
-      })
-    })
+    console.log('🔒 AUTH SESSION ROUTE INTERCEPTED!')
+    console.log('📤 Sending auth response:', JSON.stringify(authResponse, null, 2))
+    await mockJsonRoute(page, '/api/v1/auth/session', authResponse)
 
     // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      console.log('🏢 ORGANIZATIONS ROUTE INTERCEPTED!')
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: {
-            items: [
-              {
-                id: '987fcdeb-51d2-43a1-b456-426614174000',
-                name: 'Test Organization',
-                plan: 'PRO',
-                status: 'ACTIVE',
-                billingEmail: 'billing@example.com',
-                maxUsers: 50,
-                currentUsers: 1,
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-            ],
+    console.log('🏢 ORGANIZATIONS ROUTE INTERCEPTED!')
+    await mockJsonRoute(page, '/api/v1/organizations/user', {
+      success: true,
+      data: {
+        items: [
+          {
+            ...createTestOrganization({
+              id: '987fcdeb-51d2-43a1-b456-426614174000',
+              name: 'Test Organization',
+            }),
+            plan: 'PRO',
+            billingEmail: 'billing@example.com',
+            maxUsers: 50,
+            currentUsers: 1,
           },
-          timestamp: '2024-01-01T10:00:00Z',
-        }),
-      })
+        ],
+      },
+      timestamp: '2024-01-01T10:00:00Z',
     })
 
     console.log('📍 Step 1: Navigate to root URL')
@@ -124,6 +108,17 @@ test.describe('Authentication Flow Debug', () => {
       return store ? store.getState().auth : null
     })
     console.log('Redux auth state:', authState)
+
+    // Also check the RTK Query cache to see if session data was stored
+    const queryState = await page.evaluate(() => {
+      const store = (window as any).__REDUX_STORE__
+      if (!store) return null
+      const state = store.getState()
+      return {
+        authApi: state.authApi,
+      }
+    })
+    console.log('RTK Query state:', JSON.stringify(queryState, null, 2))
 
     console.log('📍 Step 3: Wait for authentication to complete')
     // Wait for either auth to complete or timeout

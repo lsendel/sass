@@ -1,4 +1,10 @@
 import { test, expect } from './fixtures'
+import {
+  mockOAuthProviders,
+  mockAuthentication,
+  mockOrganizations,
+  createTestOrganization,
+} from './utils/test-utils'
 
 test.describe('Authentication', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,17 +35,7 @@ test.describe('Authentication', () => {
     await page.goto('/auth/login')
 
     // Mock the OAuth providers API response
-    await page.route('/api/v1/auth/providers', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          { name: 'google', displayName: 'Google', enabled: true },
-          { name: 'github', displayName: 'GitHub', enabled: true },
-          { name: 'microsoft', displayName: 'Microsoft', enabled: true },
-        ]),
-      })
-    })
+    await mockOAuthProviders(page)
 
     // Reload to pick up the mocked response
     await page.reload()
@@ -69,39 +65,16 @@ test.describe('Authentication', () => {
 
   test('should handle authentication callback', async ({ page }) => {
     // Mock successful authentication
-    await page.route('/api/v1/auth/session', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: {
-            id: 'user-123',
-            name: 'Test User',
-            email: 'test@example.com',
-          },
-          authenticated: true,
-        }),
-      })
-    })
+    await mockAuthentication(page)
 
     // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'org-123',
-            name: 'Test Organization',
-            slug: 'test-org',
-            status: 'ACTIVE',
-            userRole: 'OWNER',
-            memberCount: 1,
-            createdAt: new Date().toISOString(),
-          },
-        ]),
-      })
-    })
+    await mockOrganizations(page, [
+      createTestOrganization({
+        id: 'org-123',
+        name: 'Test Organization',
+        slug: 'test-org',
+      }),
+    ])
 
     // Navigate to callback page with success parameters
     await page.goto('/auth/callback?code=success&state=test')

@@ -36,6 +36,20 @@ const config: Config = {
     locales: ['en'],
   },
 
+  plugins: [
+    [
+      'docusaurus-plugin-typedoc',
+      {
+        entryPoints: ['/Users/lsendel/IdeaProjects/sass/frontend/src'],
+        entryPointStrategy: 'resolve',
+        tsconfig: '/Users/lsendel/IdeaProjects/sass/frontend/tsconfig.json',
+        out: 'frontend-api',
+        exclude: ['**/*.test.tsx'],
+        skipErrorChecking: true,
+      },
+    ],
+  ],
+
   presets: [
     [
       'classic',

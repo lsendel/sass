@@ -1,5 +1,10 @@
 import { test, expect } from './fixtures'
-import { loginAsUser, waitForToast } from './utils/test-utils'
+import {
+  loginAsUser,
+  waitForToast,
+  fulfillJson,
+  createTestUser,
+} from './utils/test-utils'
 
 test.describe('Settings', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,19 +17,13 @@ test.describe('Settings', () => {
 
     // Mock current user profile
     await page.route('**/api/v1/users/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'user-123',
-          name: 'Test User',
-          email: 'test@example.com',
-          preferences: {
-            timezone: 'UTC',
-            language: 'en',
-            notifications: { email: true, push: true, sms: false },
-          },
-        }),
+      await fulfillJson(route, {
+        ...createTestUser({ id: 'user-123', name: 'Test User' }),
+        preferences: {
+          timezone: 'UTC',
+          language: 'en',
+          notifications: { email: true, push: true, sms: false },
+        },
       })
     })
 
@@ -39,15 +38,9 @@ test.describe('Settings', () => {
     // Mock update profile API
     await page.route('**/api/v1/users/me/profile', async (route) => {
       const body = await route.request().postDataJSON()
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'user-123',
-          name: body.name,
-          email: 'test@example.com',
-          preferences: body.preferences,
-        }),
+      await fulfillJson(route, {
+        ...createTestUser({ id: 'user-123', name: body.name }),
+        preferences: body.preferences,
       })
     })
 
@@ -70,15 +63,9 @@ test.describe('Settings', () => {
     // Mock preferences update
     await page.route('**/api/v1/users/me/profile', async (route) => {
       const body = await route.request().postDataJSON()
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'user-123',
-          name: 'Test User',
-          email: 'test@example.com',
-          preferences: body.preferences,
-        }),
+      await fulfillJson(route, {
+        ...createTestUser({ id: 'user-123', name: 'Test User' }),
+        preferences: body.preferences,
       })
     })
 

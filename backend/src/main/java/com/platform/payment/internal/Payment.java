@@ -2,6 +2,7 @@ package com.platform.payment.internal;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.persistence.*;
@@ -89,8 +90,7 @@ public class Payment {
   @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
-  @NotNull
-  @Column(name = "user_id", nullable = false)
+  @Column(name = "user_id")
   private UUID userId;
 
   @Column(name = "organization_id")
@@ -130,7 +130,7 @@ public class Payment {
   }
 
   public Payment(UUID userId, String stripePaymentIntentId, Money amount, Status status) {
-    this.userId = userId;
+    this.userId = Objects.requireNonNull(userId, "User ID cannot be null");
     this.stripePaymentIntentId = stripePaymentIntentId;
     this.amount = amount;
     this.status = status;
@@ -241,6 +241,10 @@ public class Payment {
 
   public UUID getUserId() {
     return userId;
+  }
+
+  public void assignUser(UUID userId) {
+    this.userId = userId;
   }
 
   public UUID getInvoiceId() {

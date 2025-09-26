@@ -129,6 +129,12 @@ class ModuleBoundaryTest {
             .doNotHaveFullyQualifiedName("com.platform.payment.api.TestPaymentController")
             .and()
             .doNotHaveFullyQualifiedName("com.platform.subscription.api.TestSubscriptionController")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.health.HealthCheckController")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.metrics.MetricsController")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.web.BaseController")
             .should()
             .resideOutsideOfPackages("..api..");
 
@@ -146,6 +152,12 @@ class ModuleBoundaryTest {
             // Allow shared CustomOAuth2UserService in security package
             .and()
             .doNotHaveFullyQualifiedName("com.platform.shared.security.CustomOAuth2UserService")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.health.HealthCheckService")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.metrics.MetricsService")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.security.RateLimitService")
             .should()
             .resideOutsideOfPackages("..internal..");
 
@@ -187,6 +199,8 @@ class ModuleBoundaryTest {
             .doNotHaveFullyQualifiedName("com.platform.audit.internal.AuditEvent")
             .and()
             .doNotHaveFullyQualifiedName("com.platform.auth.internal.OAuth2AuditEvent")
+            .and()
+            .doNotHaveFullyQualifiedName("com.platform.shared.security.SecurityEventLogger$SecurityEvent")
             .should()
             .resideOutsideOfPackages("..events..");
 

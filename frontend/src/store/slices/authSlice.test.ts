@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import authReducer, { setCredentials, logout, setLoading } from './authSlice'
+import { createMockUser } from '@/test/fixtures/users'
 
 describe('authSlice', () => {
   const initialState = {
@@ -15,15 +16,7 @@ describe('authSlice', () => {
   })
 
   it('should handle setCredentials', () => {
-    const user = {
-      id: '123',
-      name: 'Test User',
-      email: 'test@example.com',
-      provider: 'google',
-      preferences: {},
-      createdAt: '2024-01-01T00:00:00Z',
-      lastActiveAt: null,
-    }
+    const user = createMockUser({ id: '123', name: 'Test User' })
 
     const actual = authReducer(initialState, setCredentials({ user }))
     expect(actual.user).toEqual(user)
@@ -34,15 +27,7 @@ describe('authSlice', () => {
 
   it('should handle logout', () => {
     const authenticatedState = {
-      user: {
-        id: '123',
-        name: 'Test User',
-        email: 'test@example.com',
-        provider: 'google',
-        preferences: {},
-        createdAt: '2024-01-01T00:00:00Z',
-        lastActiveAt: null,
-      },
+      user: createMockUser({ id: '123', name: 'Test User' }),
       token: 'test-token',
       isAuthenticated: true,
       isLoading: false,

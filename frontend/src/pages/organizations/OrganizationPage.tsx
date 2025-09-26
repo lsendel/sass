@@ -18,6 +18,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { parseApiError } from '../../utils/apiError'
+import PageHeader from '../../components/ui/PageHeader'
 
 const inviteMemberSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -149,17 +150,10 @@ const OrganizationPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            {organization.name}
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Organization settings and member management
-          </p>
-        </div>
-        <div className="mt-4 flex space-x-3 md:mt-0 md:ml-4">
+      <PageHeader
+        title={organization.name}
+        description="Organization settings and member management"
+        actions={(
           <button
             type="button"
             onClick={() => setShowInviteForm(true)}
@@ -168,8 +162,8 @@ const OrganizationPage: React.FC = () => {
             <UserPlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Invite Member
           </button>
-        </div>
-      </div>
+        )}
+      />
 
       {/* Organization Details */}
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">

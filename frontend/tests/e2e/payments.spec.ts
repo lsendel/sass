@@ -1,156 +1,148 @@
 import { test, expect } from './fixtures'
+import { mockJsonRoute, createTestOrganization, fulfillJson } from './utils/test-utils'
 
 test.describe('Payments', () => {
+  // Helper function to navigate with authentication
+  const navigateWithAuth = async (page, path: string) => {
+    // Navigate to root first to trigger authentication
+    await page.goto('/')
+
+    // Wait for authentication to complete by checking Redux state
+    await page.waitForFunction(() => {
+      const store = (window as any).__REDUX_STORE__
+      if (!store) return false
+      const state = store.getState()
+      return state.auth?.isAuthenticated === true && state.auth?.user != null
+    }, { timeout: 10000 })
+
+    // Now navigate to the target page
+    await page.goto(path)
+
+    // Wait for the page to load
+    await page.waitForLoadState('networkidle')
+  }
+
   test.beforeEach(async ({ page }) => {
+    const organizationId = '987fcdeb-51d2-43a1-b456-426614174000'
+
     // Mock authentication
-    await page.route('/api/v1/auth/session', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: {
-            user: {
-              id: '123e4567-e89b-12d3-a456-426614174000',
-              email: 'test@example.com',
-              firstName: 'Test',
-              lastName: 'User',
-              role: 'USER',
-              emailVerified: true,
-              organizationId: '987fcdeb-51d2-43a1-b456-426614174000',
-              createdAt: '2024-01-01T00:00:00Z',
-              updatedAt: '2024-01-01T00:00:00Z',
-              lastLoginAt: '2024-01-01T10:00:00Z',
-            },
-            session: {
-              activeTokens: 1,
-              lastActiveAt: '2024-01-01T10:00:00Z',
-              createdAt: '2024-01-01T00:00:00Z',
-            },
-          },
-          timestamp: '2024-01-01T10:00:00Z',
-        }),
-      })
+    await mockJsonRoute(page, '/api/v1/auth/session', {
+      success: true,
+      data: {
+        user: {
+          id: '123e4567-e89b-12d3-a456-426614174000',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'USER',
+          emailVerified: true,
+          organizationId,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          lastLoginAt: '2024-01-01T10:00:00Z',
+        },
+        session: {
+          activeTokens: 1,
+          lastActiveAt: '2024-01-01T10:00:00Z',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      },
+      timestamp: '2024-01-01T10:00:00Z',
     })
 
     // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: {
-            items: [
-              {
-                id: '987fcdeb-51d2-43a1-b456-426614174000',
-                name: 'Test Organization',
-                plan: 'PRO',
-                status: 'ACTIVE',
-                billingEmail: 'billing@example.com',
-                maxUsers: 50,
-                currentUsers: 1,
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-            ],
+    await mockJsonRoute(page, '/api/v1/organizations/user', {
+      success: true,
+      data: {
+        items: [
+          {
+            ...createTestOrganization({
+              id: organizationId,
+              name: 'Test Organization',
+            }),
+            plan: 'PRO',
+            billingEmail: 'billing@example.com',
+            maxUsers: 50,
+            currentUsers: 1,
           },
-          timestamp: '2024-01-01T10:00:00Z',
-        }),
-      })
+        ],
+      },
+      timestamp: '2024-01-01T10:00:00Z',
     })
 
     // Mock payment statistics
-    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payments/statistics', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          totalSuccessfulPayments: 15,
-          totalAmount: 3750.00,
-          recentAmount: 1250.00,
-        }),
-      })
+    await mockJsonRoute(page, `/api/v1/organizations/${organizationId}/payments/statistics`, {
+      totalSuccessfulPayments: 15,
+      totalAmount: 3750.00,
+      recentAmount: 1250.00,
     })
 
     // Mock payments list
-    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payments', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'payment-1',
-            amount: 299.00,
-            currency: 'usd',
-            status: 'SUCCEEDED',
-            description: 'Pro Plan Subscription',
-            stripePaymentIntentId: 'pi_1234567890abcdef1234567890',
-            createdAt: '2024-01-15T10:30:00Z',
-          },
-          {
-            id: 'payment-2',
-            amount: 99.00,
-            currency: 'usd',
-            status: 'SUCCEEDED',
-            description: 'Basic Plan Subscription',
-            stripePaymentIntentId: 'pi_0987654321fedcba0987654321',
-            createdAt: '2024-01-01T09:15:00Z',
-          },
-          {
-            id: 'payment-3',
-            amount: 199.00,
-            currency: 'usd',
-            status: 'FAILED',
-            description: 'Standard Plan Subscription',
-            stripePaymentIntentId: 'pi_failed123456789012345678901234',
-            createdAt: '2023-12-28T14:20:00Z',
-          },
-        ]),
-      })
-    })
+    await mockJsonRoute(page, `/api/v1/organizations/${organizationId}/payments`, [
+      {
+        id: 'payment-1',
+        amount: 299.00,
+        currency: 'usd',
+        status: 'SUCCEEDED',
+        description: 'Pro Plan Subscription',
+        stripePaymentIntentId: 'pi_1234567890abcdef1234567890',
+        createdAt: '2024-01-15T10:30:00Z',
+      },
+      {
+        id: 'payment-2',
+        amount: 99.00,
+        currency: 'usd',
+        status: 'SUCCEEDED',
+        description: 'Basic Plan Subscription',
+        stripePaymentIntentId: 'pi_0987654321fedcba0987654321',
+        createdAt: '2024-01-01T09:15:00Z',
+      },
+      {
+        id: 'payment-3',
+        amount: 199.00,
+        currency: 'usd',
+        status: 'FAILED',
+        description: 'Standard Plan Subscription',
+        stripePaymentIntentId: 'pi_failed123456789012345678901234',
+        createdAt: '2023-12-28T14:20:00Z',
+      },
+    ])
 
     // Mock payment methods
-    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'pm-123',
-            displayName: 'Visa ending in 4242',
-            isDefault: true,
-            cardDetails: {
-              brand: 'visa',
-              lastFour: '4242',
-              expMonth: 12,
-              expYear: 2025,
-            },
-            billingDetails: {
-              email: 'test@example.com',
-            },
-          },
-          {
-            id: 'pm-456',
-            displayName: 'Mastercard ending in 5555',
-            isDefault: false,
-            cardDetails: {
-              brand: 'mastercard',
-              lastFour: '5555',
-              expMonth: 8,
-              expYear: 2026,
-            },
-            billingDetails: {
-              email: 'test@example.com',
-            },
-          },
-        ]),
-      })
-    })
+    await mockJsonRoute(page, `/api/v1/organizations/${organizationId}/payment-methods`, [
+      {
+        id: 'pm-123',
+        displayName: 'Visa ending in 4242',
+        isDefault: true,
+        cardDetails: {
+          brand: 'visa',
+          lastFour: '4242',
+          expMonth: 12,
+          expYear: 2025,
+        },
+        billingDetails: {
+          email: 'test@example.com',
+        },
+      },
+      {
+        id: 'pm-456',
+        displayName: 'Mastercard ending in 5555',
+        isDefault: false,
+        cardDetails: {
+          brand: 'mastercard',
+          lastFour: '5555',
+          expMonth: 8,
+          expYear: 2026,
+        },
+        billingDetails: {
+          email: 'test@example.com',
+        },
+      },
+    ])
   })
 
   test('should display payments page', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Check page header
     await expect(page.getByRole('heading', { name: 'Payments' })).toBeVisible()
@@ -161,7 +153,7 @@ test.describe('Payments', () => {
   })
 
   test('should display payment statistics', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Check statistics cards
     await expect(page.getByText('Total Payments')).toBeVisible()
@@ -175,7 +167,7 @@ test.describe('Payments', () => {
   })
 
   test('should display payment history', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Check payment history section
     await expect(page.getByText('Payment History')).toBeVisible()
@@ -201,7 +193,7 @@ test.describe('Payments', () => {
   })
 
   test('should open payment methods modal', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Click payment methods button
     await page.getByRole('button', { name: 'Payment Methods' }).click()
@@ -213,7 +205,7 @@ test.describe('Payments', () => {
   })
 
   test('should display payment methods in modal', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Open payment methods modal
     await page.getByRole('button', { name: 'Payment Methods' }).click()
@@ -236,15 +228,14 @@ test.describe('Payments', () => {
 
   test('should set default payment method', async ({ page }) => {
     // Mock set default payment method API
-    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods/pm-456/set-default', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
-      })
-    })
+    await page.route(
+      '/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods/pm-456/set-default',
+      async (route) => {
+        await fulfillJson(route, { success: true })
+      }
+    )
 
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Open payment methods modal
     await page.getByRole('button', { name: 'Payment Methods' }).click()
@@ -258,15 +249,14 @@ test.describe('Payments', () => {
 
   test('should remove payment method', async ({ page }) => {
     // Mock remove payment method API
-    await page.route('/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods/pm-456/detach', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
-      })
-    })
+    await page.route(
+      '/api/v1/organizations/987fcdeb-51d2-43a1-b456-426614174000/payment-methods/pm-456/detach',
+      async (route) => {
+        await fulfillJson(route, { success: true })
+      }
+    )
 
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Open payment methods modal
     await page.getByRole('button', { name: 'Payment Methods' }).click()
@@ -283,7 +273,7 @@ test.describe('Payments', () => {
   })
 
   test('should handle add payment method', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Open payment methods modal
     await page.getByRole('button', { name: 'Payment Methods' }).click()
@@ -305,7 +295,7 @@ test.describe('Payments', () => {
       })
     })
 
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Open payment methods modal
     await page.getByRole('button', { name: 'Payment Methods' }).click()
@@ -325,7 +315,7 @@ test.describe('Payments', () => {
       })
     })
 
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Should show empty state
     await expect(page.getByText('No payments yet')).toBeVisible()
@@ -333,7 +323,7 @@ test.describe('Payments', () => {
   })
 
   test('should close payment methods modal', async ({ page }) => {
-    await page.goto('/payments')
+    await navigateWithAuth(page, '/payments')
 
     // Open payment methods modal
     await page.getByRole('button', { name: 'Payment Methods' }).click()

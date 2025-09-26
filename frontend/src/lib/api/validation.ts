@@ -122,7 +122,14 @@ export function createValidatedEndpoint<TResponse, TRequest = void>(
 
       // Validate as success response
       const context = `${endpoint.method || 'GET'} endpoint`;
-      return validateApiResponse(responseSchema, response, context);
+      const validatedResponse = validateApiResponse(responseSchema, response, context);
+
+      // Extract data field from API success response
+      if (validatedResponse && typeof validatedResponse === 'object' && 'data' in validatedResponse) {
+        return (validatedResponse as any).data;
+      }
+
+      return validatedResponse;
     },
   };
 }

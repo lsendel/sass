@@ -1,15 +1,9 @@
 package com.platform.payment.api;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +12,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
+import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
 import com.platform.payment.api.PaymentDto.PaymentMethodResponse;
 import com.platform.payment.api.PaymentDto.PaymentResponse;
 import com.platform.payment.api.PaymentDto.PaymentStatisticsResponse;
-import com.platform.shared.types.Money;
+import com.platform.payment.api.PaymentDto.CreatePaymentIntentRequest;
+import com.platform.payment.api.PaymentDto.ConfirmPaymentIntentRequest;
 import com.platform.shared.security.PlatformUserPrincipal;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -65,7 +60,7 @@ public class PaymentController {
                   {
                     "id": "pi_1234567890",
                     "clientSecret": "pi_1234567890_secret_abc123",
-                    "amount": 2000,
+                    "amount": 20.00,
                     "currency": "usd",
                     "status": "requires_payment_method"
                   }
@@ -81,11 +76,16 @@ public class PaymentController {
       @Parameter(description = "Payment intent creation data", required = true)
       @Valid @RequestBody @P("request") CreatePaymentIntentRequest request) {
     try {
-      // PaymentIntent functionality needs to be moved to PaymentManagementService
-      throw new UnsupportedOperationException("Method not yet implemented - needs PaymentIntent support in management service");
-
-    } catch (Exception e) {
+      PaymentIntentResponse response = paymentManagementService.createPaymentIntent(request);
+      return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    } catch (SecurityException e) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    } catch (StripeException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
@@ -97,11 +97,21 @@ public class PaymentController {
       @Valid @RequestBody ConfirmPaymentIntentRequest request) {
 
     try {
-      // PaymentIntent functionality needs to be moved to PaymentManagementService
-      throw new UnsupportedOperationException("Method not yet implemented - needs PaymentIntent support in management service");
-
-    } catch (Exception e) {
+      UUID organizationId = userPrincipal != null ? userPrincipal.getOrganizationId() : null;
+      if (organizationId == null) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      }
+      PaymentIntentResponse response =
+          paymentManagementService.confirmPaymentIntent(organizationId, paymentIntentId, request);
+      return ResponseEntity.ok(response);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    } catch (SecurityException e) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    } catch (StripeException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
@@ -122,11 +132,15 @@ public class PaymentController {
       @PathVariable String status) {
 
     try {
-      // This method needs to be implemented in PaymentManagementService
-      throw new UnsupportedOperationException("Method not yet implemented");
-
+      List<PaymentResponse> responses =
+          paymentManagementService.getOrganizationPaymentsByStatus(organizationId, status);
+      return ResponseEntity.ok(responses);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
     } catch (SecurityException e) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
@@ -199,36 +213,4 @@ public class PaymentController {
         paymentManagementService.getOrganizationPaymentMethods(organizationId);
     return ResponseEntity.ok(responses);
   }
-
-  // Request DTOs
-  public record CreatePaymentIntentRequest(
-      @NotNull UUID organizationId,
-      @NotNull @Positive BigDecimal amount,
-      @NotBlank String currency,
-      String description,
-      Map<String, String> metadata) {}
-
-  public record ConfirmPaymentIntentRequest(@NotBlank String paymentMethodId) {}
-
-  // Response DTOs
-  public record PaymentIntentResponse(
-      String id,
-      String clientSecret,
-      String status,
-      BigDecimal amount,
-      String currency,
-      String description,
-      Map<String, String> metadata) {
-    public static PaymentIntentResponse fromStripePaymentIntent(PaymentIntent intent) {
-      return new PaymentIntentResponse(
-          intent.getId(),
-          intent.getClientSecret(),
-          intent.getStatus(),
-          BigDecimal.valueOf(intent.getAmount(), 2),
-          intent.getCurrency(),
-          intent.getDescription(),
-          intent.getMetadata());
-    }
-  }
-
 }

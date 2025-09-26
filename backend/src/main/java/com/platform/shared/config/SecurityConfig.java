@@ -111,8 +111,7 @@ public class SecurityConfig {
                               "Permissions-Policy", 
                               "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
                           response.setHeader(
-                              "Content-Security-Policy",
-                              buildContentSecurityPolicy());
+                              "Content-Security-Policy", buildContentSecurityPolicy());
                         }))
 
         // Configure authorization
@@ -281,5 +280,13 @@ public class SecurityConfig {
              "img-src 'self' data: https:; " +
              "connect-src 'self' ws: wss:";
     }
+  }
+
+  private boolean isProduction() {
+    if (frontendUrl == null) {
+      return false;
+    }
+    String normalized = frontendUrl.toLowerCase();
+    return !normalized.contains("localhost") && !normalized.contains("127.0.0.1");
   }
 }

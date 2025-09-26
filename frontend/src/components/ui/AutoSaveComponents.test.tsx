@@ -1,6 +1,8 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { AutoSaveIndicator, UnsavedChangesWarning } from './AutoSaveComponents'
+import { format } from 'date-fns'
 import type { AutoSaveStatus } from '../../hooks/useAutoSave'
 
 describe('AutoSaveComponents', () => {
@@ -11,7 +13,9 @@ describe('AutoSaveComponents', () => {
       )
 
       expect(screen.getByText('Saving...')).toBeInTheDocument()
-      expect(screen.getByRole('img', { hidden: true })).toHaveClass('animate-spin')
+      const icon = screen.getByText('Saving...').previousElementSibling as HTMLElement | null
+      expect(icon).not.toBeNull()
+      expect(icon).toHaveClass('animate-spin')
     })
 
     it('shows saved state with timestamp', () => {
@@ -20,11 +24,12 @@ describe('AutoSaveComponents', () => {
         <AutoSaveIndicator status="saved" lastSaved={lastSaved} />
       )
 
-      expect(screen.getByText(/Saved 12:00 PM/)).toBeInTheDocument()
+      const expectedText = `Saved ${format(lastSaved, 'h:mm a')}`
+      expect(screen.getByText(expectedText)).toBeInTheDocument()
     })
 
     it('shows error state with retry button', () => {
-      const mockRetry = jest.fn()
+      const mockRetry = vi.fn()
       const error = new Error('Save failed')
 
       render(
@@ -69,7 +74,7 @@ describe('AutoSaveComponents', () => {
     })
 
     it('shows save now button when onSave is provided', async () => {
-      const mockSave = jest.fn().mockResolvedValue(undefined)
+      const mockSave = vi.fn().mockResolvedValue(undefined)
 
       render(
         <UnsavedChangesWarning
@@ -90,7 +95,7 @@ describe('AutoSaveComponents', () => {
     })
 
     it('shows discard button when onDiscard is provided', () => {
-      const mockDiscard = jest.fn()
+      const mockDiscard = vi.fn()
 
       render(
         <UnsavedChangesWarning

@@ -92,6 +92,11 @@ public class PaymentService {
     Payment payment =
         new Payment(organizationId, stripePaymentIntent.getId(), amount, currency, description);
 
+    UUID currentUserId = TenantContext.getCurrentUserId();
+    if (currentUserId != null) {
+      payment.assignUser(currentUserId);
+    }
+
     if (metadata != null) {
       payment.updateMetadata(metadata);
     }
@@ -120,6 +125,9 @@ public class PaymentService {
 
   public PaymentIntent confirmPaymentIntent(String paymentIntentId, String paymentMethodId)
       throws StripeException {
+    if (paymentMethodId == null || paymentMethodId.isBlank()) {
+      throw new IllegalArgumentException("paymentMethodId cannot be null or blank");
+    }
     Payment payment =
         paymentRepository
             .findByStripePaymentIntentId(paymentIntentId)
@@ -157,6 +165,32 @@ public class PaymentService {
         paymentIntentId,
         confirmedIntent.getStatus());
     return confirmedIntent;
+  }
+
+  public PaymentIntent cancelPaymentIntent(String paymentIntentId) throws StripeException {
+    Payment payment =
+        paymentRepository
+            .findByStripePaymentIntentId(paymentIntentId)
+            .orElseThrow(
+                () -> new IllegalArgumentException("Payment not found: " + paymentIntentId));
+
+    validateOrganizationAccess(payment.getOrganizationId());
+
+    PaymentIntent stripePaymentIntent = PaymentIntent.retrieve(paymentIntentId);
+    PaymentIntent canceledIntent = stripePaymentIntent.cancel();
+
+    updatePaymentFromStripeIntent(payment, canceledIntent);
+
+    auditService.logPaymentEvent(
+        "PAYMENT_INTENT_CANCELED",
+        paymentIntentId,
+        "Payment intent canceled",
+        Map.of("status", canceledIntent.getStatus()),
+        "system",
+        "PaymentService");
+
+    logger.info("Canceled payment intent: {}", paymentIntentId);
+    return canceledIntent;
   }
 
   @Transactional(readOnly = true)
@@ -363,6 +397,39 @@ public class PaymentService {
     logger.info(
         "Set payment method: {} as default for organization: {}", paymentMethodId, organizationId);
     return savedPaymentMethod;
+  }
+
+  public PaymentMethod updatePaymentMethod(
+      UUID organizationId,
+      UUID paymentMethodId,
+      String displayName,
+      String billingName,
+      String billingEmail,
+      PaymentMethod.BillingAddress billingAddress) {
+    validateOrganizationAccess(organizationId);
+
+    PaymentMethod paymentMethod =
+        paymentMethodRepository
+            .findById(paymentMethodId)
+            .orElseThrow(
+                () -> new IllegalArgumentException("Payment method not found: " + paymentMethodId));
+
+    if (!paymentMethod.getOrganizationId().equals(organizationId)) {
+      throw new SecurityException(
+          "Access denied - payment method belongs to different organization");
+    }
+
+    if (paymentMethod.isDeleted()) {
+      throw new IllegalArgumentException("Cannot update deleted payment method");
+    }
+
+    if (billingName != null || billingEmail != null || billingAddress != null) {
+      paymentMethod.updateBillingDetails(billingName, billingEmail, billingAddress);
+    }
+
+    // Custom display names are not persisted yet; future implementation can leverage displayName.
+
+    return paymentMethodRepository.save(paymentMethod);
   }
 
   @Transactional(readOnly = true)

@@ -1,12 +1,14 @@
 package com.platform.payment.api;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.platform.payment.api.PaymentDto.PaymentResponse;
 import com.platform.payment.api.PaymentDto.PaymentMethodResponse;
 import com.platform.payment.api.PaymentDto.PaymentStatisticsResponse;
+import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
+import com.platform.payment.api.PaymentDto.CreatePaymentIntentRequest;
+import com.platform.payment.api.PaymentDto.ConfirmPaymentIntentRequest;
 import com.platform.payment.api.PaymentDto.BillingDetails;
 import com.stripe.exception.StripeException;
 
@@ -38,6 +40,40 @@ public interface PaymentManagementService {
       boolean confirm) throws StripeException;
 
   /**
+   * Creates a Stripe payment intent.
+   *
+   * @param request the payment intent request payload
+   * @return payment intent details
+   * @throws StripeException if Stripe operation fails
+   */
+  PaymentIntentResponse createPaymentIntent(CreatePaymentIntentRequest request)
+      throws StripeException;
+
+  /**
+   * Confirms a Stripe payment intent.
+   *
+   * @param organizationId the organization ID
+   * @param paymentIntentId the payment intent ID
+   * @param request the confirm request payload
+   * @return payment intent details after confirmation
+   * @throws StripeException if Stripe operation fails
+   */
+  PaymentIntentResponse confirmPaymentIntent(
+      UUID organizationId, String paymentIntentId, ConfirmPaymentIntentRequest request)
+      throws StripeException;
+
+  /**
+   * Cancels a Stripe payment intent.
+   *
+   * @param organizationId the organization ID
+   * @param paymentIntentId the payment intent ID
+   * @return payment intent details after cancellation
+   * @throws StripeException if Stripe operation fails
+   */
+  PaymentIntentResponse cancelPaymentIntent(UUID organizationId, String paymentIntentId)
+      throws StripeException;
+
+  /**
    * Confirms a payment intent.
    *
    * @param organizationId the organization ID
@@ -64,6 +100,15 @@ public interface PaymentManagementService {
    * @return list of payments
    */
   List<PaymentResponse> getOrganizationPayments(UUID organizationId);
+
+  /**
+   * Gets payments for an organization filtered by status.
+   *
+   * @param organizationId the organization ID
+   * @param status the status filter
+   * @return list of payments
+   */
+  List<PaymentResponse> getOrganizationPaymentsByStatus(UUID organizationId, String status);
 
   /**
    * Attaches a payment method to an organization.

@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import {
   OptimisticIndicator,
   OptimisticBadge,
@@ -13,7 +14,7 @@ describe('OptimisticComponents', () => {
     it('shows pending status with spinner', () => {
       render(<OptimisticIndicator status="pending" />)
 
-      const icon = screen.getByTitle('Processing...')
+      const icon = screen.getByTestId('optimistic-indicator-pending')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveClass('animate-spin')
     })
@@ -21,7 +22,7 @@ describe('OptimisticComponents', () => {
     it('shows confirmed status with check icon', () => {
       render(<OptimisticIndicator status="confirmed" />)
 
-      const icon = screen.getByTitle('Confirmed')
+      const icon = screen.getByTestId('optimistic-indicator-confirmed')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveClass('text-green-500')
     })
@@ -29,7 +30,7 @@ describe('OptimisticComponents', () => {
     it('shows failed status with warning icon', () => {
       render(<OptimisticIndicator status="failed" />)
 
-      const icon = screen.getByTitle('Failed')
+      const icon = screen.getByTestId('optimistic-indicator-failed')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveClass('text-red-500')
     })
@@ -37,7 +38,7 @@ describe('OptimisticComponents', () => {
     it('shows rolled back status with X icon', () => {
       render(<OptimisticIndicator status="rolledBack" />)
 
-      const icon = screen.getByTitle('Rolled back')
+      const icon = screen.getByTestId('optimistic-indicator-rolledBack')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveClass('text-gray-500')
     })
@@ -75,13 +76,13 @@ describe('OptimisticComponents', () => {
       expect(screen.getByText('Test content')).toBeInTheDocument()
       expect(screen.getByText('Processing')).toBeInTheDocument()
 
-      const container = screen.getByText('Test content').closest('div')?.parentElement
+      const container = screen.getByTestId('optimistic-list-item')
       expect(container).toHaveClass('bg-blue-50', 'border-blue-200', 'opacity-75')
     })
 
     it('shows retry and cancel buttons for failed items', () => {
-      const mockRetry = jest.fn()
-      const mockCancel = jest.fn()
+      const mockRetry = vi.fn()
+      const mockCancel = vi.fn()
 
       render(
         <OptimisticListItem
@@ -94,7 +95,7 @@ describe('OptimisticComponents', () => {
       )
 
       expect(screen.getByText('Failed content')).toBeInTheDocument()
-      expect(screen.getByText('Failed')).toBeInTheDocument()
+      expect(screen.getAllByText('Failed', { selector: 'span' })[0]).toBeInTheDocument()
 
       const retryButton = screen.getByText('Retry')
       const cancelButton = screen.getByText('Cancel')
@@ -176,8 +177,8 @@ describe('OptimisticComponents', () => {
       expect(screen.getByText('2 failed')).toBeInTheDocument()
 
       // Check that progress bars have correct widths
-      const completedBar = screen.getByText('6 completed').closest('div')?.querySelector('.bg-green-500')
-      const failedBar = screen.getByText('2 failed').closest('div')?.querySelector('.bg-red-500')
+      const completedBar = screen.getByTestId('optimistic-progress-completed')
+      const failedBar = screen.getByTestId('optimistic-progress-failed')
 
       expect(completedBar).toHaveStyle('width: 60%')
       expect(failedBar).toHaveStyle('width: 20%')

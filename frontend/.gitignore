@@ -128,3 +128,5 @@ playwright/.cache/
 !tests/e2e/**/*.ts
 !tests/unit/**/*.ts
 !tests/integration/**/*.ts
+*storybook.log
+storybook-static

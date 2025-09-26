@@ -1,5 +1,4 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { RootState } from '../index'
 import { createValidatedBaseQuery, createValidatedEndpoint, wrapSuccessResponse } from '@/lib/api/validation'
 import {
   UserSchema,
@@ -19,6 +18,7 @@ import {
   type PasswordRegisterRequest,
   type AuthMethodsResponse,
 } from '@/types/api'
+import { withAuthHeader } from './utils'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '/api/v1'
@@ -26,13 +26,7 @@ const API_BASE_URL =
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: createValidatedBaseQuery(`${API_BASE_URL}/auth`, {
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`)
-      }
-      return headers
-    },
+    prepareHeaders: (headers, { getState }) => withAuthHeader(headers, getState),
   }),
   tagTypes: ['Session'],
   endpoints: builder => ({

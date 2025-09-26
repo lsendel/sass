@@ -1,15 +1,38 @@
-# SASS - Spring Boot Application with Security System
+# 🚀 Payment Platform - Spring Boot Modulith
 
-A comprehensive, security-first payment platform built with Spring Boot, featuring modular architecture, constitutional development practices, and AI-powered development assistance.
+[![CI/CD Status](https://github.com/payment-platform/sass/workflows/Enhanced%20CI/CD%20Pipeline/badge.svg)](https://github.com/payment-platform/sass/actions)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=payment-platform_sass&metric=alert_status)](https://sonarcloud.io/dashboard?id=payment-platform_sass)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=payment-platform_sass&metric=coverage)](https://sonarcloud.io/dashboard?id=payment-platform_sass)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=payment-platform_sass&metric=security_rating)](https://sonarcloud.io/dashboard?id=payment-platform_sass)
 
-## 🚀 Overview
+A comprehensive, enterprise-grade payment platform built with **Spring Boot 3.5** and **Spring Modulith** architecture, featuring modern React frontend, complete CI/CD pipeline, and production-ready infrastructure.
 
-SASS is a dual-stack application that combines a robust payment platform with a unique constitutional development system:
+## 🏗️ Architecture Overview
 
-- **Application Stack**: Java Spring Boot backend with React/TypeScript frontend
-- **Constitutional Tools**: Python-based AI agents enforcing development best practices
-- **Security Focus**: OWASP Top 10, PCI DSS, and GDPR compliance built-in
-- **Modular Design**: Spring Modulith architecture with clear boundaries
+### Backend (Spring Boot Modulith)
+- **Java 21** with modern language features
+- **Spring Boot 3.5** with Spring Modulith 1.4
+- **Modular Monolith** with strict module boundaries
+- **Event-driven architecture** for inter-module communication
+- **PostgreSQL 15** for data persistence
+- **Redis 7** for session management and caching
+- **Stripe API** integration for payment processing
+
+### Frontend (React TypeScript)
+- **React 18** with modern hooks and functional components
+- **TypeScript 5.3** with strict type checking
+- **Redux Toolkit** with RTK Query for state management
+- **Vite 5** for fast development and optimized builds
+- **TailwindCSS 3.4** with custom design system
+- **Playwright** for comprehensive E2E testing
+
+### Infrastructure & DevOps
+- **Kubernetes** deployment with Helm charts
+- **Docker** containerization with multi-stage builds
+- **Terraform** infrastructure as code
+- **GitHub Actions** CI/CD with quality gates
+- **Prometheus & Grafana** for monitoring
+- **ELK Stack** for centralized logging
 
 ## 🏗️ Architecture
 

@@ -1,5 +1,12 @@
 import { test, expect } from './fixtures'
-import { loginAsUser, mockApiError, checkBasicAccessibility } from './utils/test-utils'
+import {
+  loginAsUser,
+  mockApiError,
+  checkBasicAccessibility,
+  fulfillJson,
+  createTestOrganization,
+  createTestUser,
+} from './utils/test-utils'
 
 test.describe('Complete User Journey', () => {
   test('should complete full user onboarding and subscription flow', async ({ page }) => {
@@ -27,22 +34,23 @@ test.describe('Complete User Journey', () => {
     // Mock create organization API
     await page.route('/api/v1/organizations', async (route) => {
       if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 201,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            id: 'org-new',
-            name: 'My New Company',
-            slug: 'my-new-company',
+        await fulfillJson(
+          route,
+          {
+            ...createTestOrganization({
+              id: 'org-new',
+              name: 'My New Company',
+              slug: 'my-new-company',
+              memberCount: 1,
+            }),
             status: 'ACTIVE',
             userRole: 'OWNER',
-            memberCount: 1,
-            createdAt: new Date().toISOString(),
-          }),
-        })
-      } else {
-        await route.continue()
+          },
+          201
+        )
+        return
       }
+      await route.continue()
     })
 
     // Fill organization form
@@ -72,20 +80,20 @@ test.describe('Complete User Journey', () => {
     // Mock create subscription API
     await page.route('/api/v1/organizations/org-123/subscription', async (route) => {
       if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 201,
-          contentType: 'application/json',
-          body: JSON.stringify({
+        await fulfillJson(
+          route,
+          {
             id: 'sub-new',
             planId: 'plan-pro',
             status: 'TRIALING',
             currentPeriodStart: new Date().toISOString(),
             currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          }),
-        })
-      } else {
-        await route.continue()
+          },
+          201
+        )
+        return
       }
+      await route.continue()
     })
 
     // Start subscription
@@ -123,15 +131,11 @@ test.describe('Complete User Journey', () => {
 
     // Mock invite member API
     await page.route('/api/v1/organizations/org-123/members/invite', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'invitation-123',
-          email: 'teammate@example.com',
-          role: 'MEMBER',
-          status: 'PENDING',
-        }),
+      await fulfillJson(route, {
+        id: 'invitation-123',
+        email: 'teammate@example.com',
+        role: 'MEMBER',
+        status: 'PENDING',
       })
     })
 
@@ -155,22 +159,22 @@ test.describe('Complete User Journey', () => {
     // Mock update profile API
     await page.route('/api/v1/user/profile', async (route) => {
       if (route.request().method() === 'PUT') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            id: 'user-123',
-            name: 'John Doe Updated',
-            email: 'test@example.com',
+        await fulfillJson(
+          route,
+          {
+            ...createTestUser({
+              id: 'user-123',
+              name: 'John Doe Updated',
+            }),
             preferences: {
               timezone: 'America/New_York',
               language: 'en',
             },
-          }),
-        })
-      } else {
-        await route.continue()
+          }
+        )
+        return
       }
+      await route.continue()
     })
 
     await page.getByRole('button', { name: 'Save Changes' }).click()
@@ -188,11 +192,7 @@ test.describe('Complete User Journey', () => {
 
     // Mock logout API
     await page.route('/api/v1/auth/logout', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
-      })
+      await fulfillJson(route, { success: true })
     })
 
     await page.getByRole('menuitem', { name: 'Sign out' }).click()

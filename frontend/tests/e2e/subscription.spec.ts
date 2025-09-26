@@ -1,135 +1,53 @@
 import { test, expect } from './fixtures'
+import {
+  mockAuthentication,
+  mockOrganizations,
+  mockSubscriptionPlans,
+  mockJsonRoute,
+  createTestOrganization,
+} from './utils/test-utils'
 
 test.describe('Subscription', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock authentication
-    await page.route('/api/v1/auth/session', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: {
-            id: 'user-123',
-            name: 'Test User',
-            email: 'test@example.com',
-          },
-          authenticated: true,
-        }),
-      })
+    await mockAuthentication(page)
+
+    await mockOrganizations(page, [
+      createTestOrganization({
+        id: 'org-123',
+        name: 'Test Organization',
+        slug: 'test-org',
+      }),
+    ])
+
+    await mockSubscriptionPlans(page)
+
+    await mockJsonRoute(page, '/api/v1/organizations/org-123/subscription', {
+      id: 'sub-123',
+      planId: 'plan-pro',
+      status: 'ACTIVE',
+      currentPeriodStart: '2024-01-01T00:00:00Z',
+      currentPeriodEnd: '2024-02-01T00:00:00Z',
+      cancelAt: null,
     })
 
-    // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'org-123',
-            name: 'Test Organization',
-            slug: 'test-org',
-            status: 'ACTIVE',
-            userRole: 'OWNER',
-            memberCount: 1,
-            createdAt: '2024-01-01T00:00:00Z',
-          },
-        ]),
-      })
-    })
-
-    // Mock available plans
-    await page.route('/api/v1/subscriptions/plans', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'plan-basic',
-            name: 'Basic Plan',
-            description: 'Perfect for small teams',
-            amount: 99.00,
-            interval: 'MONTH',
-            trialDays: 14,
-            features: {
-              'Max Users': 5,
-              'Storage': '10GB',
-              'Support': 'Email',
-            },
-          },
-          {
-            id: 'plan-pro',
-            name: 'Pro Plan',
-            description: 'For growing businesses',
-            amount: 299.00,
-            interval: 'MONTH',
-            trialDays: 14,
-            features: {
-              'Max Users': 25,
-              'Storage': '100GB',
-              'Support': 'Priority',
-              'Advanced Analytics': true,
-            },
-          },
-          {
-            id: 'plan-enterprise',
-            name: 'Enterprise Plan',
-            description: 'For large organizations',
-            amount: 999.00,
-            interval: 'MONTH',
-            trialDays: 30,
-            features: {
-              'Max Users': 'Unlimited',
-              'Storage': '1TB',
-              'Support': '24/7 Phone',
-              'Advanced Analytics': true,
-              'Custom Integrations': true,
-            },
-          },
-        ]),
-      })
-    })
-
-    // Mock active subscription
-    await page.route('/api/v1/organizations/org-123/subscription', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'sub-123',
-          planId: 'plan-pro',
-          status: 'ACTIVE',
-          currentPeriodStart: '2024-01-01T00:00:00Z',
-          currentPeriodEnd: '2024-02-01T00:00:00Z',
-          cancelAt: null,
-        }),
-      })
-    })
-
-    // Mock invoices
-    await page.route('/api/v1/organizations/org-123/invoices', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'inv-123',
-            invoiceNumber: 'INV-2024-001',
-            totalAmount: 299.00,
-            currency: 'usd',
-            status: 'PAID',
-            createdAt: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: 'inv-124',
-            invoiceNumber: 'INV-2023-012',
-            totalAmount: 299.00,
-            currency: 'usd',
-            status: 'PAID',
-            createdAt: '2023-12-01T00:00:00Z',
-          },
-        ]),
-      })
-    })
+    await mockJsonRoute(page, '/api/v1/organizations/org-123/invoices', [
+      {
+        id: 'inv-123',
+        invoiceNumber: 'INV-2024-001',
+        totalAmount: 299.00,
+        currency: 'usd',
+        status: 'PAID',
+        createdAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'inv-124',
+        invoiceNumber: 'INV-2023-012',
+        totalAmount: 299.00,
+        currency: 'usd',
+        status: 'PAID',
+        createdAt: '2023-12-01T00:00:00Z',
+      },
+    ])
   })
 
   test('should display subscription page with active subscription', async ({ page }) => {

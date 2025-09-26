@@ -1,0 +1,94 @@
+# Multi-stage Production Dockerfile for React Frontend
+# Stage 1: Build the application
+FROM node:18-alpine AS builder
+
+# Build arguments
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+ARG VITE_API_BASE_URL=https://api.payment-platform.com
+ARG VITE_STRIPE_PUBLISHABLE_KEY
+
+# Labels for the image
+LABEL maintainer="Payment Platform Team <team@payment-platform.com>" \
+      org.opencontainers.image.title="Payment Platform Frontend" \
+      org.opencontainers.image.description="React TypeScript frontend for the Payment Platform" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="Payment Platform" \
+      org.opencontainers.image.licenses="MIT"
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production --no-audit --no-fund
+
+# Copy source code
+COPY . .
+
+# Set build-time environment variables
+ENV NODE_ENV=production \
+    VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+    VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY} \
+    GENERATE_SOURCEMAP=false
+
+# Build the application
+RUN npm run build
+
+# Stage 2: Production server
+FROM nginx:1.25-alpine AS production
+
+# Install security updates
+RUN apk update && apk upgrade && apk add --no-cache \
+    curl \
+    ca-certificates \
+    tzdata
+
+# Set timezone
+ENV TZ=UTC
+
+# Remove default nginx configuration
+RUN rm -rf /etc/nginx/conf.d/*
+
+# Copy custom nginx configuration
+COPY nginx.prod.conf /etc/nginx/nginx.conf
+
+# Create nginx user and set permissions
+RUN addgroup -g 101 nginx \
+    && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy health check files
+RUN echo '<!DOCTYPE html><html><body>OK</body></html>' > /usr/share/nginx/html/health
+
+# Set proper permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chown -R nginx:nginx /var/log/nginx \
+    && chown -R nginx:nginx /etc/nginx/conf.d
+
+# Create required directories
+RUN mkdir -p /var/cache/nginx/client_temp \
+    && mkdir -p /var/cache/nginx/proxy_temp \
+    && mkdir -p /var/cache/nginx/fastcgi_temp \
+    && mkdir -p /var/cache/nginx/uwsgi_temp \
+    && mkdir -p /var/cache/nginx/scgi_temp \
+    && chown -R nginx:nginx /var/cache/nginx
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# Use non-root user
+USER nginx
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

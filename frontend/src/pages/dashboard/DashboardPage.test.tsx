@@ -2,10 +2,12 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
-import { configureStore } from '@reduxjs/toolkit'
 import DashboardPage from './DashboardPage'
-import authSlice from '../../store/slices/authSlice'
-import uiSlice from '../../store/slices/uiSlice'
+import {
+  createMockStore,
+  type PartialTestState,
+} from '@/test/utils/mockStore'
+import { createMockUser } from '@/test/fixtures/users'
 
 // Mock API hooks
 vi.mock('../../store/api/userApi', () => ({
@@ -75,46 +77,10 @@ vi.mock('../../components/ui/LoadingSpinner', () => ({
   default: () => <div data-testid="loading-spinner">Loading...</div>,
 }))
 
-const createMockStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      auth: authSlice,
-      ui: uiSlice,
-    },
-    preloadedState: {
-      auth: {
-        user: {
-          id: '123',
-          name: 'Test User',
-          email: 'test@example.com',
-          provider: 'google',
-          preferences: {},
-          createdAt: '2024-01-01T00:00:00Z',
-          lastActiveAt: null,
-        },
-        token: null,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-        ...initialState.auth,
-      },
-      ui: {
-        theme: 'light',
-        sidebarOpen: false,
-        loading: { global: false, components: {} },
-        notifications: [],
-        modals: {
-          isPaymentMethodModalOpen: false,
-          isSubscriptionModalOpen: false,
-          isInviteUserModalOpen: false,
-        },
-        ...initialState.ui,
-      },
-    },
-  })
-}
-
-const renderWithProviders = (component: React.ReactElement, initialState = {}) => {
+const renderWithProviders = (
+  component: React.ReactElement,
+  initialState: PartialTestState = {}
+) => {
   const store = createMockStore(initialState)
   return render(
     <Provider store={store}>
@@ -131,7 +97,10 @@ describe('DashboardPage', () => {
 
   it('should render for authenticated user', () => {
     renderWithProviders(<DashboardPage />, {
-      auth: { isAuthenticated: true }
+      auth: {
+        isAuthenticated: true,
+        user: createMockUser(),
+      },
     })
     expect(document.body).toBeInTheDocument()
   })
@@ -146,16 +115,13 @@ describe('DashboardPage', () => {
   it('should handle user data display', () => {
     renderWithProviders(<DashboardPage />, {
       auth: {
-        user: {
+        user: createMockUser({
           id: '456',
           name: 'Dashboard User',
           email: 'dashboard@example.com',
           provider: 'github',
-          preferences: {},
-          createdAt: '2024-01-01T00:00:00Z',
-          lastActiveAt: null,
-        }
-      }
+        }),
+      },
     })
     expect(document.body).toBeInTheDocument()
   })

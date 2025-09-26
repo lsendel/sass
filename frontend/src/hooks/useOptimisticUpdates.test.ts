@@ -12,7 +12,7 @@ describe('useOptimisticUpdates', () => {
   })
 
   it('should add optimistic update and confirm on success', async () => {
-    const mockMutation = jest.fn().mockResolvedValue('success')
+    const mockMutation = vi.fn().mockResolvedValue('success')
     const { result } = renderHook(() => useOptimisticUpdates())
 
     const testData = { id: '1', name: 'Test' }
@@ -38,7 +38,7 @@ describe('useOptimisticUpdates', () => {
 
     // Should clean up after delay
     act(() => {
-      jest.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(3000)
     })
 
     await waitFor(() => {
@@ -48,8 +48,8 @@ describe('useOptimisticUpdates', () => {
 
   it('should handle errors and provide rollback', async () => {
     const mockError = new Error('Mutation failed')
-    const mockMutation = jest.fn().mockRejectedValue(mockError)
-    const mockOnError = jest.fn()
+    const mockMutation = vi.fn().mockRejectedValue(mockError)
+    const mockOnError = vi.fn()
 
     const { result } = renderHook(() => useOptimisticUpdates())
 
@@ -83,8 +83,8 @@ describe('useOptimisticUpdates', () => {
   })
 
   it('should auto-rollback after delay', async () => {
-    const mockMutation = jest.fn().mockRejectedValue(new Error('Failed'))
-    const mockOnError = jest.fn()
+    const mockMutation = vi.fn().mockRejectedValue(new Error('Failed'))
+    const mockOnError = vi.fn()
 
     const { result } = renderHook(() => useOptimisticUpdates())
 
@@ -102,7 +102,7 @@ describe('useOptimisticUpdates', () => {
 
     // Fast forward to trigger auto-rollback
     act(() => {
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
 
     await waitFor(() => {
@@ -129,11 +129,11 @@ describe('useOptimisticUpdates', () => {
 
 describe('useOptimisticList', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('should optimistically add items', async () => {
@@ -149,7 +149,7 @@ describe('useOptimisticList', () => {
     expect(result.current.data).toHaveLength(2)
 
     const newItem = { id: '3', name: 'Item 3' }
-    const mockMutation = jest.fn().mockResolvedValue(newItem)
+    const mockMutation = vi.fn().mockResolvedValue(newItem)
 
     await act(async () => {
       await result.current.addItem(newItem, mockMutation)
@@ -175,7 +175,7 @@ describe('useOptimisticList', () => {
     )
 
     const updatedItem = { id: '1', name: 'Updated Item 1' }
-    const mockMutation = jest.fn().mockResolvedValue(updatedItem)
+    const mockMutation = vi.fn().mockResolvedValue(updatedItem)
 
     await act(async () => {
       await result.current.updateItem(updatedItem, mockMutation)
@@ -200,7 +200,7 @@ describe('useOptimisticList', () => {
     )
 
     const itemToDelete = initialData[0]
-    const mockMutation = jest.fn().mockResolvedValue(undefined)
+    const mockMutation = vi.fn().mockResolvedValue(undefined)
 
     await act(async () => {
       await result.current.deleteItem(itemToDelete, mockMutation)
@@ -226,7 +226,7 @@ describe('useOptimisticList', () => {
     )
 
     const newItem = { id: '3', name: 'Item 3' }
-    const mockMutation = jest.fn().mockRejectedValue(new Error('Failed'))
+    const mockMutation = vi.fn().mockRejectedValue(new Error('Failed'))
 
     await act(async () => {
       await result.current.addItem(newItem, mockMutation)

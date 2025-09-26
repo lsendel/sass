@@ -22,6 +22,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
+import PageHeader from '../../components/ui/PageHeader'
+import StatsCard from '../../components/ui/StatsCard'
 
 const SubscriptionPage: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -32,6 +34,11 @@ const SubscriptionPage: React.FC = () => {
   const { showSuccess, showError } = useNotifications()
 
   const primaryOrg = organizations?.[0]
+
+  const headerDescription = 'Manage your subscription plan and view invoices.'
+  const renderHeader = (actions?: React.ReactNode) => (
+    <PageHeader title="Subscription" description={headerDescription} actions={actions} />
+  )
 
   const {
     data: subscription,
@@ -107,17 +114,7 @@ const SubscriptionPage: React.FC = () => {
   if (orgsError) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Subscription
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your subscription plan and view invoices.
-            </p>
-          </div>
-        </div>
+        {renderHeader()}
 
         <ApiErrorDisplay
           error={orgsError}
@@ -134,17 +131,7 @@ const SubscriptionPage: React.FC = () => {
   if (subError) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Subscription
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your subscription plan and view invoices.
-            </p>
-          </div>
-        </div>
+        {renderHeader()}
 
         <ApiErrorDisplay
           error={subError}
@@ -161,17 +148,7 @@ const SubscriptionPage: React.FC = () => {
   if (!primaryOrg) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Subscription
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your subscription plan and view invoices.
-            </p>
-          </div>
-        </div>
+        {renderHeader()}
 
         <EmptyState
           title="No organization found"
@@ -259,30 +236,49 @@ const SubscriptionPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Subscription
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your subscription plan and view invoices.
-          </p>
-        </div>
-      </div>
+      {renderHeader()}
 
       {/* Current Subscription */}
       {subscription ? (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Current Subscription
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Your subscription details and billing information.
-            </p>
-          </div>
-          <div className="border-t border-gray-200">
+        <StatsCard
+          title="Current Subscription"
+          description="Your subscription details and billing information."
+          className="shadow overflow-hidden sm:rounded-lg"
+          contentClassName="px-4 py-5 sm:px-6"
+          footer={(
+            <div className="flex justify-end space-x-3">
+              {subscription.status === 'ACTIVE' && !subscription.cancelAt && (
+                <>
+                  <LoadingButton
+                    onClick={() => setShowUpgradeModal(true)}
+                    variant="primary"
+                    size="md"
+                  >
+                    <ArrowUpIcon className="-ml-1 mr-2 h-4 w-4" />
+                    Change Plan
+                  </LoadingButton>
+                  <LoadingButton
+                    onClick={handleCancelSubscription}
+                    variant="secondary"
+                    size="md"
+                  >
+                    Cancel Subscription
+                  </LoadingButton>
+                </>
+              )}
+              {subscription.cancelAt && (
+                <LoadingButton
+                  onClick={handleReactivateSubscription}
+                  variant="success"
+                  size="md"
+                >
+                  Reactivate Subscription
+                </LoadingButton>
+              )}
+            </div>
+          )}
+        >
+          <div className="mt-4 border-t border-gray-200">
             <dl>
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Plan</dt>
@@ -332,38 +328,7 @@ const SubscriptionPage: React.FC = () => {
               )}
             </dl>
           </div>
-
-          <div className="px-4 py-4 sm:px-6 bg-gray-50 flex justify-end space-x-3">
-            {subscription.status === 'ACTIVE' && !subscription.cancelAt && (
-              <>
-                <LoadingButton
-                  onClick={() => setShowUpgradeModal(true)}
-                  variant="primary"
-                  size="md"
-                >
-                  <ArrowUpIcon className="-ml-1 mr-2 h-4 w-4" />
-                  Change Plan
-                </LoadingButton>
-                <LoadingButton
-                  onClick={handleCancelSubscription}
-                  variant="secondary"
-                  size="md"
-                >
-                  Cancel Subscription
-                </LoadingButton>
-              </>
-            )}
-            {subscription.cancelAt && (
-              <LoadingButton
-                onClick={handleReactivateSubscription}
-                variant="success"
-                size="md"
-              >
-                Reactivate Subscription
-              </LoadingButton>
-            )}
-          </div>
-        </div>
+        </StatsCard>
       ) : (
         <EmptyState
           title="No Active Subscription"
@@ -378,13 +343,12 @@ const SubscriptionPage: React.FC = () => {
 
       {/* Invoices */}
       {invoices && invoices.length > 0 && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Invoice History
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
+        <StatsCard
+          title="Invoice History"
+          className="shadow overflow-hidden sm:rounded-md"
+          contentClassName="px-4 py-5 sm:px-6"
+        >
+          <div className="mt-4 overflow-x-auto border-t border-gray-200">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -442,7 +406,7 @@ const SubscriptionPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </StatsCard>
       )}
 
       {/* Upgrade Plan Modal */}

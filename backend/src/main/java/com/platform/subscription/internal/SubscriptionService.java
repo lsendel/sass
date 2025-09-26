@@ -2,6 +2,7 @@ package com.platform.subscription.internal;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,19 +63,16 @@ public class SubscriptionService {
     validateOrganizationAccess(organizationId);
 
     // Audit subscription creation attempt
-    auditService.logEvent(
+    auditPreSubscriptionEvent(
         "SUBSCRIPTION_CREATION_STARTED",
-        "SUBSCRIPTION",
+        organizationId,
         "PENDING",
         "CREATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "plan_id", planId.toString(),
             "payment_method_id", paymentMethodId != null ? paymentMethodId : "none",
             "trial_eligible", String.valueOf(trialEligible)),
         null,
-        "system",
-        "SubscriptionService",
         Map.of("action", "subscription_creation_started"));
 
     // Check if organization already has an active subscription
@@ -82,18 +80,15 @@ public class SubscriptionService {
         subscriptionRepository.findByOrganizationId(organizationId);
     if (existingSubscription.isPresent() && existingSubscription.get().isActive()) {
       // Audit failed attempt
-      auditService.logEvent(
+      auditPreSubscriptionEvent(
           "SUBSCRIPTION_CREATION_FAILED",
-          "SUBSCRIPTION",
+          organizationId,
           "REJECTED",
           "CREATE",
           Map.of(
-              "organization_id", organizationId.toString(),
               "reason", "Organization already has active subscription",
               "existing_subscription_id", existingSubscription.get().getId().toString()),
           null,
-          "system",
-          "SubscriptionService",
           Map.of("error", "duplicate_subscription"));
 
       throw new IllegalStateException("Organization already has an active subscription");
@@ -112,76 +107,56 @@ public class SubscriptionService {
 
     if (!plan.isActive()) {
       // Audit failed attempt
-      auditService.logEvent(
+      auditPreSubscriptionEvent(
           "SUBSCRIPTION_CREATION_FAILED",
-          "SUBSCRIPTION",
+          organizationId,
           "REJECTED",
           "CREATE",
-          Map.of(
-              "organization_id", organizationId.toString(),
-              "plan_id", planId.toString(),
-              "reason", "Plan is not active"),
+          Map.of("plan_id", planId.toString(), "reason", "Plan is not active"),
           null,
-          "system",
-          "SubscriptionService",
           Map.of("error", "inactive_plan"));
 
       throw new IllegalArgumentException("Plan is not active: " + planId);
     }
 
     // Audit plan selection
-    auditService.logEvent(
+    auditPreSubscriptionEvent(
         "SUBSCRIPTION_PLAN_SELECTED",
-        "SUBSCRIPTION",
+        organizationId,
         planId.toString(),
         "SELECT",
         Map.of(
-            "organization_id", organizationId.toString(),
             "plan_id", planId.toString(),
             "plan_name", plan.getName(),
-            "plan_price", plan.getPrice().toString()),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "plan_price", plan.getPrice().toString()));
 
     // Create or get Stripe customer
     String customerId =
         stripeClient.getOrCreateCustomer(organization.getId(), organization.getName());
 
     // Audit Stripe customer creation/retrieval
-    auditService.logEvent(
+    auditPreSubscriptionEvent(
         "STRIPE_CUSTOMER_ASSOCIATED",
-        "SUBSCRIPTION",
+        organizationId,
         customerId,
         "ASSOCIATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "stripe_customer_id", customerId,
-            "organization_name", organization.getName()),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "organization_name", organization.getName()));
 
     // Attach payment method to customer if provided
     if (paymentMethodId != null) {
       stripeClient.attachPaymentMethodToCustomer(paymentMethodId, customerId);
 
       // Audit payment method attachment
-      auditService.logEvent(
+      auditPreSubscriptionEvent(
           "PAYMENT_METHOD_ATTACHED",
-          "SUBSCRIPTION",
+          organizationId,
           paymentMethodId,
           "ATTACH",
           Map.of(
-              "organization_id", organizationId.toString(),
               "payment_method_id", paymentMethodId,
-              "stripe_customer_id", customerId),
-          null,
-          "system",
-          "SubscriptionService",
-          null);
+              "stripe_customer_id", customerId));
     }
 
     // Create Stripe subscription
@@ -202,40 +177,30 @@ public class SubscriptionService {
       paramsBuilder.setTrialPeriodDays(plan.getTrialDays().longValue());
 
       // Audit trial period assignment
-      auditService.logEvent(
+      auditPreSubscriptionEvent(
           "SUBSCRIPTION_TRIAL_ASSIGNED",
-          "SUBSCRIPTION",
+          organizationId,
           "TRIAL",
           "ASSIGN",
           Map.of(
-              "organization_id", organizationId.toString(),
               "trial_days", plan.getTrialDays().toString(),
-              "plan_id", planId.toString()),
-          null,
-          "system",
-          "SubscriptionService",
-          null);
+              "plan_id", planId.toString()));
     }
 
     com.stripe.model.Subscription stripeSubscription =
         stripeClient.createSubscription(paramsBuilder.build());
 
     // Audit successful Stripe subscription creation
-    auditService.logEvent(
+    auditPreSubscriptionEvent(
         "STRIPE_SUBSCRIPTION_CREATED",
-        "SUBSCRIPTION",
+        organizationId,
         stripeSubscription.getId(),
         "CREATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "stripe_subscription_id", stripeSubscription.getId(),
             "stripe_status", stripeSubscription.getStatus(),
             "plan_id", planId.toString(),
-            "customer_id", customerId),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "customer_id", customerId));
 
     // Create our subscription record
     Subscription subscription =
@@ -247,14 +212,12 @@ public class SubscriptionService {
     Subscription savedSubscription = subscriptionRepository.save(subscription);
 
     // Audit successful subscription creation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_CREATED",
-        "SUBSCRIPTION",
-        savedSubscription.getId().toString(),
+        savedSubscription,
+        organizationId,
         "CREATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", savedSubscription.getId().toString(),
             "stripe_subscription_id", stripeSubscription.getId(),
             "plan_id", planId.toString(),
             "status", savedSubscription.getStatus().toString(),
@@ -263,8 +226,6 @@ public class SubscriptionService {
             "subscription_id", savedSubscription.getId().toString(),
             "status", savedSubscription.getStatus().toString(),
             "created_at", savedSubscription.getCreatedAt().toString()),
-        "system",
-        "SubscriptionService",
         Map.of("success", "subscription_created"));
 
     logger.info(
@@ -291,37 +252,29 @@ public class SubscriptionService {
     UUID oldPlanId = subscription.getPlanId();
 
     // Audit plan change attempt
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_PLAN_CHANGE_STARTED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "UPDATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "old_plan_id", oldPlanId.toString(),
             "new_plan_id", newPlanId.toString(),
             "proration_enabled", String.valueOf(prorationBehavior)),
         null,
-        "system",
-        "SubscriptionService",
         Map.of("action", "plan_change_started"));
 
     if (!subscription.isActive()) {
       // Audit failed attempt
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "SUBSCRIPTION_PLAN_CHANGE_FAILED",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "UPDATE",
           Map.of(
-              "organization_id", organizationId.toString(),
-              "subscription_id", subscription.getId().toString(),
               "reason", "Subscription is not active",
               "current_status", subscription.getStatus().toString()),
           null,
-          "system",
-          "SubscriptionService",
           Map.of("error", "inactive_subscription"));
 
       throw new IllegalStateException("Subscription is not active: " + subscription.getId());
@@ -334,40 +287,30 @@ public class SubscriptionService {
 
     if (!newPlan.isActive()) {
       // Audit failed attempt
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "SUBSCRIPTION_PLAN_CHANGE_FAILED",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "UPDATE",
           Map.of(
-              "organization_id", organizationId.toString(),
-              "subscription_id", subscription.getId().toString(),
               "new_plan_id", newPlanId.toString(),
               "reason", "Target plan is not active"),
           null,
-          "system",
-          "SubscriptionService",
           Map.of("error", "inactive_target_plan"));
 
       throw new IllegalArgumentException("Plan is not active: " + newPlanId);
     }
 
     // Audit target plan validation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_NEW_PLAN_VALIDATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "VALIDATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "new_plan_id", newPlanId.toString(),
             "new_plan_name", newPlan.getName(),
-            "new_plan_price", newPlan.getPrice().toString()),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "new_plan_price", newPlan.getPrice().toString()));
 
     // Update Stripe subscription
     com.stripe.model.Subscription stripeSubscription =
@@ -389,41 +332,31 @@ public class SubscriptionService {
             .build();
 
     // Audit Stripe update initiation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "STRIPE_SUBSCRIPTION_UPDATE_INITIATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "UPDATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "stripe_subscription_id", subscription.getStripeSubscriptionId(),
             "old_plan_id", oldPlanId.toString(),
             "new_plan_id", newPlanId.toString(),
-            "proration_behavior", prorationBehavior ? "CREATE_PRORATIONS" : "NONE"),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "proration_behavior", prorationBehavior ? "CREATE_PRORATIONS" : "NONE"));
 
     com.stripe.model.Subscription updatedStripeSubscription =
         stripeClient.updateSubscription(subscription.getStripeSubscriptionId(), params);
 
     // Audit successful Stripe update
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "STRIPE_SUBSCRIPTION_UPDATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "UPDATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "stripe_subscription_id", subscription.getStripeSubscriptionId(),
             "new_stripe_status", updatedStripeSubscription.getStatus(),
             "old_plan_id", oldPlanId.toString(),
-            "new_plan_id", newPlanId.toString()),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "new_plan_id", newPlanId.toString()));
 
     // Update our subscription record
     subscription.changePlan(newPlanId);
@@ -431,14 +364,12 @@ public class SubscriptionService {
     Subscription savedSubscription = subscriptionRepository.save(subscription);
 
     // Audit successful plan change
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_PLAN_CHANGED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "UPDATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "old_plan_id", oldPlanId.toString(),
             "new_plan_id", newPlanId.toString(),
             "proration_enabled", String.valueOf(prorationBehavior),
@@ -448,8 +379,6 @@ public class SubscriptionService {
             "new_plan_id", newPlanId.toString(),
             "status", savedSubscription.getStatus().toString(),
             "updated_at", savedSubscription.getUpdatedAt().toString()),
-        "system",
-        "SubscriptionService",
         Map.of("success", "plan_changed"));
 
     logger.info(
@@ -471,36 +400,27 @@ public class SubscriptionService {
                         "No active subscription found for organization: " + organizationId));
 
     // Audit cancellation attempt
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_CANCELLATION_STARTED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "CANCEL",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "immediate_cancellation", String.valueOf(immediate),
             "scheduled_cancel_at", cancelAt != null ? cancelAt.toString() : "end_of_period",
             "current_status", subscription.getStatus().toString()),
         null,
-        "system",
-        "SubscriptionService",
         Map.of("action", "cancellation_started"));
 
     if (subscription.getStatus() == Subscription.Status.CANCELED) {
       // Audit failed attempt
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "SUBSCRIPTION_CANCELLATION_FAILED",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "CANCEL",
-          Map.of(
-              "organization_id", organizationId.toString(),
-              "subscription_id", subscription.getId().toString(),
-              "reason", "Subscription already canceled"),
+          Map.of("reason", "Subscription already canceled"),
           null,
-          "system",
-          "SubscriptionService",
           Map.of("error", "already_canceled"));
 
       throw new IllegalStateException("Subscription is already canceled: " + subscription.getId());
@@ -511,39 +431,28 @@ public class SubscriptionService {
 
     if (immediate) {
       // Audit immediate cancellation
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "SUBSCRIPTION_IMMEDIATE_CANCELLATION",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "CANCEL",
           Map.of(
-              "organization_id", organizationId.toString(),
-              "subscription_id", subscription.getId().toString(),
               "stripe_subscription_id", subscription.getStripeSubscriptionId(),
-              "cancellation_type", "immediate"),
-          null,
-          "system",
-          "SubscriptionService",
-          null);
+              "cancellation_type", "immediate"));
 
       // Cancel immediately
       stripeSubscription.cancel();
       subscription.cancel();
 
       // Audit Stripe immediate cancellation
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "STRIPE_SUBSCRIPTION_CANCELED_IMMEDIATELY",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "CANCEL",
           Map.of(
-              "organization_id", organizationId.toString(),
               "stripe_subscription_id", subscription.getStripeSubscriptionId(),
-              "cancellation_timestamp", Instant.now().toString()),
-          null,
-          "system",
-          "SubscriptionService",
-          null);
+              "cancellation_timestamp", Instant.now().toString()));
 
     } else {
       Instant effectiveCancelAt =
@@ -555,22 +464,16 @@ public class SubscriptionService {
                   .toInstant();
 
       // Audit scheduled cancellation
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "SUBSCRIPTION_SCHEDULED_CANCELLATION",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "SCHEDULE_CANCEL",
           Map.of(
-              "organization_id", organizationId.toString(),
-              "subscription_id", subscription.getId().toString(),
               "stripe_subscription_id", subscription.getStripeSubscriptionId(),
               "cancellation_type", "scheduled",
               "cancel_at", effectiveCancelAt.toString(),
-              "current_period_end", subscription.getCurrentPeriodEnd().toString()),
-          null,
-          "system",
-          "SubscriptionService",
-          null);
+              "current_period_end", subscription.getCurrentPeriodEnd().toString()));
 
       // Schedule cancellation
       SubscriptionUpdateParams params =
@@ -581,32 +484,25 @@ public class SubscriptionService {
       subscription.scheduleCancellation(effectiveCancelAt);
 
       // Audit Stripe scheduled cancellation
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "STRIPE_SUBSCRIPTION_CANCELLATION_SCHEDULED",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "SCHEDULE_CANCEL",
           Map.of(
-              "organization_id", organizationId.toString(),
               "stripe_subscription_id", subscription.getStripeSubscriptionId(),
-              "scheduled_cancel_at", effectiveCancelAt.toString()),
-          null,
-          "system",
-          "SubscriptionService",
-          null);
+              "scheduled_cancel_at", effectiveCancelAt.toString()));
     }
 
     Subscription savedSubscription = subscriptionRepository.save(subscription);
 
     // Audit successful cancellation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_CANCELED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "CANCEL",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "cancellation_type", immediate ? "immediate" : "scheduled",
             "final_status", savedSubscription.getStatus().toString(),
             "cancel_at",
@@ -621,8 +517,6 @@ public class SubscriptionService {
                     ? savedSubscription.getCancelAt().toString()
                     : "immediate",
             "updated_at", savedSubscription.getUpdatedAt().toString()),
-        "system",
-        "SubscriptionService",
         Map.of("success", "subscription_canceled"));
 
     logger.info(
@@ -643,40 +537,32 @@ public class SubscriptionService {
                         "No subscription found for organization: " + organizationId));
 
     // Audit reactivation attempt
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_REACTIVATION_STARTED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "REACTIVATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "current_status", subscription.getStatus().toString(),
             "cancel_at",
                 subscription.getCancelAt() != null
                     ? subscription.getCancelAt().toString()
                     : "none"),
         null,
-        "system",
-        "SubscriptionService",
         Map.of("action", "reactivation_started"));
 
     if (subscription.getStatus() != Subscription.Status.CANCELED
         && subscription.getCancelAt() == null) {
       // Audit failed attempt
-      auditService.logEvent(
+      auditSubscriptionEvent(
           "SUBSCRIPTION_REACTIVATION_FAILED",
-          "SUBSCRIPTION",
-          subscription.getId().toString(),
+          subscription,
+          organizationId,
           "REACTIVATE",
           Map.of(
-              "organization_id", organizationId.toString(),
-              "subscription_id", subscription.getId().toString(),
               "reason", "Subscription is not canceled or scheduled for cancellation",
               "current_status", subscription.getStatus().toString()),
           null,
-          "system",
-          "SubscriptionService",
           Map.of("error", "not_eligible_for_reactivation"));
 
       throw new IllegalStateException(
@@ -684,20 +570,14 @@ public class SubscriptionService {
     }
 
     // Audit reactivation validation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_REACTIVATION_VALIDATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "VALIDATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "current_status", subscription.getStatus().toString(),
-            "stripe_subscription_id", subscription.getStripeSubscriptionId()),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "stripe_subscription_id", subscription.getStripeSubscriptionId()));
 
     // Remove cancellation from Stripe
     com.stripe.model.Subscription stripeSubscription =
@@ -706,38 +586,28 @@ public class SubscriptionService {
         SubscriptionUpdateParams.builder().putExtraParam("cancel_at", "").build();
 
     // Audit Stripe reactivation initiation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "STRIPE_SUBSCRIPTION_REACTIVATION_INITIATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "REACTIVATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "stripe_subscription_id", subscription.getStripeSubscriptionId(),
-            "action", "remove_cancellation_schedule"),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "action", "remove_cancellation_schedule"));
 
     com.stripe.model.Subscription updatedStripeSubscription =
         stripeClient.updateSubscription(subscription.getStripeSubscriptionId(), params);
 
     // Audit successful Stripe reactivation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "STRIPE_SUBSCRIPTION_REACTIVATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "REACTIVATE",
         Map.of(
-            "organization_id", organizationId.toString(),
             "stripe_subscription_id", subscription.getStripeSubscriptionId(),
             "new_stripe_status", updatedStripeSubscription.getStatus(),
-            "cancellation_removed", "true"),
-        null,
-        "system",
-        "SubscriptionService",
-        null);
+            "cancellation_removed", "true"));
 
     // Update our subscription record
     subscription.reactivate();
@@ -745,14 +615,12 @@ public class SubscriptionService {
     Subscription savedSubscription = subscriptionRepository.save(subscription);
 
     // Audit successful reactivation
-    auditService.logEvent(
+    auditSubscriptionEvent(
         "SUBSCRIPTION_REACTIVATED",
-        "SUBSCRIPTION",
-        subscription.getId().toString(),
+        subscription,
+        organizationId,
         "REACTIVATE",
         Map.of(
-            "organization_id", organizationId.toString(),
-            "subscription_id", subscription.getId().toString(),
             "previous_status",
                 subscription.getStatus() == Subscription.Status.CANCELED
                     ? "CANCELED"
@@ -764,8 +632,6 @@ public class SubscriptionService {
             "status", savedSubscription.getStatus().toString(),
             "cancel_at", "null",
             "updated_at", savedSubscription.getUpdatedAt().toString()),
-        "system",
-        "SubscriptionService",
         Map.of("success", "subscription_reactivated"));
 
     logger.info(
@@ -959,6 +825,84 @@ public class SubscriptionService {
 
   private void handleInvoiceFinalized(Map<String, Object> eventData) {
     logger.debug("Invoice finalized webhook received");
+  }
+
+  private Map<String, Object> buildOrganizationContext(
+      UUID organizationId, Map<String, Object> extras) {
+    Map<String, Object> context = new LinkedHashMap<>();
+    context.put("organization_id", organizationId.toString());
+    if (extras != null) {
+      context.putAll(extras);
+    }
+    return context;
+  }
+
+  private Map<String, Object> buildSubscriptionContext(
+      UUID organizationId, Subscription subscription, Map<String, Object> extras) {
+    Map<String, Object> context = buildOrganizationContext(organizationId, null);
+    context.put("subscription_id", subscription.getId().toString());
+    if (extras != null) {
+      context.putAll(extras);
+    }
+    return context;
+  }
+
+  private void auditPreSubscriptionEvent(
+      String eventName,
+      UUID organizationId,
+      String resourceId,
+      String action,
+      Map<String, Object> contextExtras,
+      Map<String, Object> eventData,
+      Map<String, String> metadata) {
+    auditService.logEvent(
+        eventName,
+        "SUBSCRIPTION",
+        resourceId,
+        action,
+        buildOrganizationContext(organizationId, contextExtras),
+        eventData,
+        "system",
+        "SubscriptionService",
+        metadata);
+  }
+
+  private void auditPreSubscriptionEvent(
+      String eventName,
+      UUID organizationId,
+      String resourceId,
+      String action,
+      Map<String, Object> contextExtras) {
+    auditPreSubscriptionEvent(eventName, organizationId, resourceId, action, contextExtras, null, null);
+  }
+
+  private void auditSubscriptionEvent(
+      String eventName,
+      Subscription subscription,
+      UUID organizationId,
+      String action,
+      Map<String, Object> contextExtras,
+      Map<String, Object> eventData,
+      Map<String, String> metadata) {
+    auditService.logEvent(
+        eventName,
+        "SUBSCRIPTION",
+        subscription.getId().toString(),
+        action,
+        buildSubscriptionContext(organizationId, subscription, contextExtras),
+        eventData,
+        "system",
+        "SubscriptionService",
+        metadata);
+  }
+
+  private void auditSubscriptionEvent(
+      String eventName,
+      Subscription subscription,
+      UUID organizationId,
+      String action,
+      Map<String, Object> contextExtras) {
+    auditSubscriptionEvent(eventName, subscription, organizationId, action, contextExtras, null, null);
   }
 
   private void validateOrganizationAccess(UUID organizationId) {

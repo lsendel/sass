@@ -1,70 +1,43 @@
 import { test, expect } from './fixtures'
+import {
+  mockAuthentication,
+  mockOrganizations,
+  mockJsonRoute,
+  createTestOrganization,
+} from './utils/test-utils'
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock authentication
-    await page.route('/api/v1/auth/session', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: {
-            id: 'user-123',
-            name: 'Test User',
-            email: 'test@example.com',
-          },
-          authenticated: true,
-        }),
-      })
-    })
+    await mockAuthentication(page)
 
-    // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'org-123',
-            name: 'Test Organization',
-            slug: 'test-org',
-            status: 'ACTIVE',
-            userRole: 'OWNER',
-            memberCount: 5,
-            createdAt: '2024-01-01T00:00:00Z',
-          },
-        ]),
-      })
-    })
+    await mockOrganizations(page, [
+      createTestOrganization({
+        id: 'org-123',
+        memberCount: 5,
+      }),
+    ])
 
-    // Mock dashboard statistics
-    await page.route('/api/v1/statistics/dashboard', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          totalOrganizations: 1,
-          totalMembers: 5,
-          activeSubscriptions: 1,
-          totalRevenue: 2500.00,
-          recentActivity: [
-            {
-              id: 'activity-1',
-              type: 'subscription_created',
-              description: 'New subscription created',
-              timestamp: '2024-01-15T10:30:00Z',
-              organizationName: 'Test Organization',
-            },
-            {
-              id: 'activity-2',
-              type: 'member_invited',
-              description: 'New member invited',
-              timestamp: '2024-01-14T15:45:00Z',
-              organizationName: 'Test Organization',
-            },
-          ],
-        }),
-      })
+    await mockJsonRoute(page, '/api/v1/statistics/dashboard', {
+      totalOrganizations: 1,
+      totalMembers: 5,
+      activeSubscriptions: 1,
+      totalRevenue: 2500.00,
+      recentActivity: [
+        {
+          id: 'activity-1',
+          type: 'subscription_created',
+          description: 'New subscription created',
+          timestamp: '2024-01-15T10:30:00Z',
+          organizationName: 'Test Organization',
+        },
+        {
+          id: 'activity-2',
+          type: 'member_invited',
+          description: 'New member invited',
+          timestamp: '2024-01-14T15:45:00Z',
+          organizationName: 'Test Organization',
+        },
+      ],
     })
 
     await page.goto('/dashboard')
@@ -145,13 +118,7 @@ test.describe('Dashboard', () => {
 
   test('should handle logout', async ({ page }) => {
     // Mock logout endpoint
-    await page.route('/api/v1/auth/logout', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
-      })
-    })
+    await mockJsonRoute(page, '/api/v1/auth/logout', { success: true })
 
     // Find and click logout button
     const userMenu = page.getByRole('button', { name: 'User menu' })

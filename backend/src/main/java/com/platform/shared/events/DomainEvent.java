@@ -13,7 +13,7 @@ public abstract class DomainEvent extends ApplicationEvent {
     
     private final String eventId;
     private final String eventType;
-    private final Instant timestamp;
+    private final Instant occurredAt;
     private final String sourceModule;
     private final String correlationId;
     
@@ -22,7 +22,7 @@ public abstract class DomainEvent extends ApplicationEvent {
         this.eventId = UUID.randomUUID().toString();
         this.eventType = eventType;
         this.sourceModule = sourceModule;
-        this.timestamp = Instant.now();
+        this.occurredAt = Instant.now();
         this.correlationId = UUID.randomUUID().toString(); // Could be passed from context
     }
     
@@ -34,8 +34,8 @@ public abstract class DomainEvent extends ApplicationEvent {
         return eventType;
     }
     
-    public Instant getTimestamp() {
-        return timestamp;
+    public Instant getOccurredAt() {
+        return occurredAt;
     }
     
     public String getSourceModule() {

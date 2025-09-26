@@ -8,6 +8,7 @@ import {
   type PasswordRegisterRequest,
   type AuthMethodsResponse,
 } from './authApi'
+import { createMockUser } from '@/test/fixtures/users'
 
 // Mock import.meta.env
 vi.mock('import.meta.env', () => ({
@@ -144,15 +145,7 @@ describe('authApi', () => {
 
     it('should define SessionInfo type correctly', () => {
       const sessionInfo: SessionInfo = {
-        user: {
-          id: '123',
-          name: 'Test User',
-          email: 'test@example.com',
-          provider: 'google',
-          preferences: {},
-          createdAt: '2024-01-01T00:00:00Z',
-          lastActiveAt: null,
-        },
+        user: createMockUser({ id: '123', name: 'Test User' }),
         session: {
           activeTokens: 1,
           lastActiveAt: '2024-01-15T10:30:00Z',

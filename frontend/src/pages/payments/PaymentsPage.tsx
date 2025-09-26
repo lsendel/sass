@@ -23,6 +23,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
+import PageHeader from '../../components/ui/PageHeader'
+import StatsCard from '../../components/ui/StatsCard'
 
 const PaymentsPage: React.FC = () => {
   const [showPaymentMethods, setShowPaymentMethods] = useState(false)
@@ -37,6 +39,11 @@ const PaymentsPage: React.FC = () => {
 
   // Get the primary organization
   const primaryOrg = organizations?.[0]
+
+  const headerDescription = 'View your payment history and manage payment methods.'
+  const renderHeader = (actions?: React.ReactNode) => (
+    <PageHeader title="Payments" description={headerDescription} actions={actions} />
+  )
 
   const {
     data: payments,
@@ -158,17 +165,7 @@ const PaymentsPage: React.FC = () => {
   if (paymentsError) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Payments
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              View your payment history and manage payment methods.
-            </p>
-          </div>
-        </div>
+        {renderHeader()}
 
         <ApiErrorDisplay
           error={paymentsError}
@@ -186,17 +183,7 @@ const PaymentsPage: React.FC = () => {
   if (!primaryOrg) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Payments
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              View your payment history and manage payment methods.
-            </p>
-          </div>
-        </div>
+        {renderHeader()}
 
         <EmptyState
           title="No organization found"
@@ -248,27 +235,16 @@ const PaymentsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Payments
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            View your payment history and manage payment methods.
-          </p>
-        </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
-          <LoadingButton
-            onClick={() => setShowPaymentMethods(true)}
-            variant="primary"
-            size="md"
-          >
-            <CreditCardIcon className="-ml-1 mr-2 h-5 w-5" />
-            Payment Methods
-          </LoadingButton>
-        </div>
-      </div>
+      {renderHeader(
+        <LoadingButton
+          onClick={() => setShowPaymentMethods(true)}
+          variant="primary"
+          size="md"
+        >
+          <CreditCardIcon className="-ml-1 mr-2 h-5 w-5" />
+          Payment Methods
+        </LoadingButton>
+      )}
 
       {/* Search and Filter Bar */}
       <SearchAndFilterBar
@@ -302,38 +278,26 @@ const PaymentsPage: React.FC = () => {
       {/* Statistics */}
       {statistics && (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                Total Payments
-              </dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {statistics.totalSuccessfulPayments}
-              </dd>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                Total Amount
-              </dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                ${statistics.totalAmount.toFixed(2)}
-              </dd>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                Recent (30 days)
-              </dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                ${statistics.recentAmount.toFixed(2)}
-              </dd>
-            </div>
-          </div>
+          <StatsCard
+            title="Total Payments"
+            value={statistics.totalSuccessfulPayments.toLocaleString()}
+          />
+          <StatsCard
+            title="Total Amount"
+            value={statistics.totalAmount.toLocaleString('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 2,
+            })}
+          />
+          <StatsCard
+            title="Recent (30 days)"
+            value={statistics.recentAmount.toLocaleString('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 2,
+            })}
+          />
         </div>
       )}
 

@@ -67,6 +67,7 @@ export const OptimisticIndicator: React.FC<OptimisticIndicatorProps> = ({
         className
       )}
       title={config.title}
+      data-testid={`optimistic-indicator-${status}`}
     />
   )
 }
@@ -168,6 +169,7 @@ export const OptimisticListItem: React.FC<OptimisticListItemProps> = ({
         getItemClasses(),
         className
       )}
+      data-testid="optimistic-list-item"
     >
       {/* Status indicator */}
       <div className="absolute top-2 right-2">
@@ -274,10 +276,12 @@ export const OptimisticProgress: React.FC<OptimisticProgressProps> = ({
         <div
           className="bg-green-500 h-full transition-all duration-300"
           style={{ width: `${completedPercentage}%` }}
+          data-testid="optimistic-progress-completed"
         />
         <div
           className="bg-red-500 h-full transition-all duration-300"
           style={{ width: `${failedPercentage}%`, marginTop: '-8px' }}
+          data-testid="optimistic-progress-failed"
         />
       </div>
 

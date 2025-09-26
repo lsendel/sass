@@ -2,44 +2,15 @@ import { describe, it, expect, vi } from 'vitest'
 import React from 'react'
 import { renderHook } from '@testing-library/react'
 import { Provider } from 'react-redux'
-import { configureStore } from '@reduxjs/toolkit'
 import { useAppDispatch, useAppSelector } from './hooks'
-import authSlice from './slices/authSlice'
-import uiSlice from './slices/uiSlice'
 import type { ReactNode } from 'react'
+import {
+  createMockStore,
+  type MockStore,
+} from '@/test/utils/mockStore'
+import { createMockUser } from '@/test/fixtures/users'
 
-const createMockStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      auth: authSlice,
-      ui: uiSlice,
-    },
-    preloadedState: {
-      auth: {
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-        ...initialState.auth,
-      },
-      ui: {
-        theme: 'light',
-        sidebarOpen: false,
-        loading: { global: false, components: {} },
-        notifications: [],
-        modals: {
-          isPaymentMethodModalOpen: false,
-          isSubscriptionModalOpen: false,
-          isInviteUserModalOpen: false,
-        },
-        ...initialState.ui,
-      },
-    },
-  })
-}
-
-const createWrapper = (store: ReturnType<typeof createMockStore>) => {
+const createWrapper = (store: MockStore) => {
   // eslint-disable-next-line react/display-name
   return ({ children }: { children: ReactNode }) => (
     // @ts-ignore - JSX element
@@ -53,16 +24,8 @@ describe('Redux hooks', () => {
       const store = createMockStore({
         auth: {
           isAuthenticated: true,
-          user: {
-            id: '123',
-            name: 'Test User',
-            email: 'test@example.com',
-            provider: 'google',
-            preferences: {},
-            createdAt: '2024-01-01T00:00:00Z',
-            lastActiveAt: null,
-          }
-        }
+          user: createMockUser({ id: '123', name: 'Test User' }),
+        },
       })
 
       const wrapper = createWrapper(store)
@@ -76,15 +39,12 @@ describe('Redux hooks', () => {
     })
 
     it('should select auth user', () => {
-      const mockUser = {
+      const mockUser = createMockUser({
         id: '456',
         name: 'Hook User',
         email: 'hook@example.com',
         provider: 'github',
-        preferences: {},
-        createdAt: '2024-01-01T00:00:00Z',
-        lastActiveAt: null,
-      }
+      })
 
       const store = createMockStore({
         auth: { user: mockUser }

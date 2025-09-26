@@ -1,0 +1,110 @@
+# Multi-stage Production Dockerfile for Spring Boot Backend
+# Stage 1: Build the application
+FROM gradle:8.5-jdk21 AS builder
+
+# Build arguments
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=1.0.0
+
+# Labels for the build stage
+LABEL stage=builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy Gradle wrapper and build files
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle .
+COPY settings.gradle .
+
+# Copy source code
+COPY src src
+
+# Make gradlew executable
+RUN chmod +x gradlew
+
+# Build the application
+RUN ./gradlew build -x test --no-daemon --info
+
+# Stage 2: Production runtime
+FROM openjdk:21-jre-slim AS production
+
+# Build arguments
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+
+# Labels for the image
+LABEL maintainer="Payment Platform Team <team@payment-platform.com>" \
+      org.opencontainers.image.title="Payment Platform Backend" \
+      org.opencontainers.image.description="Spring Boot backend for the Payment Platform with Modulith architecture" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="Payment Platform" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.url="https://payment-platform.com" \
+      org.opencontainers.image.documentation="https://docs.payment-platform.com"
+
+# Install required packages and security updates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    tzdata \
+    dumb-init \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set timezone
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Create application user and group
+RUN groupadd -r appgroup --gid=1001 \
+    && useradd -r -g appgroup --uid=1001 --home-dir=/app --shell=/bin/bash appuser
+
+# Create application directory structure
+RUN mkdir -p /app/logs /app/config /app/tmp \
+    && chown -R appuser:appgroup /app
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built JAR from builder stage
+COPY --from=builder /app/build/libs/*.jar app.jar
+
+# Copy configuration files if they exist
+COPY --chown=appuser:appgroup config/* config/ 2>/dev/null || true
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app \
+    && chmod -R 755 /app \
+    && chmod 644 /app/app.jar
+
+# Environment variables for production
+ENV SPRING_PROFILES_ACTIVE=production \
+    JAVA_OPTS="-Xmx2g -Xms1g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/ -XX:+UseStringDeduplication -XX:+OptimizeStringConcat" \
+    SERVER_PORT=8080 \
+    MANAGEMENT_SERVER_PORT=8081 \
+    LOGGING_FILE_PATH=/app/logs \
+    LOGGING_FILE_NAME=payment-platform.log \
+    LOGGING_LEVEL_ROOT=INFO \
+    LOGGING_LEVEL_COM_PLATFORM=INFO
+
+# Expose ports
+EXPOSE 8080 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# Switch to non-root user
+USER appuser
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["sh", "-c", "java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} -jar app.jar"]

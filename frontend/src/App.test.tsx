@@ -2,10 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
-import { configureStore } from '@reduxjs/toolkit'
 import App from './App'
-import authSlice from './store/slices/authSlice'
-import uiSlice from './store/slices/uiSlice'
+import { createMockStore, type PartialTestState } from '@/test/utils/mockStore'
+import { createMockUser } from '@/test/fixtures/users'
 
 // Mock react-hot-toast
 vi.mock('react-hot-toast', () => ({
@@ -84,38 +83,10 @@ vi.mock('./store/slices/authSlice', async () => {
   }
 })
 
-const createMockStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      auth: authSlice,
-      ui: uiSlice,
-    },
-    preloadedState: {
-      auth: {
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-        ...initialState.auth,
-      },
-      ui: {
-        theme: 'light',
-        sidebarOpen: false,
-        loading: { global: false, components: {} },
-        notifications: [],
-        modals: {
-          isPaymentMethodModalOpen: false,
-          isSubscriptionModalOpen: false,
-          isInviteUserModalOpen: false,
-        },
-        ...initialState.ui,
-      },
-    },
-  })
-}
-
-const renderWithProviders = (component: React.ReactElement, initialState = {}) => {
+const renderWithProviders = (
+  component: React.ReactElement,
+  initialState: PartialTestState = {}
+) => {
   const store = createMockStore(initialState)
   return render(
     <Provider store={store}>
@@ -174,15 +145,10 @@ describe('App', () => {
 
     it('should restore session from API when session data is available', async () => {
       const mockSessionData = {
-        user: {
+        user: createMockUser({
           id: '123',
           name: 'Test User',
-          email: 'test@example.com',
-          provider: 'google',
-          preferences: {},
-          createdAt: '2024-01-01T00:00:00Z',
-          lastActiveAt: null,
-        }
+        }),
       }
 
       mockUseGetSessionQuery.mockReturnValue({

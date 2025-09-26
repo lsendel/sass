@@ -26,7 +26,7 @@ import com.platform.shared.security.PlatformUserPrincipal;
 
 /** REST controller for authentication endpoints including OAuth2 flows. */
 @RestController
-@org.springframework.context.annotation.Profile("!test")
+@org.springframework.context.annotation.Profile({"!test", "controller-test"})
 @RequestMapping("/api/v1/auth")
 @CrossOrigin(
     origins = {"${app.frontend-url}", "http://localhost:3000"},

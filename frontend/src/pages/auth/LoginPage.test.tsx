@@ -2,9 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
-import { configureStore } from '@reduxjs/toolkit'
 import LoginPage from './LoginPage'
-import authSlice from '../../store/slices/authSlice'
+import { createMockStore } from '@/test/utils/mockStore'
 
 // Mock the PasswordLoginForm component
 vi.mock('../../components/auth/PasswordLoginForm', () => ({
@@ -23,23 +22,6 @@ vi.mock('../../store/api/authApi', () => ({
     error: null,
   }),
 }))
-
-const createMockStore = () => {
-  return configureStore({
-    reducer: {
-      auth: authSlice,
-    },
-    preloadedState: {
-      auth: {
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      },
-    },
-  })
-}
 
 const renderWithProviders = (component: React.ReactElement) => {
   const store = createMockStore()

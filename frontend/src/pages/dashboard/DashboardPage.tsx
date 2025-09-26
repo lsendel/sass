@@ -8,6 +8,7 @@ import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import { LoadingCard, CardSkeleton, InlineLoading } from '../../components/ui/LoadingStates'
 import { Button } from '../../components/ui/button'
+import StatsCard from '../../components/ui/StatsCard'
 import {
   BuildingOfficeIcon,
   CreditCardIcon,
@@ -19,7 +20,8 @@ import {
   BellIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
-import { getIconClasses, getCardClasses } from '../../lib/theme'
+import { getCardClasses } from '../../lib/theme'
+import clsx from 'clsx'
 
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
@@ -147,36 +149,34 @@ const DashboardPage: React.FC = () => {
 
       {/* Stats Grid - Compact */}
       <div className="grid grid-cols-4 gap-3">
-        {stats.map((stat, index) => (
-          <div
-            key={stat.name}
-            className={`${getCardClasses()} p-3 transition-shadow hover:shadow-lg brand-element`}
-          >
-            {/* Icon */}
-            <div className={`inline-flex items-center justify-center w-6 h-6 ${stat.bgColor} rounded-lg mb-2`}>
-              <stat.icon className="w-3 h-3 brand-element" />
-            </div>
+        {stats.map((stat) => {
+          const isPaymentsCard = stat.name === 'Total Payments'
+          const isSubscriptionCard = stat.name === 'Subscription'
+          const displayValue = isPaymentsCard && paymentStatsLoading
+            ? <InlineLoading size="md" />
+            : isSubscriptionCard && subscriptionStatsLoading
+              ? <InlineLoading size="md" />
+              : stat.value
 
-            {/* Content */}
-            <div>
-              <p className="text-xs font-medium text-gray-600 mb-1">{stat.name}</p>
-              <p className="text-base font-bold text-gray-900 mb-1 brand-element">
-                {stat.name === 'Total Payments' && paymentStatsLoading ? (
-                  <InlineLoading size="md" />
-                ) : stat.name === 'Subscription' && subscriptionStatsLoading ? (
-                  <InlineLoading size="md" />
-                ) : (
-                  stat.value
-                )}
-              </p>
-              <div className="flex items-center">
-                <span className="text-xs font-medium text-success-600 bg-success-100 px-1 py-0.5 rounded">
-                  {stat.trend}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
+          return (
+            <StatsCard
+              key={stat.name}
+              unstyled
+              className={clsx(getCardClasses(), 'p-3 transition-shadow hover:shadow-lg brand-element')}
+              contentClassName="p-0"
+              icon={
+                <stat.icon className="w-3 h-3 brand-element" />
+              }
+              iconWrapperClassName={`inline-flex items-center justify-center w-6 h-6 ${stat.bgColor} ${stat.iconColor} rounded-lg mb-2`}
+              title={stat.name}
+              titleClassName="text-xs font-medium text-gray-600 mb-1"
+              value={displayValue}
+              valueClassName="text-base font-bold text-gray-900 mb-1 brand-element"
+              trend={stat.trend}
+              trendClassName="text-xs font-medium text-success-600 bg-success-100 px-1 py-0.5 rounded"
+            />
+          )
+        })}
       </div>
 
       {/* Quick Actions - Compact */}

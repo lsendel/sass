@@ -1,65 +1,50 @@
 import { test, expect } from './fixtures'
+import {
+  mockJsonRoute,
+  createTestUser,
+  createTestOrganization,
+} from './utils/test-utils'
 
 test.describe('Authentication Debug', () => {
   test('should properly mock authentication', async ({ page }) => {
     // Mock authentication session
-    await page.route('/api/v1/auth/session', async (route) => {
-      console.log('Auth session route intercepted!')
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: {
-            user: {
-              id: '123e4567-e89b-12d3-a456-426614174000',
-              email: 'test@example.com',
-              firstName: 'Test',
-              lastName: 'User',
-              role: 'USER',
-              emailVerified: true,
-              organizationId: '987fcdeb-51d2-43a1-b456-426614174000',
-              createdAt: '2024-01-01T00:00:00Z',
-              updatedAt: '2024-01-01T00:00:00Z',
-              lastLoginAt: '2024-01-01T10:00:00Z',
-            },
-            session: {
-              activeTokens: 1,
-              lastActiveAt: '2024-01-01T10:00:00Z',
-              createdAt: '2024-01-01T00:00:00Z',
-            },
-          },
-          timestamp: '2024-01-01T10:00:00Z',
-        }),
-      })
+    console.log('Auth session route intercepted!')
+    await mockJsonRoute(page, '/api/v1/auth/session', {
+      success: true,
+      data: {
+        user: {
+          ...createTestUser({ id: '123e4567-e89b-12d3-a456-426614174000' }),
+          firstName: 'Test',
+          lastName: 'User',
+        },
+        session: {
+          activeTokens: 1,
+          lastActiveAt: '2024-01-01T10:00:00Z',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      },
+      timestamp: '2024-01-01T10:00:00Z',
     })
 
     // Mock user organizations
-    await page.route('/api/v1/organizations/user', async (route) => {
-      console.log('User organizations route intercepted!')
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: {
-            items: [
-              {
-                id: 'org-123e4567-e89b-12d3-a456-426614174000',
-                name: 'Test Organization',
-                plan: 'PRO',
-                status: 'ACTIVE',
-                billingEmail: 'billing@example.com',
-                maxUsers: 50,
-                currentUsers: 1,
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-            ],
+    console.log('User organizations route intercepted!')
+    await mockJsonRoute(page, '/api/v1/organizations/user', {
+      success: true,
+      data: {
+        items: [
+          {
+            ...createTestOrganization({
+              id: 'org-123e4567-e89b-12d3-a456-426614174000',
+              name: 'Test Organization',
+            }),
+            plan: 'PRO',
+            billingEmail: 'billing@example.com',
+            maxUsers: 50,
+            currentUsers: 1,
           },
-          timestamp: '2024-01-01T10:00:00Z',
-        }),
-      })
+        ],
+      },
+      timestamp: '2024-01-01T10:00:00Z',
     })
 
     // Set up console logging to catch any errors
