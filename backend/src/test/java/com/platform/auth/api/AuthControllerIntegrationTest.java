@@ -48,6 +48,7 @@ import com.platform.shared.security.PlatformUserPrincipal;
 
 @WebMvcTest(controllers = AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@ActiveProfiles("controller-test")
 @ImportAutoConfiguration(
     exclude = {
       OAuth2ClientAutoConfiguration.class,

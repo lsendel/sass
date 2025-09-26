@@ -30,7 +30,7 @@ import com.platform.auth.internal.OAuth2UserInfoRepository;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
-@Profile("!prod")
+@Profile("test")
 public class TestAuthFlowController {
 
   private final OAuth2ProviderRepository providerRepository;
