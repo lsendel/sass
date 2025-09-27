@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.platform.audit.internal.AuditService;
 import com.platform.shared.security.TenantContext;
+import com.platform.shared.stripe.StripeCustomerService;
 import com.platform.shared.types.Money;
 import com.platform.user.internal.Organization;
 import com.platform.user.internal.OrganizationRepository;
@@ -36,6 +37,7 @@ public class PaymentService {
   private final OrganizationRepository organizationRepository;
   private final ApplicationEventPublisher eventPublisher;
   private final AuditService auditService;
+  private final StripeCustomerService stripeCustomerService;
 
   public PaymentService(
       PaymentRepository paymentRepository,
@@ -43,12 +45,14 @@ public class PaymentService {
       OrganizationRepository organizationRepository,
       ApplicationEventPublisher eventPublisher,
       AuditService auditService,
-      @Value("${stripe.secret-key}") String stripeSecretKey) {
+      @Value("${stripe.secret-key}") String stripeSecretKey,
+      StripeCustomerService stripeCustomerService) {
     this.paymentRepository = paymentRepository;
     this.paymentMethodRepository = paymentMethodRepository;
     this.organizationRepository = organizationRepository;
     this.eventPublisher = eventPublisher;
     this.auditService = auditService;
+    this.stripeCustomerService = stripeCustomerService;
 
     Stripe.apiKey = stripeSecretKey;
   }
@@ -69,7 +73,7 @@ public class PaymentService {
                 () -> new IllegalArgumentException("Organization not found: " + organizationId));
 
     // Create or get Stripe customer
-    String customerId = getOrCreateStripeCustomer(organization);
+    String customerId = stripeCustomerService.getOrCreateCustomer(organization);
 
     // Create payment intent
     PaymentIntentCreateParams params =
@@ -252,7 +256,7 @@ public class PaymentService {
                 () -> new IllegalArgumentException("Organization not found: " + organizationId));
 
     // Get or create Stripe customer
-    String customerId = getOrCreateStripeCustomer(organization);
+    String customerId = stripeCustomerService.getOrCreateCustomer(organization);
 
     // Attach payment method to customer
     com.stripe.model.PaymentMethod stripePaymentMethod =
@@ -464,32 +468,6 @@ public class PaymentService {
   }
 
   // Helper methods
-
-  private String getOrCreateStripeCustomer(Organization organization) throws StripeException {
-    // In a real implementation, you might store the Stripe customer ID on the organization
-    // For now, we'll create a new customer each time or search for existing
-    CustomerSearchParams searchParams =
-        CustomerSearchParams.builder()
-            .setQuery("metadata['organization_id']:'" + organization.getId() + "'")
-            .build();
-
-    CustomerSearchResult searchResult = Customer.search(searchParams);
-
-    if (!searchResult.getData().isEmpty()) {
-      return searchResult.getData().get(0).getId();
-    }
-
-    // Create new customer
-    CustomerCreateParams params =
-        CustomerCreateParams.builder()
-            .setName(organization.getName())
-            .setDescription("Customer for organization: " + organization.getName())
-            .putMetadata("organization_id", organization.getId().toString())
-            .build();
-
-    Customer customer = Customer.create(params);
-    return customer.getId();
-  }
 
   private PaymentMethod.Type mapStripePaymentMethodType(String stripeType) {
     return switch (stripeType) {

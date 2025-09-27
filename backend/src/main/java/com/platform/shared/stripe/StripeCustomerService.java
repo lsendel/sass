@@ -1,4 +1,4 @@
-package com.platform.payment.internal;
+package com.platform.shared.stripe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
