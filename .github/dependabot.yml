@@ -1,23 +1,56 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
+  # Java dependencies
+  - package-ecosystem: "gradle"
     directory: "/"
     schedule:
       interval: "weekly"
-    labels: ["dependencies", "ci"]
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    labels: ["dependencies", "backend", "security"]
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
 
+  # Frontend dependencies
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
-    versioning-strategy: increase
-    labels: ["dependencies", "frontend"]
-    open-pull-requests-limit: 10
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    labels: ["dependencies", "frontend", "security"]
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
 
-  - package-ecosystem: "gradle"
-    directory: "/backend"
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    target-branch: "develop"
+    labels: ["dependencies", "ci", "security"]
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
     schedule:
       interval: "weekly"
-    labels: ["dependencies", "backend"]
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 2
+    target-branch: "develop"
+    labels: ["dependencies", "docker", "security"]
+    commit-message:
+      prefix: "docker"
+      include: "scope"
 

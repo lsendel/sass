@@ -84,12 +84,8 @@ public class OrganizationController {
     return ResponseEntity.ok(responses);
   }
 
-  @GetMapping("/all")
-  @org.springframework.context.annotation.Profile("test")
-  public ResponseEntity<List<OrganizationResponse>> getAllOrganizations() {
-    List<OrganizationResponse> responses = organizationManagementService.getAllOrganizations();
-    return ResponseEntity.ok(responses);
-  }
+  // REMOVED: Test endpoint that exposed all organizations without proper authorization
+  // This endpoint was a security vulnerability that could expose tenant data in production
 
   @PutMapping("/{organizationId}")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")

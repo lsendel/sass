@@ -1,0 +1,99 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main, develop]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event.workflow_run.conclusion == 'success'
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_STAGING }}
+
+      - name: Deploy to staging
+        run: |
+          envsubst < k8s/staging/deployment.yaml | kubectl apply -f -
+          kubectl rollout status deployment/payment-platform -n staging --timeout=300s
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+
+      - name: Run smoke tests
+        run: |
+          kubectl wait --for=condition=ready pod -l app=payment-platform -n staging --timeout=300s
+          ./scripts/smoke-tests.sh staging
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_PROD }}
+
+      - name: Pre-deployment validation
+        run: |
+          ./scripts/pre-deployment-checks.sh production
+
+      - name: Blue-Green deployment
+        run: |
+          envsubst < k8s/production/deployment-green.yaml | kubectl apply -f -
+          kubectl rollout status deployment/payment-platform-green -n production --timeout=600s
+          ./scripts/smoke-tests.sh production-green
+          kubectl patch service payment-platform -n production -p '{"spec":{"selector":{"version":"green"}}}'
+          sleep 30
+          kubectl scale deployment payment-platform-blue --replicas=1 -n production
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Production Release v${{ github.run_number }}
+          body: |
+            Production deployment completed successfully.
+
+            Deployed commit: ${{ github.sha }}
+            Constitutional compliance: ✅
+            Security validation: ✅

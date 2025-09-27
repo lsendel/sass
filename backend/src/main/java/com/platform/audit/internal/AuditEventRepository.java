@@ -349,4 +349,64 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
       @Param("organizationId") UUID organizationId,
       @Param("startDate") Instant startDate,
       @Param("endDate") Instant endDate);
+
+  // Additional methods for comprehensive audit service
+
+  /**
+   * Find audit events by user ID and time range (enhanced version)
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.actorId = :userId " +
+         "AND ae.createdAt BETWEEN :fromDate AND :toDate " +
+         "ORDER BY ae.createdAt DESC")
+  List<AuditEvent> findByUserIdAndTimeframe(
+      @Param("userId") String userId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate
+  );
+
+  /**
+   * Find recent audit events since a given timestamp
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.createdAt >= :since " +
+         "ORDER BY ae.createdAt DESC")
+  List<AuditEvent> findRecentEvents(@Param("since") Instant since);
+
+  /**
+   * Find audit events by advanced criteria for comprehensive search
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE " +
+         "(:userId IS NULL OR CAST(ae.actorId AS string) = :userId) AND " +
+         "(:eventTypes IS NULL OR ae.action IN :eventTypes) AND " +
+         "(:severities IS NULL OR ae.severity IN :severities) AND " +
+         "(:fromDate IS NULL OR ae.createdAt >= :fromDate) AND " +
+         "(:toDate IS NULL OR ae.createdAt <= :toDate) AND " +
+         "(:ipAddress IS NULL OR ae.ipAddress = :ipAddress) AND " +
+         "(:correlationId IS NULL OR ae.correlationId = :correlationId) " +
+         "ORDER BY ae.createdAt DESC")
+  Page<AuditEvent> findByAdvancedCriteria(
+      @Param("userId") String userId,
+      @Param("eventTypes") List<String> eventTypes,
+      @Param("severities") List<String> severities,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate,
+      @Param("ipAddress") String ipAddress,
+      @Param("correlationId") String correlationId,
+      Pageable pageable
+  );
+
+  /**
+   * Archive old audit events for retention management
+   */
+  @Modifying
+  @Query(value = "INSERT INTO audit_events_archive SELECT * FROM audit_events " +
+                 "WHERE created_at < :threshold", nativeQuery = true)
+  long archiveEventsOlderThan(@Param("threshold") Instant threshold);
+
+  /**
+   * Compress events by updating storage format
+   */
+  @Modifying
+  @Query("UPDATE AuditEvent ae SET ae.compressed = true " +
+         "WHERE ae.createdAt < :threshold AND ae.compressed = false")
+  long compressEventsOlderThan(@Param("threshold") Instant threshold);
 }

@@ -81,11 +81,66 @@ dependencies {
     testImplementation 'io.rest-assured:json-path'
     testImplementation 'io.rest-assured:xml-path'
     testImplementation 'com.h2database:h2'
+
+    // Security Testing Dependencies
+    testImplementation 'org.zaproxy:zap-clientapi:1.14.0'
+    testImplementation 'com.github.spotbugs:spotbugs-annotations:4.8.6'
+    testImplementation 'org.owasp:dependency-check-gradle:10.0.4'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
+
+    // Security test configuration
+    systemProperty 'security.testing.enabled', 'true'
+
+    // Exclude long-running security tests from regular builds
+    exclude '**/SecurityTestSuite.class'
+    exclude '**/PenetrationTest.class'
+    exclude '**/SecurityPipelineTest.class'
+}
+
+// Security testing task
+task securityTest(type: Test) {
+    description = 'Run comprehensive security tests'
+    group = 'security'
+
+    useJUnitPlatform()
+    include '**/SecurityTestSuite.class'
+    include '**/SecurityValidation*Test.class'
+
+    systemProperty 'security.testing.enabled', 'true'
+    systemProperty 'security.testing.comprehensive', 'true'
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+// Penetration testing task
+task penetrationTest(type: Test) {
+    description = 'Run automated penetration tests'
+    group = 'security'
+
+    useJUnitPlatform()
+    include '**/PenetrationTest.class'
+    include '**/SecurityPipelineTest.class'
+
+    systemProperty 'security.testing.enabled', 'true'
+    systemProperty 'penetration.testing.enabled', 'true'
+
+    // Run only in secure environments
+    onlyIf {
+        System.getProperty('environment') == 'test' ||
+        System.getProperty('ci.pipeline') == 'security'
+    }
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
 }
 
 jacocoTestReport {
@@ -159,6 +214,49 @@ dependencyCheck {
         assemblyEnabled = false
         nuspecEnabled = false
         nugetconfEnabled = false
+    }
+}
+
+// Security scanning tasks
+task dependencySecurityScan {
+    description = 'Run OWASP Dependency Check analysis'
+    group = 'security'
+    dependsOn dependencyCheckAnalyze
+}
+
+// CI/CD Security Pipeline
+task securityPipeline {
+    description = 'Run complete security pipeline'
+    group = 'security'
+
+    dependsOn 'checkstyleMain', 'checkstyleTest'
+    dependsOn 'dependencySecurityScan'
+    dependsOn 'securityTest'
+    dependsOn 'jacocoTestCoverageVerification'
+
+    doLast {
+        println "Security pipeline completed successfully"
+        println "Reports available in: build/reports/"
+    }
+}
+
+// Full security validation (including penetration tests)
+task fullSecurityValidation {
+    description = 'Run comprehensive security validation including penetration tests'
+    group = 'security'
+
+    dependsOn 'securityPipeline'
+    dependsOn 'penetrationTest'
+
+    doLast {
+        println "Full security validation completed"
+        println "Security test reports:"
+        println "  - Unit tests: build/reports/tests/test/"
+        println "  - Security tests: build/reports/tests/securityTest/"
+        println "  - Penetration tests: build/reports/tests/penetrationTest/"
+        println "  - Dependency check: build/reports/dependency-check/"
+        println "  - Code coverage: build/reports/jacoco/"
+        println "  - Checkstyle: build/reports/checkstyle/"
     }
 }
 

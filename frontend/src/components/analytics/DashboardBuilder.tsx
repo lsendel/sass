@@ -218,7 +218,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
       let savedDashboard: Dashboard
       if (dashboardId) {
         savedDashboard = await updateDashboard({
-          dashboardId: dashboardId as any,
+          dashboardId,
           updates: dashboardData,
         }).unwrap()
       } else {
@@ -227,7 +227,8 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
 
       onSave?.(savedDashboard)
     } catch (error) {
-      console.error('Failed to save dashboard:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      console.error('Failed to save dashboard:', errorMessage)
     }
   }
 
@@ -288,7 +289,10 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
           <h3 className="text-sm font-medium text-gray-900 mb-3">Dashboard Settings</h3>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="dashboard-name"
+                className="block text-xs font-medium text-gray-700 mb-1"
+              >
                 Name
               </label>
               <Controller
@@ -297,6 +301,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                 render={({ field }) => (
                   <input
                     {...field}
+                    id="dashboard-name"
                     type="text"
                     className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Dashboard name"
@@ -305,7 +310,10 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="dashboard-description"
+                className="block text-xs font-medium text-gray-700 mb-1"
+              >
                 Description
               </label>
               <Controller
@@ -314,6 +322,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                 render={({ field }) => (
                   <textarea
                     {...field}
+                    id="dashboard-description"
                     rows={2}
                     className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Dashboard description"
@@ -418,10 +427,14 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor={`widget-title-${selectedWidgetData.id}`}
+                    className="block text-xs font-medium text-gray-700 mb-1"
+                  >
                     Title
                   </label>
                   <input
+                    id={`widget-title-${selectedWidgetData.id}`}
                     type="text"
                     value={selectedWidgetData.title}
                     onChange={(e) => updateWidget(selectedWidgetData.id, { title: e.target.value })}
@@ -431,10 +444,14 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
 
                 {selectedWidgetData.type === 'chart' && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor={`chart-type-${selectedWidgetData.id}`}
+                      className="block text-xs font-medium text-gray-700 mb-1"
+                    >
                       Chart Type
                     </label>
                     <select
+                      id={`chart-type-${selectedWidgetData.id}`}
                       value={selectedWidgetData.config?.chartType ?? 'line'}
                       onChange={(e) => updateWidget(selectedWidgetData.id, {
                         config: { ...selectedWidgetData.config, chartType: e.target.value as ChartType }
@@ -452,16 +469,20 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
 
                 {selectedWidgetData.type === 'metric' && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor={`metric-select-${selectedWidgetData.id}`}
+                      className="block text-xs font-medium text-gray-700 mb-1"
+                    >
                       Metric
                     </label>
                     <select
+                      id={`metric-select-${selectedWidgetData.id}`}
                       value={selectedWidgetData.dataSources?.[0]?.metricId ?? ''}
                       onChange={(e) => {
                         const dataSource: DataSource = {
                           id: 'primary',
                           type: 'metric',
-                          metricId: e.target.value as any,
+                          metricId: e.target.value || undefined,
                         }
                         updateWidget(selectedWidgetData.id, {
                           dataSources: [dataSource]
@@ -605,7 +626,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     <div className="text-center text-gray-500">
                       <ChartBarIcon className="h-12 w-12 mx-auto mb-2" />
                       <p className="text-sm">
-                        {ChartTypes[widget.config?.chartType!]?.name ?? 'Chart'}
+                        {ChartTypes[widget.config?.chartType ?? 'line']?.name ?? 'Chart'}
                       </p>
                     </div>
                   )}

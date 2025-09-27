@@ -55,10 +55,10 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
   // ===== ADVANCED PAYMENT ANALYTICS =====
 
-  /** Revenue analytics by time period */
+  /** Revenue analytics by time period - SECURE VERSION */
   @Query(value = """
       SELECT
-          DATE_TRUNC(:period, created_at) as time_period,
+          DATE_TRUNC(CAST(:period AS VARCHAR), created_at) as time_period,
           COUNT(*) as payment_count,
           SUM(amount) as total_revenue,
           AVG(amount) as average_payment,
@@ -66,11 +66,11 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
       FROM payments
       WHERE status = 'SUCCEEDED'
           AND created_at BETWEEN :startDate AND :endDate
-      GROUP BY DATE_TRUNC(:period, created_at)
+      GROUP BY DATE_TRUNC(CAST(:period AS VARCHAR), created_at)
       ORDER BY time_period
       """, nativeQuery = true)
-  List<Object[]> getRevenueAnalytics(
-      @Param("period") String period, // 'day', 'week', 'month', 'quarter'
+  List<Object[]> getRevenueAnalyticsSecure(
+      @Param("period") String period, // Validated in service layer
       @Param("startDate") Instant startDate,
       @Param("endDate") Instant endDate);
 

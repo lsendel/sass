@@ -145,8 +145,9 @@ export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         const user = JSON.parse(userData) as { id?: string };
         return user.id;
       }
-    } catch {
+    } catch (error) {
       // Ignore parsing errors
+      console.warn('Failed to parse user data from localStorage:', error);
     }
     return undefined;
   }
@@ -261,9 +262,17 @@ ${errorDetails.componentStack}
               {/* Action buttons */}
               <div className="flex flex-col space-y-2">
                 {retryCount < maxRetries && (
-                  <Button onClick={this.handleRetry} className="w-full">
-                    Try Again {retryCount > 0 && `(${retryCount}/${maxRetries})`}
-                  </Button>
+          <Button
+            onClick={this.handleRetry}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                this.handleRetry();
+              }
+            }}
+            className="w-full"
+          >
+            Try Again {retryCount > 0 && `(${retryCount}/${maxRetries})`}
+          </Button>
                 )}
 
                 <Button

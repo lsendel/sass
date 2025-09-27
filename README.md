@@ -11,20 +11,21 @@ A comprehensive, enterprise-grade payment platform built with **Spring Boot 3.5*
 
 ### Backend (Spring Boot Modulith)
 - **Java 21** with modern language features
-- **Spring Boot 3.5** with Spring Modulith 1.4
+- **Spring Boot 3.5.6** with Spring Modulith 1.4.3
 - **Modular Monolith** with strict module boundaries
 - **Event-driven architecture** for inter-module communication
 - **PostgreSQL 15** for data persistence
 - **Redis 7** for session management and caching
 - **Stripe API** integration for payment processing
+- **SpringDoc OpenAPI 2.8.13** for API documentation
 
 ### Frontend (React TypeScript)
-- **React 18** with modern hooks and functional components
-- **TypeScript 5.3** with strict type checking
-- **Redux Toolkit** with RTK Query for state management
-- **Vite 5** for fast development and optimized builds
-- **TailwindCSS 3.4** with custom design system
-- **Playwright** for comprehensive E2E testing
+- **React 19.1.1** with modern hooks and functional components
+- **TypeScript 5.7.2** with strict type checking
+- **Redux Toolkit 2.3.0** with RTK Query for state management
+- **Vite 7.1.7** for fast development and optimized builds
+- **TailwindCSS 4.1.13** with custom design system
+- **Playwright 1.55.1** for comprehensive E2E testing
 
 ### Infrastructure & DevOps
 - **Kubernetes** deployment with Helm charts
@@ -250,9 +251,11 @@ For detailed deployment instructions, see [Deployment Guide](./DEPLOYMENT.md).
 - [Project Constitution](./.claude/context/project-constitution.md) - Development principles and practices
 
 ### Architecture & Design
-- [Architecture Overview](./docs/docs/architecture/overview.md) - System design with diagrams
-- [API Documentation](./API_DOCUMENTATION.md) - Complete API reference
-- [Interactive API Docs](http://localhost:8082/swagger-ui.html) - Try out the API in your browser
+- [Architecture Overview](./docs/docs/architecture/overview.md) - System design and decisions
+- [Architecture Diagrams](./ARCHITECTURE_DIAGRAMS.md) - Visual system architecture with Mermaid diagrams
+- [API Reference](./API_REFERENCE.md) - Complete REST API documentation
+- [API Documentation](./API_DOCUMENTATION.md) - Legacy API reference
+- [Interactive API Docs](http://localhost:8080/swagger-ui.html) - Try out the API in your browser
 
 ### Development Resources
 - [Glossary](./GLOSSARY.md) - Project terminology and definitions

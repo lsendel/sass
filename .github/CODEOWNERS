@@ -1,0 +1,33 @@
+# Global owners
+* @team-leads
+
+# CI/CD and DevOps
+/.github/ @team-devops @team-security
+/k8s/ @team-devops @team-security
+/scripts/ @team-devops @team-security
+Dockerfile @team-devops @team-security
+docker-compose* @team-devops @team-security
+
+# Backend code
+/src/ @team-backend @team-security
+build.gradle @team-backend @team-devops
+gradle.properties @team-backend @team-devops
+
+# Frontend code
+/frontend/ @team-frontend @team-security
+
+# Security sensitive files
+/src/main/java/com/payment/ @team-security @team-backend
+/src/main/java/com/auth/ @team-security @team-backend
+
+# Configuration files
+application*.yml @team-backend @team-security @team-devops
+application*.properties @team-backend @team-security @team-devops
+
+# Documentation
+*.md @team-docs @team-leads
+docs/ @team-docs @team-leads
+
+# Legal and compliance
+LICENSE @team-legal
+SECURITY.md @team-security @team-legal

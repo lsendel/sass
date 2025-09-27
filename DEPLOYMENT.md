@@ -4,11 +4,24 @@ This guide covers deploying the Spring Boot Modulith Payment Platform to product
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Linux server with at least 4GB RAM and 20GB storage
-- SSL certificates for HTTPS
-- Domain name configured
-- Required API keys (Stripe, OAuth providers)
+### System Requirements
+- **OS**: Linux server (Ubuntu 20.04+ recommended)
+- **Memory**: Minimum 4GB RAM (8GB recommended for production)
+- **Storage**: 20GB minimum (50GB recommended for logs and backups)
+- **CPU**: 2+ cores (4+ cores recommended for production)
+
+### Software Dependencies
+- **Docker**: 20.10+ and Docker Compose v2
+- **Kubernetes**: v1.25+ (for K8s deployment)
+- **SSL Certificates**: Valid TLS certificates for HTTPS
+- **Domain**: Configured domain name with DNS
+
+### Required API Keys and Credentials
+- **Stripe**: Live API keys (publishable and secret)
+- **OAuth Providers**: Google, GitHub, Microsoft OAuth2 applications
+- **Email Service**: SMTP credentials or service API keys
+- **Database**: PostgreSQL 15+ connection details
+- **Redis**: Redis 6+ connection details
 
 ## Quick Start
 

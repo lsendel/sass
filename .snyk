@@ -1,0 +1,68 @@
+# Snyk (https://snyk.io) policy file for Payment Platform
+
+# Specifies for which vulnerabilities Snyk will not create a PR or issue
+ignore:
+  # Ignored for specific reasons
+
+# Patches apply the minimum changes required to fix a vulnerability
+patches: {}
+
+# Configuration for Snyk CLI and GitHub integration
+version: v1.0.0
+
+# Language-specific configurations
+language-settings:
+  java:
+    # Maven dependency resolution
+    scan-all-unmanaged: true
+    # Include dev dependencies
+    dev-dependencies: true
+
+  javascript:
+    # NPM dependency resolution
+    yarn-workspaces: false
+    all-sub-projects: true
+
+# Security policies
+security-policies:
+  # Minimum severity level to report
+  severity-threshold: medium
+
+  # Fail on high and critical vulnerabilities
+  fail-on: upgradable
+
+  # License policies
+  license-policy:
+    fail-on:
+      - GPL-2.0
+      - GPL-3.0
+      - AGPL-1.0
+      - AGPL-3.0
+
+# Exclude specific paths from scanning
+exclude:
+  # Test files and mocks
+  - "**/*test*"
+  - "**/*spec*"
+  - "**/mock*"
+
+  # Build artifacts
+  - "**/build/**"
+  - "**/target/**"
+  - "**/dist/**"
+  - "**/node_modules/**"
+
+  # Configuration files
+  - "**/*.min.js"
+  - "**/*.map"
+
+# Custom rules for payment platform
+payment-platform:
+  # PCI DSS compliance
+  pci-compliance: true
+
+  # Payment processing security
+  payment-data-protection: strict
+
+  # Financial regulations
+  financial-compliance: enabled

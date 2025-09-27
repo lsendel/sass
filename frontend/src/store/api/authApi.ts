@@ -47,7 +47,7 @@ export const authApi = createApi({
           // Validate request data
           PasswordLoginRequestSchema.parse(credentials);
           return {
-            url: '/mock-login',
+            url: '/login',
             method: 'POST',
             body: credentials,
           };

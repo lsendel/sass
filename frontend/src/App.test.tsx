@@ -130,7 +130,7 @@ describe('App', () => {
 
     it('should have correct CSS class on root div', () => {
       renderWithProviders(<App />)
-      const appDiv = screen.getByTestId('error-boundary').querySelector('.App')
+      const appDiv = screen.getByTestId('error-boundary').querySelector<HTMLDivElement>('.App')
       expect(appDiv).toBeInTheDocument()
     })
   })
