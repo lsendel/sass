@@ -31,7 +31,7 @@ export interface PermissionCheckerProps {
   /** Organization ID for organization-scoped permissions */
   organizationId?: string
   /** Additional context for permission evaluation */
-  context?: Record<string, any>
+  context?: Record<string, unknown>
   /** Whether to show loading state during permission check */
   showLoading?: boolean
   /** Whether to log permission denials for debugging */
@@ -158,15 +158,12 @@ export const usePermissionCheck = () => {
        * Check if current user has permission for a specific action
        */
       hasPermission: (
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         resource: ResourceType,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         action: ActionType,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         options?: {
           resourceId?: string
           organizationId?: string
-          context?: Record<string, any>
+          context?: Record<string, unknown>
         }
       ) => {
         if (!user) return false
@@ -174,6 +171,9 @@ export const usePermissionCheck = () => {
         // This would typically use a cached permission check
         // For now, we'll return a simple implementation
         // In a real app, this would integrate with the permission API
+        void resource
+        void action
+        void options
         return true // Placeholder
       },
 
@@ -186,7 +186,6 @@ export const usePermissionCheck = () => {
           action: ActionType
           resourceId?: string
         }>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         organizationId?: string
       ) => {
         if (!user) return false
@@ -194,8 +193,9 @@ export const usePermissionCheck = () => {
         // Check if user has any of the specified permissions
         return permissions.some(() =>
           // This would use the actual permission check logic
-          true // Placeholder
+          true // Placeholder implementation
         )
+        void organizationId // Mark as intentionally unused in placeholder
       },
 
       /**
@@ -207,7 +207,6 @@ export const usePermissionCheck = () => {
           action: ActionType
           resourceId?: string
         }>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         organizationId?: string
       ) => {
         if (!user) return false
@@ -215,21 +214,22 @@ export const usePermissionCheck = () => {
         // Check if user has all of the specified permissions
         return permissions.every(() =>
           // This would use the actual permission check logic
-          true // Placeholder
+          true // Placeholder implementation
         )
+        void organizationId // Mark as intentionally unused in placeholder
       },
 
       /**
        * Get user's effective permissions for debugging
        */
       getEffectivePermissions: (
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         organizationId?: string
       ) => {
         if (!user) return []
 
         // This would fetch and return user's effective permissions
-        return [] // Placeholder
+        void organizationId // Mark as intentionally unused in placeholder
+        return [] // Placeholder implementation
       },
     }
   }, [user])

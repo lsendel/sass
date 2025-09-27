@@ -62,8 +62,66 @@ WHERE action = 'export';
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_time_partitioned
 ON audit_events(DATE_TRUNC('day', created_at), organization_id, action);
 
+-- Enhanced audit event indexes for new repository methods
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_user_timeframe
+ON audit_events(actor_id, created_at DESC)
+WHERE actor_id IS NOT NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_recent_events
+ON audit_events(created_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_advanced_search
+ON audit_events(actor_id, action, severity, created_at, ip_address, correlation_id);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_compression
+ON audit_events(created_at, compressed)
+WHERE compressed = false;
+
+-- Partial index for archival operations
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_archival
+ON audit_events(created_at)
+WHERE created_at < NOW() - INTERVAL '90 days';
+
+-- Audit events archive table for performance
+CREATE TABLE IF NOT EXISTS audit_events_archive (
+    LIKE audit_events INCLUDING ALL
+);
+
+-- Partition tables for better performance on large datasets
+-- Create monthly partitions for audit_events if not exists
+DO $$
+DECLARE
+    start_date date := date_trunc('month', CURRENT_DATE - INTERVAL '6 months');
+    end_date date := date_trunc('month', CURRENT_DATE + INTERVAL '6 months');
+    curr_date date := start_date;
+    table_name text;
+BEGIN
+    WHILE curr_date < end_date LOOP
+        table_name := 'audit_events_' || to_char(curr_date, 'YYYY_MM');
+
+        -- Create partition if it doesn't exist
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = table_name
+        ) THEN
+            EXECUTE format('
+                CREATE TABLE %I PARTITION OF audit_events
+                FOR VALUES FROM (%L) TO (%L)',
+                table_name,
+                curr_date,
+                curr_date + INTERVAL '1 month'
+            );
+        END IF;
+
+        curr_date := curr_date + INTERVAL '1 month';
+    END LOOP;
+END $$;
+
 -- Statistics update for better query planning
 ANALYZE audit_events;
 ANALYZE payment_methods;
 ANALYZE organizations;
 ANALYZE subscriptions;
+
+-- Update table statistics for new indexes
+ANALYZE audit_events_archive;

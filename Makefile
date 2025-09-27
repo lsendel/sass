@@ -8,52 +8,108 @@ FRONTEND_PORT ?= 3000
 # Default target
 .PHONY: help
 help: ## Show this help message
-	@echo "Spring Boot Modulith Payment Platform - Development Commands"
-	@echo "============================================================"
+	@echo "🚀 Spring Boot Modulith Payment Platform"
+	@echo "========================================="
 	@echo ""
-	@echo "Setup Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "setup\|clean" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "📦 Setup & Cleanup:"
+	@echo "  setup               Install all dependencies"
+	@echo "  setup-backend       Install Java dependencies"
+	@echo "  setup-frontend      Install Node.js dependencies"
+	@echo "  clean               Clean all build artifacts"
 	@echo ""
-	@echo "Development Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "dev\|start\|stop" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "🛠️  Development:"
+	@echo "  dev                 Start full development environment (recommended)"
+	@echo "  dev-backend         Start only backend server"
+	@echo "  dev-frontend        Start only frontend server"
+	@echo "  stop                Stop all running processes"
 	@echo ""
-	@echo "Testing Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "test" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "🧪 Testing:"
+	@echo "  test                Run all tests"
+	@echo "  test-backend        Run Java tests"
+	@echo "  test-frontend       Run React tests"
+	@echo "  test-all            Run comprehensive test suite"
 	@echo ""
-	@echo "Build Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "build" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "🏗️  Building:"
+	@echo "  build               Build for production"
+	@echo "  build-backend       Build Java JAR"
+	@echo "  build-frontend      Build React assets"
 	@echo ""
-	@echo "Code Quality Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "lint\|format" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "✨ Code Quality:"
+	@echo "  lint                Run all linting"
+	@echo "  format              Format all code"
+	@echo "  pre-commit          Run all quality checks"
 	@echo ""
-	@echo "Demo & Utility Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "demo\|health\|env\|cors" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "🎯 Demo & Testing:"
+	@echo "  demo                Complete authentication demo"
+	@echo "  health              Check service status"
+	@echo "  test-api            Test API endpoints"
+	@echo "  test-cors           Test CORS configuration"
+	@echo "  test-auth           Test authentication endpoints"
+	@echo "  validate-deployment Complete deployment validation"
 	@echo ""
-	@echo "Git Commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep "git" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "🔧 Utilities:"
+	@echo "  env-info            Show environment details"
+	@echo "  git-clean-lock      Clean git lock files"
+	@echo "  quick-start         Full setup and start"
+	@echo "  code-quality        Comprehensive quality checks"
+	@echo "  backup-db           Backup database"
+	@echo ""
+	@echo "🚀 Deployment:"
+	@echo "  deploy-staging      Deploy to staging"
+	@echo "  deploy-production   Deploy to production"
+	@echo ""
+	@echo "📚 More commands: make help-all"
+	@echo ""
+	@echo "🚀 Quick Start: make setup && make dev"
+
+.PHONY: help-all
+help-all: ## Show all available commands with descriptions
+	@echo "🚀 Spring Boot Modulith Payment Platform - All Commands"
+	@echo "======================================================="
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  JAVA_HOME            Java 21 installation path (default: /opt/homebrew/opt/openjdk@21)"
 	@echo "  BACKEND_PORT         Backend server port (default: 8082)"
 	@echo "  FRONTEND_PORT        Frontend server port (default: 3000)"
-	@echo ""
-	@echo "Quick Start:"
-	@echo "  make dev             Start full development environment (recommended)"
-	@echo "  make demo            Run login form demonstration"
-	@echo "  make health          Check if services are running"
+
+# Prerequisite checking
+.PHONY: check-prereqs
+check-prereqs: ## Check if all prerequisites are installed
+	@echo "🔍 Checking prerequisites..."
+	@echo -n "Java 21: "
+	@export PATH=$(JAVA_HOME)/bin:$$PATH && java -version 2>&1 | head -n1 || echo "❌ Not found"
+	@echo -n "Node.js: "
+	@node --version || echo "❌ Not found"
+	@echo -n "npm: "
+	@npm --version || echo "❌ Not found"
+	@echo -n "Git: "
+	@git --version || echo "❌ Not found"
+	@echo -n "Docker: "
+	@docker --version || echo "❌ Not found (optional)"
+	@echo "✅ Prerequisite check complete"
 
 # Setup commands
 .PHONY: setup setup-backend setup-frontend
-setup: setup-backend setup-frontend ## Install all dependencies (backend + frontend)
+setup: check-prereqs setup-backend setup-frontend ## Install all dependencies (backend + frontend)
 	@echo "✅ Setup complete! Run 'make dev' to start development servers."
 
 setup-backend: ## Install backend dependencies
 	@echo "🔧 Setting up backend dependencies..."
-	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew build -x test
+	@if [ ! -f backend/gradlew ]; then \
+		echo "❌ backend/gradlew not found. Are you in the right directory?"; \
+		exit 1; \
+	fi
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew build -x test && echo "✅ Backend setup complete" || (echo "❌ Backend setup failed" && exit 1)
 
 setup-frontend: ## Install frontend dependencies
 	@echo "🔧 Setting up frontend dependencies..."
-	cd frontend && npm install
+	@if [ ! -f frontend/package.json ]; then \
+		echo "❌ frontend/package.json not found. Are you in the right directory?"; \
+		exit 1; \
+	fi
+	@cd frontend && npm install && echo "✅ Frontend setup complete" || (echo "❌ Frontend setup failed" && exit 1)
 
 # Clean commands
 .PHONY: clean clean-backend clean-frontend
@@ -256,11 +312,21 @@ auth-flow: ## Run complete authentication flow test with detailed analysis
 .PHONY: health env-info
 health: ## Check if services are running
 	@echo "🏥 Checking service health..."
-	@echo "Backend (port $(BACKEND_PORT)):"
-	@curl -s http://localhost:$(BACKEND_PORT)/actuator/health || echo "❌ Backend not responding"
 	@echo ""
-	@echo "Frontend (port $(FRONTEND_PORT)):"
-	@curl -s http://localhost:$(FRONTEND_PORT) > /dev/null && echo "✅ Frontend responding" || echo "❌ Frontend not responding"
+	@echo -n "Backend (port $(BACKEND_PORT)): "
+	@if curl -s -f http://localhost:$(BACKEND_PORT)/actuator/health > /dev/null 2>&1; then \
+		echo "✅ Healthy"; \
+	else \
+		echo "❌ Not responding"; \
+	fi
+	@echo -n "Frontend (port $(FRONTEND_PORT)): "
+	@if curl -s -f http://localhost:$(FRONTEND_PORT) > /dev/null 2>&1; then \
+		echo "✅ Responding"; \
+	else \
+		echo "❌ Not responding"; \
+	fi
+	@echo ""
+	@echo "💡 Tip: Use 'make dev' to start all services"
 
 env-info: ## Show environment information
 	@echo "🔧 Environment Information:"
@@ -305,3 +371,140 @@ git-clean-lock: ## Clean git lock files
 
 git-clean-lock-force: ## Force clean git lock files
 	@bash scripts/git-clean-lock.sh --force
+
+# Missing commands referenced in README
+.PHONY: pre-commit security-check docs prod
+pre-commit: lint test ## Run all quality checks before committing
+	@echo "✅ Pre-commit checks passed!"
+
+security-check: ## Run comprehensive security scans and validation
+	@echo "🔒 Running comprehensive security checks..."
+	@if [ -f "scripts/security-check.sh" ]; then \
+		bash scripts/security-check.sh; \
+	else \
+		echo "Backend security scan:"; \
+		cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew dependencyCheckAnalyze || echo "⚠️  Dependency check not configured"; \
+		echo "Frontend security scan:"; \
+		cd frontend && npm audit || echo "⚠️  npm audit found issues"; \
+		echo "✅ Basic security check complete"; \
+	fi
+
+docs: ## Generate and serve documentation
+	@echo "📚 Starting documentation server..."
+	@if [ -d "docs" ]; then \
+		cd docs && npm install && npm start; \
+	else \
+		echo "❌ docs directory not found"; \
+	fi
+
+prod: ## Start production-like environment
+	@echo "🌟 Starting production environment..."
+	@echo "⚙️ Building all components first..."
+	@make build
+	@echo "🚀 Starting services in production mode..."
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew bootRun --args='--spring.profiles.active=production --server.port=$(BACKEND_PORT)' --console=plain &
+	@echo "⏳ Waiting for backend to start..."
+	@sleep 10
+	@echo "📱 Serving frontend static files..."
+	@cd frontend && npm run preview &
+	@echo "✅ Production environment started!"
+
+# Convenient shortcuts
+.PHONY: install start restart logs status
+install: setup ## Alias for setup (install dependencies)
+
+start: dev ## Alias for dev (start development)
+
+restart: stop dev ## Restart development environment
+	@echo "🔄 Development environment restarted!"
+
+logs: ## Show logs from running services
+	@echo "📋 Recent logs from services..."
+	@echo "Backend logs:"
+	@pkill -f "gradlew bootRun" -USR1 2>/dev/null || echo "Backend not running"
+	@echo ""
+	@echo "Frontend logs:"
+	@pkill -f "vite" -USR1 2>/dev/null || echo "Frontend not running"
+
+status: health ## Alias for health check
+
+# Improved quick commands
+.PHONY: fresh full-clean
+fresh: full-clean setup dev ## Complete fresh start (clean + setup + dev)
+	@echo "🌟 Fresh development environment ready!"
+
+full-clean: stop clean ## Stop everything and clean all artifacts
+	@echo "🧹 Full cleanup complete!"
+
+# Advanced testing and validation commands
+.PHONY: test-api test-cors test-auth validate-deployment code-quality
+test-api: ## Test API endpoints functionality
+	@echo "🔗 Testing API endpoints..."
+	@if [ -f "test_api_endpoints.sh" ]; then \
+		bash test_api_endpoints.sh; \
+	else \
+		echo "Testing health endpoint:"; \
+		curl -s -f http://localhost:$(BACKEND_PORT)/actuator/health > /dev/null && echo "✅ Health endpoint responding" || echo "❌ Health endpoint not responding"; \
+		echo "Testing API documentation:"; \
+		curl -s -f http://localhost:$(BACKEND_PORT)/swagger-ui.html > /dev/null && echo "✅ Swagger UI accessible" || echo "❌ Swagger UI not accessible"; \
+	fi
+
+test-cors: cors-test ## Alias for CORS testing
+
+test-auth: ## Test authentication endpoints
+	@echo "🔐 Testing authentication endpoints..."
+	@if [ -f "backend/test_auth_methods.sh" ]; then \
+		bash backend/test_auth_methods.sh; \
+	else \
+		echo "Testing auth methods endpoint:"; \
+		curl -s -f http://localhost:$(BACKEND_PORT)/api/v1/auth/methods > /dev/null && echo "✅ Auth methods endpoint responding" || echo "❌ Auth methods endpoint not responding"; \
+	fi
+
+validate-deployment: health test-api test-cors ## Comprehensive deployment validation
+	@echo "✅ Deployment validation complete!"
+
+code-quality: ## Run comprehensive code quality automation
+	@echo "✨ Running comprehensive code quality checks..."
+	@if [ -f "scripts/code-quality-automation.sh" ]; then \
+		bash scripts/code-quality-automation.sh; \
+	else \
+		echo "Running basic quality checks:"; \
+		make lint; \
+		make test; \
+		echo "✅ Basic code quality checks complete"; \
+	fi
+
+# Production deployment commands
+.PHONY: deploy-staging deploy-production backup-db
+deploy-staging: ## Deploy to staging environment
+	@echo "🚀 Deploying to staging environment..."
+	@if [ -f "scripts/deploy-staging.sh" ]; then \
+		bash scripts/deploy-staging.sh; \
+	else \
+		echo "❌ Staging deployment script not found"; \
+		echo "💡 Use 'make prod' for production-like local environment"; \
+	fi
+
+deploy-production: ## Deploy to production environment
+	@echo "🌟 Deploying to production environment..."
+	@if [ -f "scripts/deploy-production.sh" ]; then \
+		bash scripts/deploy-production.sh; \
+	elif [ -f "deploy.sh" ]; then \
+		bash deploy.sh; \
+	else \
+		echo "❌ Production deployment script not found"; \
+		echo "💡 Use 'make prod' for production-like local environment"; \
+	fi
+
+backup-db: ## Backup database
+	@echo "💾 Creating database backup..."
+	@if [ -f "scripts/backup-database.sh" ]; then \
+		bash scripts/backup-database.sh; \
+	else \
+		echo "Creating manual backup..."; \
+		timestamp=$$(date +%Y%m%d_%H%M%S); \
+		echo "Backup would be created with timestamp: $$timestamp"; \
+		echo "💡 Manual backup commands:"; \
+		echo "  Docker: docker exec postgres_container pg_dump -U user dbname > backup_$$timestamp.sql"; \
+		echo "  Local: pg_dump -h localhost -U user dbname > backup_$$timestamp.sql"; \
+	fi

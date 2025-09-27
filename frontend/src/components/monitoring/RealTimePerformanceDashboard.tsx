@@ -1,6 +1,16 @@
-import React, { useState, useEffect, memo, useMemo } from 'react'
-import { useInterval } from '../../hooks/useInterval'
-import { useOptimizedSelector, usePerformanceMonitor } from '../../hooks/usePerformanceOptimization'
+import React, { useState, useEffect, memo, useMemo, useCallback } from 'react'
+import { useOptimizedSelector, usePerformanceMonitor, useDebouncedCallback } from '../../hooks/usePerformanceOptimization'
+import {
+  useGetHealthSummaryQuery,
+  useGetCacheStatsQuery,
+  useGetAuditMetricsQuery,
+  useGetSecurityAnalysisQuery,
+  useGetAuditStreamStatusQuery,
+  useTriggerAuditArchivalMutation,
+  useTriggerAuditCompressionMutation,
+  performanceUtils
+} from '../../store/api/performanceApi'
+import { useTenant } from '../../hooks/useTenant'
 
 interface PerformanceMetrics {
   memory_usage_mb: number
@@ -31,55 +41,97 @@ interface HealthSummary {
 }
 
 /**
- * Real-time performance monitoring dashboard with live metrics,
- * health status, and optimization recommendations.
+ * Enhanced real-time performance monitoring dashboard with audit integration,
+ * security analysis, and automated optimization recommendations.
  */
 const RealTimePerformanceDashboard = memo(() => {
   const { markStart, markEnd } = usePerformanceMonitor('RealTimePerformanceDashboard')
+  const { currentTenant } = useTenant()
 
-  const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(null)
-  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshInterval, setRefreshInterval] = useState(5000) // 5 seconds default
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'audit' | 'security'>('overview')
+  const [alertsEnabled, setAlertsEnabled] = useState(true)
 
-  // Fetch performance data
-  const fetchPerformanceData = async () => {
-    markStart('fetch-performance-data')
+  // RTK Query hooks with real-time polling
+  const {
+    data: healthSummary,
+    isLoading: healthLoading,
+    error: healthError
+  } = useGetHealthSummaryQuery()
+
+  const {
+    data: cacheStats,
+    isLoading: cacheLoading
+  } = useGetCacheStatsQuery()
+
+  const {
+    data: auditMetrics,
+    isLoading: auditLoading
+  } = useGetAuditMetricsQuery()
+
+  const {
+    data: securityAnalysis,
+    isLoading: securityLoading
+  } = useGetSecurityAnalysisQuery(
+    { organizationId: currentTenant?.id || '', lookbackHours: 24 },
+    { skip: !currentTenant?.id }
+  )
+
+  const {
+    data: streamStatus,
+    isLoading: streamLoading
+  } = useGetAuditStreamStatusQuery()
+
+  // Mutations for administrative actions
+  const [triggerArchival, { isLoading: archivalLoading }] = useTriggerAuditArchivalMutation()
+  const [triggerCompression, { isLoading: compressionLoading }] = useTriggerAuditCompressionMutation()
+
+  const isLoading = healthLoading || cacheLoading || auditLoading
+  const error = healthError
+
+  // Memoized calculations
+  const overallPerformanceScore = useMemo(() => {
+    if (!healthSummary || !cacheStats) return 0
+    return performanceUtils.calculatePerformanceScore(
+      healthSummary.healthScore,
+      cacheStats,
+      auditMetrics
+    )
+  }, [healthSummary, cacheStats, auditMetrics])
+
+  const alertLevel = useMemo(() => {
+    if (!healthSummary || !securityAnalysis) return 'none'
+    return performanceUtils.getAlertLevel(
+      healthSummary.healthScore,
+      securityAnalysis.riskScore,
+      healthSummary.metrics
+    )
+  }, [healthSummary, securityAnalysis])
+
+  // Debounced tab change
+  const handleTabChange = useDebouncedCallback((tab: 'overview' | 'audit' | 'security') => {
+    setSelectedTab(tab)
+  }, 100)
+
+  // Administrative action handlers
+  const handleArchival = useCallback(async () => {
     try {
-      const [healthResponse, cacheResponse] = await Promise.all([
-        fetch('/api/v1/performance/health-summary'),
-        fetch('/api/v1/performance/cache-stats')
-      ])
-
-      if (!healthResponse.ok || !cacheResponse.ok) {
-        throw new Error('Failed to fetch performance data')
-      }
-
-      const [healthData, cacheData] = await Promise.all([
-        healthResponse.json(),
-        cacheResponse.json()
-      ])
-
-      setHealthSummary(healthData)
-      setCacheStats(cacheData)
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      console.error('Performance data fetch error:', err)
-    } finally {
-      setIsLoading(false)
-      markEnd('fetch-performance-data')
+      await triggerArchival().unwrap()
+      // Show success notification
+    } catch (error) {
+      console.error('Archival failed:', error)
+      // Show error notification
     }
-  }
+  }, [triggerArchival])
 
-  // Auto-refresh performance data
-  useInterval(fetchPerformanceData, refreshInterval)
-
-  // Initial load
-  useEffect(() => {
-    fetchPerformanceData()
-  }, [])
+  const handleCompression = useCallback(async () => {
+    try {
+      await triggerCompression().unwrap()
+      // Show success notification
+    } catch (error) {
+      console.error('Compression failed:', error)
+      // Show error notification
+    }
+  }, [triggerCompression])
 
   // Memoized health status styling
   const getStatusColor = useMemo(() => (status: string) => {

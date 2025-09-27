@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -85,13 +84,15 @@ class SubscriptionLifecycleIntegrationTest {
         user = userRepository.save(user);
         userId = user.getId();
 
-        // Create test plan
-        Plan plan = new Plan("Pro Plan", "price_pro_test",
-                           new Money(new BigDecimal("29.99"), "USD"),
-                           Plan.BillingInterval.MONTH);
-        // Use reflection to set required fields for test
-        setField(plan, "slug", "pro-plan");
-        setField(plan, "active", true);
+        // Create test plan using TestDataBuilder
+        Plan plan = com.platform.testutil.TestDataBuilder.plan()
+                .withName("Pro Plan")
+                .withStripePriceId("price_pro_test")
+                .withPrice(new BigDecimal("29.99"), "USD")
+                .withInterval(Plan.BillingInterval.MONTH)
+                .withSlug("pro-plan")
+                .withActive(true)
+                .build();
         plan = planRepository.save(plan);
         planId = plan.getId();
     }
@@ -127,13 +128,15 @@ class SubscriptionLifecycleIntegrationTest {
         Subscription subscription = Subscription.createActive(orgId, planId, null, null);
         subscription = subscriptionRepository.save(subscription);
 
-        // Create premium plan
-        Plan premiumPlan = new Plan("Premium Plan", "price_premium_test",
-                                  new Money(new BigDecimal("99.99"), "USD"),
-                                  Plan.BillingInterval.MONTH);
-        // Use reflection to set required fields for test
-        setField(premiumPlan, "slug", "premium-plan-2");
-        setField(premiumPlan, "active", true);
+        // Create premium plan using TestDataBuilder
+        Plan premiumPlan = com.platform.testutil.TestDataBuilder.plan()
+                .withName("Premium Plan")
+                .withStripePriceId("price_premium_test")
+                .withPrice(new BigDecimal("99.99"), "USD")
+                .withInterval(Plan.BillingInterval.MONTH)
+                .withSlug("premium-plan-2")
+                .withActive(true)
+                .build();
         premiumPlan = planRepository.save(premiumPlan);
 
         String upgradeRequest = String.format("""
@@ -301,13 +304,15 @@ class SubscriptionLifecycleIntegrationTest {
                                     LocalDate.now().plusDays(15));
         subscription = subscriptionRepository.save(subscription);
 
-        // Upgrade to premium plan
-        Plan premiumPlan = new Plan("Premium Plan", "price_premium_test",
-                                  new Money(new BigDecimal("99.99"), "USD"),
-                                  Plan.BillingInterval.MONTH);
-        // Use reflection to set required fields for test
-        setField(premiumPlan, "slug", "premium-plan");
-        setField(premiumPlan, "active", true);
+        // Upgrade to premium plan using TestDataBuilder
+        Plan premiumPlan = com.platform.testutil.TestDataBuilder.plan()
+                .withName("Premium Plan")
+                .withStripePriceId("price_premium_test")
+                .withPrice(new BigDecimal("99.99"), "USD")
+                .withInterval(Plan.BillingInterval.MONTH)
+                .withSlug("premium-plan")
+                .withActive(true)
+                .build();
         premiumPlan = planRepository.save(premiumPlan);
 
         String upgradeRequest = String.format("""
@@ -353,14 +358,4 @@ class SubscriptionLifecycleIntegrationTest {
         // 3. User module received organization status update
     }
 
-    // Utility method for setting private fields via reflection
-    private void setField(Object obj, String fieldName, Object value) {
-        try {
-            Field field = obj.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(obj, value);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to set field " + fieldName, e);
-        }
-    }
 }
