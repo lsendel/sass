@@ -3,11 +3,18 @@ spring:
   profiles:
     active: prod
 
-  # Production Database Configuration
+  config:
+    import:
+      - "vault://secret/payment-platform/database"
+      - "vault://secret/payment-platform/stripe"
+      - "vault://secret/payment-platform/oauth"
+      - "vault://secret/payment-platform/encryption"
+
+  # Production Database Configuration (Secured via Vault)
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/payment_platform_prod}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${vault.secret.payment-platform.database.username}
+    password: ${vault.secret.payment-platform.database.password}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 25
@@ -44,10 +51,10 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD}
+      password: ${vault.secret.payment-platform.database.redis-password}
       timeout: 2000ms
       ssl:
-        enabled: ${REDIS_SSL_ENABLED:false}
+        enabled: ${REDIS_SSL_ENABLED:true}
       jedis:
         pool:
           max-active: 10
@@ -80,23 +87,23 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-id: ${vault.secret.payment-platform.oauth.google-client-id}
+            client-secret: ${vault.secret.payment-platform.oauth.google-client-secret}
             scope:
               - openid
               - profile
               - email
             redirect-uri: "${APP_BASE_URL}/api/v1/auth/oauth2/callback/google"
           github:
-            client-id: ${GITHUB_CLIENT_ID}
-            client-secret: ${GITHUB_CLIENT_SECRET}
+            client-id: ${vault.secret.payment-platform.oauth.github-client-id}
+            client-secret: ${vault.secret.payment-platform.oauth.github-client-secret}
             scope:
               - read:user
               - user:email
             redirect-uri: "${APP_BASE_URL}/api/v1/auth/oauth2/callback/github"
           microsoft:
-            client-id: ${MICROSOFT_CLIENT_ID}
-            client-secret: ${MICROSOFT_CLIENT_SECRET}
+            client-id: ${vault.secret.payment-platform.oauth.microsoft-client-id}
+            client-secret: ${vault.secret.payment-platform.oauth.microsoft-client-secret}
             scope:
               - openid
               - profile
@@ -114,17 +121,21 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
   http2:
     enabled: true
+  error:
+    include-stacktrace: never
+    include-exception: false
+    include-message: on_param
 
 # Production Management Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,flyway
+        include: health,info,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
-      show-details: never
+      show-details: when_authorized
       cache:
         time-to-live: 10s
     flyway:
@@ -149,8 +160,8 @@ logging:
     org.hibernate: WARN
     org.flywaydb: INFO
   pattern:
-    console: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{ISO8601} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
+    file: "%d{ISO8601} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
   file:
     name: ${LOG_FILE_PATH:/var/log/payment-platform/application.log}
     max-size: 100MB
@@ -160,6 +171,10 @@ logging:
 app:
   base-url: ${APP_BASE_URL}
   frontend-url: ${FRONTEND_URL}
+
+  # Encryption Configuration (Secured via Vault)
+  encryption:
+    key: ${vault.secret.payment-platform.encryption.master-key}
 
   # Production Password Authentication Configuration
   auth:
@@ -192,20 +207,28 @@ app:
     smtp:
       host: ${SMTP_HOST}
       port: ${SMTP_PORT:587}
-      username: ${SMTP_USERNAME}
-      password: ${SMTP_PASSWORD}
+      username: ${vault.secret.payment-platform.email.smtp-username}
+      password: ${vault.secret.payment-platform.email.smtp-password}
       auth: true
       starttls: true
       ssl-trust: ${SMTP_SSL_TRUST:*}
     from-address: ${EMAIL_FROM_ADDRESS}
     from-name: ${EMAIL_FROM_NAME:Payment Platform}
 
-# Production Stripe Configuration
+# Production Stripe Configuration (Secured via Vault)
 stripe:
-  api-key: ${STRIPE_SECRET_KEY}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  api-key: ${vault.secret.payment-platform.stripe.secret-key}
+  webhook-secret: ${vault.secret.payment-platform.stripe.webhook-secret}
   connect-timeout: 30000
   read-timeout: 80000
+
+# Vault Configuration
+vault:
+  host: ${VAULT_HOST:vault.internal}
+  port: ${VAULT_PORT:8200}
+  scheme: https
+  token: ${VAULT_TOKEN}
+  namespace: ${VAULT_NAMESPACE:}
 
 # Production Security Headers
 security:

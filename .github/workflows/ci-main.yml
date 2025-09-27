@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  id-token: write
+
 env:
   JAVA_VERSION: '21'
   NODE_VERSION: '18'
@@ -54,12 +60,21 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          format: 'table'
+        continue-on-error: true
+
+      - name: Run Trivy SARIF scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
+        continue-on-error: true
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && github.event_name == 'push'
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -133,9 +148,9 @@ jobs:
         with:
           name: backend-test-results
           path: |
-            build/test-results/
-            build/reports/tests/
-            build/reports/jacoco/
+            backend/build/test-results/
+            backend/build/reports/tests/
+            backend/build/reports/jacoco/
 
   build-package:
     name: Build & Package

@@ -56,6 +56,12 @@ public class PasswordAuthController {
 
   /** POST /auth/register - Register new user with password */
   @PostMapping("/register")
+  @com.platform.shared.security.RateLimitingAspect.RateLimited(
+    requests = 3,
+    window = 300,
+    unit = java.util.concurrent.TimeUnit.SECONDS,
+    keyPrefix = "auth-register"
+  )
   @Operation(
       summary = "Register new user",
       description = "Create a new user account with email and password authentication"
@@ -140,6 +146,12 @@ public class PasswordAuthController {
 
   /** POST /auth/login - Authenticate user with email and password */
   @PostMapping("/login")
+  @com.platform.shared.security.RateLimitingAspect.RateLimited(
+    requests = 5,
+    window = 60,
+    unit = java.util.concurrent.TimeUnit.SECONDS,
+    keyPrefix = "auth-login"
+  )
   @Operation(
       summary = "Authenticate user",
       description = "Authenticate user with email and password, returns session cookie"

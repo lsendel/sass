@@ -41,9 +41,11 @@ public class PaymentMethod {
   @Column(name = "is_default", nullable = false)
   private boolean isDefault = false;
 
+  @Convert(converter = com.platform.shared.security.EncryptedStringConverter.class)
   @Column(name = "last_four")
   private String lastFour;
 
+  @Convert(converter = com.platform.shared.security.EncryptedStringConverter.class)
   @Column(name = "brand")
   private String brand;
 
@@ -53,9 +55,11 @@ public class PaymentMethod {
   @Column(name = "exp_year")
   private Integer expYear;
 
+  @Convert(converter = com.platform.shared.security.EncryptedStringConverter.class)
   @Column(name = "billing_name")
   private String billingName;
 
+  @Convert(converter = com.platform.shared.security.EncryptedStringConverter.class)
   @Column(name = "billing_email")
   private String billingEmail;
 

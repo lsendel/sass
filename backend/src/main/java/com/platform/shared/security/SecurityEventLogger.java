@@ -41,6 +41,18 @@ public class SecurityEventLogger {
         logSecurityEvent("ACCOUNT_LOCKOUT", userId, "lockout", ipAddress, reason);
     }
 
+    public void logSessionCreated(String userId, String sessionId, String ipAddress) {
+        logSecurityEvent("SESSION_CREATED", userId, "session_created", ipAddress, "sessionId:" + sessionId);
+    }
+
+    public void logSessionExpired(String userId, String sessionId, String ipAddress) {
+        logSecurityEvent("SESSION_EXPIRED", userId, "session_expired", ipAddress, "sessionId:" + sessionId);
+    }
+
+    public void logSessionDestroyed(String userId, String sessionId, String ipAddress) {
+        logSecurityEvent("SESSION_DESTROYED", userId, "session_destroyed", ipAddress, "sessionId:" + sessionId);
+    }
+
     private void logSecurityEvent(String eventType, String subject, String action, String ipAddress, String details) {
         try {
             SecurityEvent event = new SecurityEvent(

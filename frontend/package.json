@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:analyze": "npm run build && node scripts/analyze-bundle.js",
+    "build:performance": "VITE_ANALYZE=true npm run build && npm run analyze:bundle",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css,md}'",
@@ -48,6 +50,9 @@
     "pre-push": "npm run typecheck && npm run lint && npm run test:unit",
     "quality:check": "npm run typecheck && npm run lint && npm run format:check && npm run test:unit",
     "quality:fix": "npm run lint:fix && npm run format",
+    "analyze:bundle": "node scripts/analyze-bundle.js",
+    "perf:audit": "npm run build:analyze && npm run test:e2e -- --reporter=./tests/e2e/utils/performance-reporter.ts",
+    "perf:lighthouse": "lhci collect --url=http://localhost:3000 --numberOfRuns=3",
     "prepare": "husky"
   },
   "lint-staged": {

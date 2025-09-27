@@ -4,49 +4,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Project Overview
 
-This is the frontend client for a secure subscription management payment platform built with React 18+ and TypeScript. It features modern state management with Redux Toolkit, comprehensive form handling, Stripe payment integration, and extensive testing capabilities.
+This is the frontend client for a secure subscription management payment platform built with React 19+ and TypeScript. It features modern state management with Redux Toolkit, comprehensive form handling, Stripe payment integration, and extensive testing capabilities.
 
 ## Technology Stack
 
 ### Core Technologies
-- **React**: 18.2.0 with modern hooks and functional components
-- **TypeScript**: 5.3.3 with strict type checking enabled
-- **Vite**: 5.0.8 for fast development and optimized builds
+- **React**: 19.1.1 with modern hooks and functional components
+- **TypeScript**: 5.7.2 with strict type checking enabled
+- **Vite**: 7.1.7 for fast development and optimized builds
 - **Node.js**: ES modules with `"type": "module"` configuration
 
 ### State Management & API
-- **Redux Toolkit**: 2.0.1 with RTK Query for API state management
-- **React Redux**: 9.0.4 for React-Redux integration
-- **Axios**: 1.6.2 for HTTP client (used alongside RTK Query)
+- **Redux Toolkit**: 2.3.0 with RTK Query for API state management
+- **React Redux**: 9.1.2 for React-Redux integration
+- **Axios**: 1.7.9 for HTTP client (used alongside RTK Query)
 
 ### UI & Styling
-- **TailwindCSS**: 3.3.6 with custom design system
-- **HeadlessUI**: 1.7.17 for accessible UI components
+- **TailwindCSS**: 4.1.13 with custom design system
+- **HeadlessUI**: 2.2.9 for accessible UI components
 - **Heroicons**: 2.0.18 for consistent iconography
+- **Lucide React**: 0.544.0 for additional icons
 - **React Hot Toast**: 2.4.1 for notifications
+- **Radix UI**: Components for avatar and slot primitives
 
 ### Forms & Validation
-- **React Hook Form**: 7.48.2 for performant form management
-- **Zod**: 3.22.4 for runtime type validation and schema validation
-- **@hookform/resolvers**: 3.3.2 for Zod integration
+- **React Hook Form**: 7.63.0 for performant form management
+- **Zod**: 4.1.11 for runtime type validation and schema validation
+- **@hookform/resolvers**: 5.2.2 for Zod integration
 
 ### Payment Processing
-- **@stripe/react-stripe-js**: 2.4.0 for React Stripe components
-- **@stripe/stripe-js**: 2.1.11 for Stripe JavaScript SDK
+- **@stripe/react-stripe-js**: 4.0.2 for React Stripe components
+- **@stripe/stripe-js**: 7.9.0 for Stripe JavaScript SDK
 
 ### Routing & Navigation
-- **React Router DOM**: 6.20.1 for client-side routing
+- **React Router DOM**: 7.9.2 for client-side routing
 
 ### Testing Framework
-- **Vitest**: 1.0.4 for unit testing with React Testing Library
-- **Playwright**: 1.55.0 for end-to-end testing across browsers
-- **React Testing Library**: 14.1.2 for component testing
-- **@testing-library/user-event**: 14.5.1 for user interaction testing
+- **Vitest**: 3.2.4 for unit testing with React Testing Library
+- **Playwright**: 1.55.1 for end-to-end testing across browsers
+- **React Testing Library**: 16.3.0 for component testing
+- **MSW**: 2.11.3 for API mocking
 
 ### Development Tools
-- **ESLint**: 8.55.0 with TypeScript and React plugins
-- **Prettier**: 3.1.1 for code formatting
-- **TypeScript**: Strict configuration with path mapping
+- **ESLint**: 9.36.0 with TypeScript and React plugins
+- **Prettier**: 3.4.2 for code formatting
+- **TypeScript**: 5.7.2 with strict configuration and path mapping
+- **Storybook**: 9.1.8 for component development
+- **Husky**: 9.1.7 for git hooks
 
 ## Project Structure
 

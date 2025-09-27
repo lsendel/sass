@@ -4,24 +4,25 @@ This file provides specific guidance for Claude Code when working within the **b
 
 ## Project Overview
 
-This is a **Spring Boot 3.2.0 + Java 21** modular monolith payment platform built with **Spring Modulith 1.1.0** architecture pattern. The system implements strict module boundaries with event-driven communication between modules.
+This is a **Spring Boot 3.5.6 + Java 21** modular monolith payment platform built with **Spring Modulith 1.4.3** architecture pattern. The system implements strict module boundaries with event-driven communication between modules.
 
 ## Technology Stack
 
 ### Core Framework
 - **Java 21** (with modern features like records, pattern matching)
-- **Spring Boot 3.2.0** (latest stable)
-- **Spring Modulith 1.1.0** (modular monolith architecture)
-- **Gradle** (build system)
+- **Spring Boot 3.5.6** (latest stable)
+- **Spring Modulith 1.4.3** (modular monolith architecture)
+- **Gradle** (build system with Kotlin DSL support)
 
 ### Key Dependencies
 - **Spring Security** + **OAuth2 Client** (authentication)
 - **Spring Data JPA** + **PostgreSQL** (persistence)
 - **Spring Session** + **Redis** (session management)
 - **Flyway** (database migrations)
-- **Stripe Java SDK 24.2.0** (payment processing)
+- **Stripe Java SDK** (payment processing)
 - **TestContainers** (integration testing)
 - **ArchUnit** (architecture testing)
+- **SpringDoc OpenAPI 2.8.13** (API documentation)
 
 ### Code Quality Tools
 - **Checkstyle** (code style enforcement)
