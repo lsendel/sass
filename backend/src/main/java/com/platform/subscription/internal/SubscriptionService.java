@@ -131,8 +131,7 @@ public class SubscriptionService {
             "plan_price", plan.getPrice().toString()));
 
     // Create or get Stripe customer
-    String customerId =
-        stripeClient.getOrCreateCustomer(organization.getId(), organization.getName());
+    String customerId = stripeClient.getOrCreateCustomer(organization);
 
     // Audit Stripe customer creation/retrieval
     auditPreSubscriptionEvent(
