@@ -1,26 +1,28 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { User } from '@/types/api'
+
 import { withAuthHeader } from './utils'
+
+import type { User } from '@/types/api'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
-export type UpdateProfileRequest = {
+export interface UpdateProfileRequest {
   name: string
   preferences: Record<string, unknown>
 }
 
-export type UpdatePreferencesRequest = {
+export interface UpdatePreferencesRequest {
   preferences: Record<string, unknown>
 }
 
-export type UserStatistics = {
+export interface UserStatistics {
   totalUsers: number
   newUsersThisWeek: number
   usersByProvider: Record<string, number>
 }
 
-export type PagedUserResponse = {
+export interface PagedUserResponse {
   users: User[]
   page: number
   size: number

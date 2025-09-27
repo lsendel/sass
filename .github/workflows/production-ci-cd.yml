@@ -1,0 +1,845 @@
+# Production CI/CD Pipeline
+#
+# Comprehensive production-ready CI/CD workflow supporting:
+# - Multi-environment deployment (staging, production)
+# - Security scanning and vulnerability assessment
+# - Performance testing and monitoring
+# - Database migration management
+# - Blue-green deployment strategies
+# - Rollback capabilities and health checks
+
+name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  # Container Registry
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+  # Java/Gradle Configuration
+  JAVA_VERSION: '21'
+  GRADLE_VERSION: '8.4'
+
+  # Node.js Configuration
+  NODE_VERSION: '18.x'
+
+  # Security Scanning
+  SONAR_PROJECT_KEY: ${{ github.repository_owner }}_sass_platform
+  SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # Database
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  # =============================================================================
+  # SECURITY SCANNING & CODE QUALITY
+  # =============================================================================
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Dependency Vulnerability Scanning
+      - name: Run Snyk Security Scan (Backend)
+        run: |
+          cd backend
+          npx snyk auth ${{ secrets.SNYK_TOKEN }}
+          npx snyk test --severity-threshold=high --file=build.gradle
+        continue-on-error: true
+
+      - name: Run Snyk Security Scan (Frontend)
+        run: |
+          cd frontend
+          npm ci
+          npx snyk auth ${{ secrets.SNYK_TOKEN }}
+          npx snyk test --severity-threshold=high
+        continue-on-error: true
+
+      # SAST - Static Application Security Testing
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java, javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      # Secret Scanning
+      - name: Run GitLeaks Secret Detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Container Security Scanning
+      - name: Build Backend Image for Scanning
+        run: |
+          cd backend
+          docker build -t temp-backend-scan .
+
+      - name: Run Trivy Container Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'temp-backend-scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy Results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Backend Quality Analysis
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Run Backend Tests with Coverage
+        run: |
+          cd backend
+          ./gradlew test jacocoTestReport
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      - name: SonarQube Analysis (Backend)
+        run: |
+          cd backend
+          ./gradlew sonar \
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}-backend \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Frontend Quality Analysis
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run Frontend Linting
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run Frontend Tests with Coverage
+        run: |
+          cd frontend
+          npm run test:coverage
+
+      - name: SonarQube Analysis (Frontend)
+        run: |
+          cd frontend
+          npx sonar-scanner \
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}-frontend \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload Coverage Reports
+      - name: Upload Backend Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/build/reports/jacoco/test/jacocoTestReport.xml
+          flags: backend
+          name: backend-coverage
+
+      - name: Upload Frontend Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  # =============================================================================
+  # BUILD & TEST
+  # =============================================================================
+
+  backend-test:
+    name: Backend Testing
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Run Unit Tests
+        run: |
+          cd backend
+          ./gradlew test
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpass
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+
+      - name: Run Integration Tests
+        run: |
+          cd backend
+          ./gradlew integrationTest
+        env:
+          SPRING_PROFILES_ACTIVE: integration-test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpass
+
+      - name: Run Architecture Tests
+        run: |
+          cd backend
+          ./gradlew architectureTest
+
+      - name: Build Application JAR
+        run: |
+          cd backend
+          ./gradlew bootJar
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: |
+            backend/build/reports/tests/
+            backend/build/test-results/
+
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/build/libs/*.jar
+
+  frontend-test:
+    name: Frontend Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run TypeScript Type Checking
+        run: |
+          cd frontend
+          npm run typecheck
+
+      - name: Run Linting
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run Unit Tests
+        run: |
+          cd frontend
+          npm run test:coverage
+
+      - name: Run E2E Tests
+        run: |
+          cd frontend
+          npm run test:e2e:ci
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/ms-playwright
+
+      - name: Build Production Bundle
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Analyze Bundle Size
+        run: |
+          cd frontend
+          npm run bundle:analyze -- --json > bundle-stats.json
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results
+          path: |
+            frontend/coverage/
+            frontend/test-results/
+            frontend/playwright-report/
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+
+      - name: Upload Bundle Analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: frontend/bundle-stats.json
+
+  # =============================================================================
+  # CONTAINER IMAGE BUILDING
+  # =============================================================================
+
+  build-images:
+    name: Build Container Images
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+      backend-digest: ${{ steps.build-backend.outputs.digest }}
+      frontend-digest: ${{ steps.build-frontend.outputs.digest }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Backend JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/build/libs/
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Backend Image
+      - name: Extract Backend Metadata
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and Push Backend Image
+        id: build-backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      # Frontend Image
+      - name: Extract Frontend Metadata
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and Push Frontend Image
+        id: build-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      # Sign Images with Cosign
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign Backend Image
+        run: |
+          cosign sign --yes ${{ steps.meta-backend.outputs.tags }}@${{ steps.build-backend.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+      - name: Sign Frontend Image
+        run: |
+          cosign sign --yes ${{ steps.meta-frontend.outputs.tags }}@${{ steps.build-frontend.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+  # =============================================================================
+  # STAGING DEPLOYMENT
+  # =============================================================================
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-images, security-scan, code-quality]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://staging.sass-platform.com
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name sass-platform-staging --region us-east-1
+
+      - name: Deploy Database Migrations
+        run: |
+          kubectl create job --from=cronjob/db-migration migration-$(date +%s) -n sass-staging
+          kubectl wait --for=condition=complete --timeout=300s job/migration-$(date +%s) -n sass-staging
+
+      - name: Deploy to Staging with Helm
+        run: |
+          helm upgrade --install sass-platform-staging ./k8s/helm-chart \
+            --namespace sass-staging \
+            --create-namespace \
+            --set image.backend.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend \
+            --set image.backend.tag=${{ github.sha }} \
+            --set image.frontend.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend \
+            --set image.frontend.tag=${{ github.sha }} \
+            --set environment=staging \
+            --set ingress.hosts[0].host=staging.sass-platform.com \
+            --set ingress.tls[0].secretName=staging-tls \
+            --set ingress.tls[0].hosts[0]=staging.sass-platform.com \
+            --values ./k8s/helm-chart/values-staging.yaml \
+            --wait \
+            --timeout=10m
+
+      - name: Run Health Checks
+        run: |
+          # Wait for deployment to be ready
+          kubectl rollout status deployment/sass-backend -n sass-staging --timeout=300s
+          kubectl rollout status deployment/sass-frontend -n sass-staging --timeout=300s
+
+          # Health check endpoints
+          curl -f https://staging.sass-platform.com/api/health || exit 1
+          curl -f https://staging.sass-platform.com/health || exit 1
+
+      - name: Run Smoke Tests
+        run: |
+          cd frontend
+          npm ci
+          ENVIRONMENT=staging npm run test:e2e:smoke
+
+      - name: Run Performance Tests
+        run: |
+          # Lighthouse CI for performance testing
+          npx lhci autorun --upload.target=temporary-public-storage
+        env:
+          LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+          LHCI_BUILD_CONTEXT__COMMIT_TIME: ${{ github.event.head_commit.timestamp }}
+
+  # =============================================================================
+  # PRODUCTION DEPLOYMENT
+  # =============================================================================
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://sass-platform.com
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name sass-platform-production --region us-east-1
+
+      - name: Pre-deployment Backup
+        run: |
+          # Create database backup
+          kubectl create job backup-$(date +%s) --from=cronjob/db-backup -n sass-production
+
+          # Create configuration backup
+          kubectl get configmap,secret -n sass-production -o yaml > pre-deployment-backup.yaml
+
+      - name: Blue-Green Deployment Preparation
+        run: |
+          # Create blue deployment (current production)
+          helm upgrade sass-platform-blue ./k8s/helm-chart \
+            --namespace sass-production \
+            --set deployment.suffix=blue \
+            --set service.suffix=blue \
+            --reuse-values \
+            --wait
+
+      - name: Deploy Green Environment
+        run: |
+          # Deploy green environment with new version
+          helm upgrade sass-platform-green ./k8s/helm-chart \
+            --namespace sass-production \
+            --set image.backend.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend \
+            --set image.backend.tag=${{ github.ref_name }} \
+            --set image.frontend.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend \
+            --set image.frontend.tag=${{ github.ref_name }} \
+            --set deployment.suffix=green \
+            --set service.suffix=green \
+            --set environment=production \
+            --values ./k8s/helm-chart/values-production.yaml \
+            --wait \
+            --timeout=15m
+
+      - name: Run Database Migrations (Green)
+        run: |
+          # Run migrations against green environment
+          kubectl create job migration-green-$(date +%s) --from=cronjob/db-migration -n sass-production
+          kubectl wait --for=condition=complete --timeout=600s job/migration-green-$(date +%s) -n sass-production
+
+      - name: Health Checks (Green Environment)
+        run: |
+          # Wait for green deployment
+          kubectl rollout status deployment/sass-backend-green -n sass-production --timeout=600s
+          kubectl rollout status deployment/sass-frontend-green -n sass-production --timeout=600s
+
+          # Internal health checks
+          kubectl port-forward service/sass-backend-green 8080:8080 -n sass-production &
+          PORT_FORWARD_PID=$!
+          sleep 10
+          curl -f http://localhost:8080/actuator/health || exit 1
+          kill $PORT_FORWARD_PID
+
+      - name: Smoke Tests (Green Environment)
+        run: |
+          cd frontend
+          npm ci
+          ENVIRONMENT=production-green npm run test:e2e:smoke
+
+      - name: Switch Traffic to Green
+        run: |
+          # Update ingress to point to green services
+          kubectl patch ingress sass-platform-ingress -n sass-production -p '
+          {
+            "spec": {
+              "rules": [
+                {
+                  "host": "sass-platform.com",
+                  "http": {
+                    "paths": [
+                      {
+                        "path": "/api",
+                        "pathType": "Prefix",
+                        "backend": {
+                          "service": {
+                            "name": "sass-backend-green",
+                            "port": {
+                              "number": 8080
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "path": "/",
+                        "pathType": "Prefix",
+                        "backend": {
+                          "service": {
+                            "name": "sass-frontend-green",
+                            "port": {
+                              "number": 80
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }'
+
+      - name: Post-Deployment Verification
+        run: |
+          # Wait for DNS propagation and verify
+          sleep 30
+          curl -f https://sass-platform.com/api/health || exit 1
+          curl -f https://sass-platform.com/health || exit 1
+
+          # Run full smoke test suite
+          cd frontend
+          ENVIRONMENT=production npm run test:e2e:smoke
+
+      - name: Cleanup Blue Environment
+        run: |
+          # Keep blue environment for 1 hour for quick rollback
+          echo "Blue environment will be cleaned up in 1 hour"
+          # kubectl delete deployment,service,configmap -l app.kubernetes.io/instance=sass-platform-blue -n sass-production
+
+      - name: Update Deployment Status
+        run: |
+          # Update deployment tracking
+          kubectl annotate deployment sass-backend-green -n sass-production \
+            deployment.kubernetes.io/revision="$(date +%s)" \
+            deployment.kubernetes.io/deployed-by="${{ github.actor }}" \
+            deployment.kubernetes.io/git-sha="${{ github.sha }}" \
+            deployment.kubernetes.io/version="${{ github.ref_name }}"
+
+  # =============================================================================
+  # POST-DEPLOYMENT MONITORING
+  # =============================================================================
+
+  post-deployment-monitoring:
+    name: Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Setup Monitoring
+        run: |
+          # Trigger enhanced monitoring for 24 hours
+          curl -X POST "${{ secrets.MONITORING_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event": "production_deployment",
+              "version": "${{ github.ref_name }}",
+              "commit": "${{ github.sha }}",
+              "actor": "${{ github.actor }}",
+              "monitoring_duration": "24h"
+            }'
+
+      - name: Performance Baseline
+        run: |
+          # Run comprehensive performance tests
+          curl -X POST "${{ secrets.PERFORMANCE_TEST_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "environment": "production",
+              "version": "${{ github.ref_name }}",
+              "test_suite": "post_deployment_baseline"
+            }'
+
+      - name: Security Monitoring
+        run: |
+          # Enable enhanced security monitoring
+          curl -X POST "${{ secrets.SECURITY_MONITORING_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event": "production_deployment",
+              "enhanced_monitoring": true,
+              "duration": "72h"
+            }'
+
+# =============================================================================
+# NOTIFICATION & REPORTING
+# =============================================================================
+
+  notify:
+    name: Deployment Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          text: |
+            Deployment Status: ${{ job.status }}
+            Environment: ${{ contains(github.ref, 'refs/tags/') && 'Production' || 'Staging' }}
+            Version: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Actor: ${{ github.actor }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Teams Notification
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.TEAMS_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "@type": "MessageCard",
+              "@context": "http://schema.org/extensions",
+              "themeColor": "FF0000",
+              "summary": "Deployment Failed",
+              "sections": [{
+                "activityTitle": "🚨 Production Deployment Failed",
+                "activitySubtitle": "Immediate attention required",
+                "facts": [
+                  {"name": "Repository", "value": "${{ github.repository }}"},
+                  {"name": "Branch/Tag", "value": "${{ github.ref_name }}"},
+                  {"name": "Commit", "value": "${{ github.sha }}"},
+                  {"name": "Actor", "value": "${{ github.actor }}"},
+                  {"name": "Workflow", "value": "${{ github.workflow }}"}
+                ]
+              }]
+            }'

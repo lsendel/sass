@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { toast } from 'react-hot-toast'
+
 import { logger } from '../utils/logger'
 
 export interface OptimisticUpdateOptions<T> {
@@ -18,7 +19,7 @@ export interface OptimisticUpdate<T> {
 }
 
 export const useOptimisticUpdates = <T>() => {
-  const [optimisticUpdates, setOptimisticUpdates] = useState<OptimisticUpdate<T>[]>([])
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Array<OptimisticUpdate<T>>>([])
   const timeoutRefs = useRef<Record<string, NodeJS.Timeout>>({})
 
   const addOptimisticUpdate = useCallback(

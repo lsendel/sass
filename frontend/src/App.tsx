@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import { useEffect, type FC } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+
 import { useAppDispatch, useAppSelector } from './store/hooks'
 import {
   setCredentials,
@@ -21,11 +22,16 @@ import SettingsPage from './pages/settings/SettingsPage'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { NotificationProvider } from './components/ui/FeedbackSystem'
+import PerformanceDashboard from './components/performance/PerformanceDashboard'
+import { useNavigationTracking } from './utils/preloadingStrategy'
 
-const AppContent: React.FC = () => {
+const AppContent: FC = () => {
   const dispatch = useAppDispatch()
   const isAuthenticated = useAppSelector(selectIsAuthenticated)
   const authLoading = useAppSelector(selectAuthLoading)
+
+  // Initialize navigation tracking for intelligent preloading
+  useNavigationTracking()
 
   // Try to restore session on app load
   const { data: sessionData } = useGetSessionQuery(undefined, {
@@ -89,12 +95,14 @@ const AppContent: React.FC = () => {
   )
 }
 
-const App: React.FC = () => {
+const App: FC = () => {
   return (
     <ErrorBoundary>
       <NotificationProvider>
         <div className="App">
           <AppContent />
+          {/* Performance monitoring dashboard - only in development */}
+          {import.meta.env.DEV && <PerformanceDashboard />}
           <Toaster
             position="top-right"
             toastOptions={{

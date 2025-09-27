@@ -1,0 +1,636 @@
+# Production-specific values for SASS Platform Helm Chart
+# Override default values for production deployment with enhanced security and performance
+
+# =============================================================================
+# PRODUCTION ENVIRONMENT CONFIGURATION
+# =============================================================================
+
+environment: production
+region: us-east-1
+availabilityZone: us-east-1a
+
+# =============================================================================
+# APPLICATION IMAGES (Production Tags)
+# =============================================================================
+
+image:
+  backend:
+    repository: ghcr.io/sass-platform/sass-backend
+    tag: "latest"  # Will be overridden by deployment script
+    pullPolicy: Always
+  frontend:
+    repository: ghcr.io/sass-platform/sass-frontend
+    tag: "latest"  # Will be overridden by deployment script
+    pullPolicy: Always
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+# =============================================================================
+# BACKEND SERVICE (Production Scaling)
+# =============================================================================
+
+backend:
+  enabled: true
+  replicaCount: 5  # Increased for production load
+
+  deployment:
+    annotations:
+      deployment.kubernetes.io/revision: "1"
+    labels:
+      environment: production
+
+  pod:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      prometheus.io/path: "/actuator/prometheus"
+      co.elastic.logs/enabled: "true"
+      co.elastic.logs/json.keys_under_root: "true"
+    labels:
+      environment: production
+
+  # Production resource configuration
+  resources:
+    limits:
+      cpu: 4000m      # Increased for production
+      memory: 8Gi     # Increased for production
+    requests:
+      cpu: 2000m      # Increased for production
+      memory: 4Gi     # Increased for production
+
+  # Production JVM configuration
+  jvm:
+    heapSize: "6g"    # Increased for production
+    maxMetaspaceSize: "1g"
+    additionalOptions: |
+      -XX:+UseG1GC
+      -XX:MaxGCPauseMillis=200
+      -XX:+UseStringDeduplication
+      -XX:+OptimizeStringConcat
+      -XX:+UseCompressedOops
+      -XX:+UseCompressedClassPointers
+      -Djava.security.egd=file:/dev/./urandom
+      -Dspring.backgroundpreinitializer.ignore=true
+      -XX:+HeapDumpOnOutOfMemoryError
+      -XX:HeapDumpPath=/app/logs/
+      -XX:+PrintGCDetails
+      -XX:+PrintGCTimeStamps
+      -Xloggc:/app/logs/gc.log
+
+  # Enhanced health checks for production
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    initialDelaySeconds: 180    # Increased for production startup
+    periodSeconds: 30
+    timeoutSeconds: 15          # Increased timeout
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8080
+    initialDelaySeconds: 45
+    periodSeconds: 10
+    timeoutSeconds: 10          # Increased timeout
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    initialDelaySeconds: 90     # Increased for production
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 40        # Increased for production startup
+
+  # Production autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 5              # Increased minimum
+    maxReplicas: 30             # Increased maximum
+    targetCPUUtilizationPercentage: 60    # Lower threshold for production
+    targetMemoryUtilizationPercentage: 70
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 180
+        policies:
+        - type: Percent
+          value: 50             # Slower scale-up for stability
+          periodSeconds: 60
+      scaleDown:
+        stabilizationWindowSeconds: 600   # Longer stabilization
+        policies:
+        - type: Percent
+          value: 5              # Very conservative scale-down
+          periodSeconds: 120
+
+  # Production PDB
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 3             # Ensure minimum availability
+
+  # Production affinity rules
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - sass-backend
+        topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: node-type
+            operator: In
+            values:
+            - compute-optimized
+
+# =============================================================================
+# FRONTEND SERVICE (Production Scaling)
+# =============================================================================
+
+frontend:
+  enabled: true
+  replicaCount: 3               # Increased for production
+
+  deployment:
+    annotations:
+      deployment.kubernetes.io/revision: "1"
+    labels:
+      environment: production
+
+  pod:
+    annotations:
+      co.elastic.logs/enabled: "true"
+    labels:
+      environment: production
+
+  # Production resource configuration
+  resources:
+    limits:
+      cpu: 1000m                # Increased for production
+      memory: 1Gi               # Increased for production
+    requests:
+      cpu: 200m                 # Increased for production
+      memory: 256Mi
+
+  # Production health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 80
+    initialDelaySeconds: 45
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 80
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # Production autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 3              # Increased minimum
+    maxReplicas: 15             # Increased maximum
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+
+  # Production PDB
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  # Production affinity rules
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - sass-frontend
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# DATABASE CONFIGURATION (Production PostgreSQL)
+# =============================================================================
+
+postgresql:
+  enabled: true
+
+  auth:
+    postgresPassword: ""        # Set via external secret
+    username: "sass_user"
+    password: ""                # Set via external secret
+    database: "sass_platform"
+
+  architecture: replication
+
+  primary:
+    persistence:
+      enabled: true
+      size: 500Gi               # Increased for production
+      storageClass: "gp3"
+
+    resources:
+      limits:
+        cpu: 8000m              # Increased for production
+        memory: 16Gi            # Increased for production
+      requests:
+        cpu: 4000m              # Increased for production
+        memory: 8Gi             # Increased for production
+
+    configuration: |
+      # Production performance tuning
+      shared_preload_libraries = 'pg_stat_statements,pg_buffercache'
+      max_connections = 400
+      shared_buffers = 4GB
+      effective_cache_size = 12GB
+      maintenance_work_mem = 1GB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 32MB
+      default_statistics_target = 500
+      random_page_cost = 1.1
+      effective_io_concurrency = 300
+      work_mem = 32MB
+      min_wal_size = 2GB
+      max_wal_size = 8GB
+
+      # Logging for production monitoring
+      log_statement = 'ddl'
+      log_duration = on
+      log_min_duration_statement = 500
+      log_checkpoints = on
+      log_connections = on
+      log_disconnections = on
+      log_lock_waits = on
+
+      # Security
+      ssl = on
+      ssl_cert_file = '/opt/bitnami/postgresql/certs/tls.crt'
+      ssl_key_file = '/opt/bitnami/postgresql/certs/tls.key'
+
+  readReplicas:
+    replicaCount: 3             # Increased for production
+    persistence:
+      enabled: true
+      size: 500Gi
+      storageClass: "gp3"
+
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 4Gi
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
+# =============================================================================
+# REDIS CONFIGURATION (Production Redis)
+# =============================================================================
+
+redis:
+  enabled: true
+
+  architecture: replication
+
+  auth:
+    enabled: true
+    password: ""                # Set via external secret
+
+  master:
+    persistence:
+      enabled: true
+      size: 100Gi               # Increased for production
+      storageClass: "gp3"
+
+    resources:
+      limits:
+        cpu: 2000m              # Increased for production
+        memory: 4Gi             # Increased for production
+      requests:
+        cpu: 1000m              # Increased for production
+        memory: 2Gi             # Increased for production
+
+    configuration: |
+      # Production performance configuration
+      maxmemory 3gb
+      maxmemory-policy allkeys-lru
+      timeout 300
+      tcp-keepalive 300
+      save 900 1
+      save 300 10
+      save 60 10000
+
+      # Security
+      requirepass ${REDIS_PASSWORD}
+
+      # Monitoring
+      slowlog-log-slower-than 10000
+      slowlog-max-len 128
+
+  replica:
+    replicaCount: 3             # Increased for production
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "gp3"
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
+# =============================================================================
+# NETWORKING & INGRESS (Production)
+# =============================================================================
+
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"     # Increased for production
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"   # Increased
+    nginx.ingress.kubernetes.io/rate-limit-rpm: "1000"     # Rate limiting
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true" # Security
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+  hosts:
+    - host: sass-platform.com
+      paths:
+        - path: /api/(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: sass-backend
+              port:
+                number: 8080
+        - path: /(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: sass-frontend
+              port:
+                number: 80
+
+  tls:
+    - secretName: sass-platform-tls
+      hosts:
+        - sass-platform.com
+
+# Production Network Policies (Strict)
+networkPolicy:
+  enabled: true
+
+  backend:
+    ingress:
+      - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nginx-ingress
+        ports:
+        - protocol: TCP
+          port: 8080
+      - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: sass-frontend
+        ports:
+        - protocol: TCP
+          port: 8080
+      - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        ports:
+        - protocol: TCP
+          port: 8080
+
+    egress:
+      - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+        ports:
+        - protocol: TCP
+          port: 5432
+      - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+        ports:
+        - protocol: TCP
+          port: 6379
+      - to: []                  # External API calls (Stripe, etc.)
+        ports:
+        - protocol: TCP
+          port: 443
+
+  frontend:
+    ingress:
+      - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nginx-ingress
+        ports:
+        - protocol: TCP
+          port: 80
+
+# =============================================================================
+# SECURITY CONFIGURATION (Production Hardened)
+# =============================================================================
+
+security:
+  # Enhanced Pod Security Standards
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    fsGroupChangePolicy: "OnRootMismatch"
+    seccompProfile:
+      type: RuntimeDefault
+    supplementalGroups: [1001]
+
+  # Enhanced Container Security Context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    capabilities:
+      drop:
+      - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Production Service Account
+  serviceAccount:
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/SassEKSServiceRole"
+    name: "sass-platform-sa"
+    automountServiceAccountToken: false
+
+# =============================================================================
+# MONITORING & OBSERVABILITY (Production Enhanced)
+# =============================================================================
+
+monitoring:
+  enabled: true
+
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 15s             # More frequent for production
+      scrapeTimeout: 10s
+      path: /actuator/prometheus
+
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+
+  logging:
+    level: INFO
+    format: json
+    structured: true
+
+  tracing:
+    enabled: true
+    samplingProbability: 0.1    # 10% sampling for production
+    jaeger:
+      enabled: true
+
+  metrics:
+    backend:
+      enabled: true
+      port: 8080
+      path: /actuator/prometheus
+    frontend:
+      enabled: true
+      port: 80
+      path: /metrics
+
+# =============================================================================
+# BACKUP & DISASTER RECOVERY (Production)
+# =============================================================================
+
+backup:
+  enabled: true
+
+  database:
+    schedule: "0 1 * * *"       # Daily at 1 AM UTC
+    retention: "90d"            # Extended for production
+    storageClass: "gp3"
+    encryption: true
+
+  application:
+    schedule: "0 2 * * *"       # Daily at 2 AM UTC
+    retention: "30d"
+    storageClass: "gp3"
+
+# =============================================================================
+# CONFIGURATION & SECRETS (Production)
+# =============================================================================
+
+config:
+  spring:
+    profiles:
+      active: production
+    datasource:
+      url: jdbc:postgresql://sass-postgresql:5432/sass_platform?sslmode=require
+      username: sass_user
+    data:
+      redis:
+        host: sass-redis-master
+        port: 6379
+        ssl: true
+
+  # Analytics configuration
+  analytics:
+    enabled: true
+    retention:
+      raw: "P30D"               # Extended for production
+      aggregated: "P2Y"         # Extended for production
+
+# =============================================================================
+# JOBS & CRON JOBS (Production)
+# =============================================================================
+
+jobs:
+  migration:
+    enabled: true
+    image:
+      repository: migrate/migrate
+      tag: v4.16.2
+
+  backup:
+    enabled: true
+    schedule: "0 1 * * *"
+    retention: "90d"
+
+  cleanup:
+    enabled: true
+    schedule: "0 3 * * 0"       # Weekly cleanup
+
+  analytics:
+    enabled: true
+    schedule: "0 4 * * *"       # Daily analytics processing
+
+# =============================================================================
+# FEATURE FLAGS (Production)
+# =============================================================================
+
+features:
+  multiTenancy: true
+  analytics: true
+  internationalPayments: true
+  mfa: true
+  rbac: true
+  auditLogging: true
+  dataEncryption: true
+  advancedSecurity: true
+  performanceOptimization: true

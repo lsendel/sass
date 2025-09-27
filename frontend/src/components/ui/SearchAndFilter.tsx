@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react'
-import { useDebounce } from '../../utils/performance'
 import {
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -9,6 +8,8 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
+
+import { useDebounce } from '../../utils/performance'
 
 // Search component with debounced input
 interface SearchBoxProps {

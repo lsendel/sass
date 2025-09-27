@@ -14,19 +14,14 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   ChartBarIcon,
   ClockIcon,
-  CpuChipIcon,
-  GlobeAltIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
 
-import { usePerformanceTracking, performanceMonitor } from '../../utils/performance'
+import { usePerformanceTracking } from '../../utils/performance'
 import { useCacheAnalytics } from '../../store/middleware/cacheEnhancer'
-import { logger } from '../../utils/logger'
 
 // Types for performance dashboard
 interface PerformanceMetricCard {
@@ -66,8 +61,18 @@ const PerformanceDashboard: React.FC = () => {
 
   // Real-time metrics state
   const [webVitals, setWebVitals] = useState(performanceTracking.getWebVitals())
-  const [memoryInfo, setMemoryInfo] = useState<any>(null)
-  const [networkInfo, setNetworkInfo] = useState<any>(null)
+  const [memoryInfo, setMemoryInfo] = useState<{
+    used: number
+    total: number
+    limit: number
+    usagePercent: number
+  } | null>(null)
+  const [networkInfo, setNetworkInfo] = useState<{
+    effectiveType: string
+    downlink: number
+    rtt: number
+    saveData: boolean
+  } | null>(null)
 
   // Update metrics periodically
   useEffect(() => {
@@ -83,7 +88,7 @@ const PerformanceDashboard: React.FC = () => {
 
   const updateMemoryInfo = () => {
     if ('memory' in performance) {
-      const memory = (performance as any).memory
+      const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory
       setMemoryInfo({
         used: memory.usedJSHeapSize,
         total: memory.totalJSHeapSize,
@@ -95,7 +100,7 @@ const PerformanceDashboard: React.FC = () => {
 
   const updateNetworkInfo = () => {
     if ('connection' in navigator) {
-      const connection = (navigator as any).connection
+      const connection = (navigator as { connection: { effectiveType: string; downlink: number; rtt: number; saveData: boolean } }).connection
       setNetworkInfo({
         effectiveType: connection.effectiveType,
         downlink: connection.downlink,

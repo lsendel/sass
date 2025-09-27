@@ -5,12 +5,13 @@ import { BrowserRouter } from 'react-router-dom'
 import { configureStore } from '@reduxjs/toolkit'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
+
 import type { RootState } from '@/store'
 import { authSlice } from '@/store/slices/authSlice'
 import { uiSlice } from '@/store/slices/uiSlice'
 import { authApi } from '@/store/api/authApi'
 import { paymentApi } from '@/store/api/paymentApi'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import ErrorBoundary from '@/components/ui/ErrorBoundary'
 
 /**
  * Comprehensive testing utilities for React components with Redux and routing
@@ -221,7 +222,7 @@ export const testUtils = {
     timestamp: new Date().toISOString(),
   }),
 
-  mockApiError: (code: string, message: string, status: number = 400) => ({
+  mockApiError: (code: string, message: string, status = 400) => ({
     success: false,
     error: { code, message },
     timestamp: new Date().toISOString(),
@@ -239,7 +240,7 @@ export const testUtils = {
     }
   },
 
-  async submitForm(user: ReturnType<typeof userEvent.setup>, buttonText: string = 'submit') {
+  async submitForm(user: ReturnType<typeof userEvent.setup>, buttonText = 'submit') {
     const submitButton = screen.getByRole('button', { name: new RegExp(buttonText, 'i') })
     await user.click(submitButton)
   },

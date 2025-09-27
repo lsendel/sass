@@ -1,7 +1,7 @@
 import React from 'react'
 import { clsx } from 'clsx'
 
-type LoadingSpinnerProps = {
+interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   color?: 'primary' | 'white' | 'gray'

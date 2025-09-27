@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
-import { server } from '../setup'
 import { http, HttpResponse } from 'msw'
+
+import { server } from '../setup'
 import { customRender, authenticatedState, testUtils } from '../utils/test-utils'
 
 /**

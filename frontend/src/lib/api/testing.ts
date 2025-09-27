@@ -1,6 +1,8 @@
 import { z } from 'zod';
+
 import { generateMockData, validateApiResponse, ApiValidationError } from './validation';
 import { processApiError } from './errorHandling';
+
 import type { ApiSuccessResponse, ApiErrorResponse } from '@/types/api';
 
 /**
@@ -27,7 +29,7 @@ export interface TestScenario<T> {
  */
 export function createMockApiResponse<T>(
   data: T,
-  success: boolean = true,
+  success = true,
   message?: string
 ): ApiSuccessResponse<T> | ApiErrorResponse {
   const timestamp = new Date().toISOString();
@@ -187,8 +189,8 @@ export function generateRealisticMockData<T>(schema: z.ZodSchema<T>): T {
 export function createValidationTestSuite<T>(
   schema: z.ZodSchema<T>,
   suiteName: string
-): TestScenario<T>[] {
-  const scenarios: TestScenario<T>[] = [];
+): Array<TestScenario<T>> {
+  const scenarios: Array<TestScenario<T>> = [];
 
   // Valid data scenario
   scenarios.push({
@@ -238,8 +240,8 @@ export function createValidationTestSuite<T>(
  */
 export function runValidationTests<T>(
   schema: z.ZodSchema<T>,
-  scenarios: TestScenario<T>[],
-  verbose: boolean = false
+  scenarios: Array<TestScenario<T>>,
+  verbose = false
 ): { passed: number; failed: number; results: any[] } {
   const results: any[] = [];
   let passed = 0;
@@ -313,9 +315,9 @@ export function runValidationTests<T>(
  * Mock API client for testing
  */
 export class MockApiClient {
-  private responses: Map<string, any> = new Map();
-  private delays: Map<string, number> = new Map();
-  private errorRates: Map<string, number> = new Map();
+  private responses = new Map<string, any>();
+  private delays = new Map<string, number>();
+  private errorRates = new Map<string, number>();
 
   setResponse(endpoint: string, response: any, delay?: number, errorRate?: number) {
     this.responses.set(endpoint, response);
@@ -362,7 +364,7 @@ export class MockApiClient {
 export async function benchmarkValidation<T>(
   schema: z.ZodSchema<T>,
   data: unknown,
-  iterations: number = 1000
+  iterations = 1000
 ): Promise<{
   averageTime: number;
   minTime: number;
@@ -404,7 +406,7 @@ export async function testApiEndpoint<TRequest, TResponse>(
   endpoint: (request: TRequest) => Promise<TResponse>,
   requestSchema: z.ZodSchema<TRequest>,
   responseSchema: z.ZodSchema<TResponse>,
-  testCases: { name: string; request: TRequest; shouldSucceed: boolean }[]
+  testCases: Array<{ name: string; request: TRequest; shouldSucceed: boolean }>
 ): Promise<void> {
   for (const testCase of testCases) {
     console.log(`Testing: ${testCase.name}`);

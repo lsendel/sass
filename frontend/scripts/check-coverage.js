@@ -99,7 +99,7 @@ function showCoverageTrends() {
 
         console.log(`${trendSymbol} Lines: ${trendColor}${trend > 0 ? '+' : ''}${trend.toFixed(2)}%\x1b[0m since last run`)
       }
-    } catch (error) {
+    } catch {
       // Ignore history errors
     }
   }
@@ -132,7 +132,7 @@ function saveCoverageHistory() {
     }
 
     fs.writeFileSync(historyFile, JSON.stringify(history, null, 2))
-  } catch (error) {
+  } catch {
     // Ignore history save errors
   }
 }

@@ -1,10 +1,5 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { logout, selectCurrentUser } from '../../store/slices/authSlice'
-import type { User } from '../../store/slices/authSlice'
-import { useLogoutMutation } from '../../store/api/authApi'
-import { logger } from '../../utils/logger'
 import {
   HomeIcon,
   BuildingOfficeIcon,
@@ -17,8 +12,14 @@ import {
   UserCircleIcon,
   LockClosedIcon,
 } from '@heroicons/react/24/outline'
+
+import { useAppDispatch, useAppSelector } from '../../store/hooks'
+import { logout, selectCurrentUser } from '../../store/slices/authSlice'
+import { useLogoutMutation } from '../../store/api/authApi'
+import { logger } from '../../utils/logger'
+import type { User } from '../../store/slices/authSlice'
+
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 
@@ -60,6 +61,14 @@ const DashboardLayout: React.FC = () => {
           <div
             className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setSidebarOpen(false)
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Close sidebar"
           />
           <div className="relative flex-1 flex flex-col max-w-xs w-full">
             <div className="absolute top-0 right-0 -mr-12 pt-2">
@@ -114,7 +123,11 @@ const DashboardLayout: React.FC = () => {
                 </div>
                 {user && (
                   <div className="flex items-center space-x-3">
-                    <span className="text-sm text-gray-700">{user.name}</span>
+                    <span className="text-sm text-gray-700">
+                      {user.firstName && user.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : user.firstName || user.lastName || 'User'}
+                    </span>
                     <UserCircleIcon className="h-8 w-8 text-gray-500" />
                   </div>
                 )}
@@ -132,7 +145,7 @@ const DashboardLayout: React.FC = () => {
   )
 }
 
-type SidebarContentProps = {
+interface SidebarContentProps {
   onLogout: () => void
   currentPath: string
   user: User | null
@@ -199,12 +212,14 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
         <div className="flex items-center w-full p-2 rounded-lg hover:bg-gray-50 transition-colors">
           <Avatar className="h-7 w-7">
             <AvatarFallback className="bg-gray-500 text-white text-xs">
-              {user?.name?.charAt(0) || 'U'}
+              {user?.firstName?.charAt(0) || user?.lastName?.charAt(0) || 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="ml-2 flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-900 truncate">
-              {user?.name || 'Demo User'}
+              {user?.firstName && user?.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user?.firstName || user?.lastName || 'Demo User'}
             </p>
             <p className="text-xs text-gray-600 truncate">
               {user?.email || 'demo@example.com'}

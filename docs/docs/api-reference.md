@@ -12,7 +12,7 @@ Comprehensive API documentation for the Spring Boot Modulith Payment Platform.
 ### Java API Documentation
 The backend API is built with Spring Boot 3.2.0 and Java 21, following Spring Modulith architecture patterns.
 
-- [**JavaDoc API Reference**](/docs/backend-api-javadoc/index.html) - Full JavaDoc documentation for all backend modules
+- **JavaDoc API Reference**: generated to `docs/backend-api-javadoc/index.html` during the build step
 - **Module Structure**:
   - `com.platform.auth` - OAuth2/PKCE authentication and session management
   - `com.platform.payment` - Stripe integration and payment processing
@@ -23,18 +23,26 @@ The backend API is built with Spring Boot 3.2.0 and Java 21, following Spring Mo
 
 ### REST API Endpoints
 The backend exposes RESTful APIs documented with OpenAPI/Swagger:
-- Authentication endpoints (`/api/auth/*`)
-- Payment processing (`/api/payments/*`)
-- User management (`/api/users/*`)
-- Organization management (`/api/organizations/*`)
-- Subscription management (`/api/subscriptions/*`)
+
+#### Core API Modules
+- **[Authentication API](./api/authentication.md)** - Enhanced OAuth2/PKCE and password authentication with advanced security features
+- **Payment Processing** (`/api/payments/*`) - Stripe integration and payment processing
+- **User Management** (`/api/users/*`) - User and organization lifecycle management
+- **Organization Management** (`/api/organizations/*`) - Multi-tenant organization operations
+- **Subscription Management** (`/api/subscriptions/*`) - Subscription lifecycle and billing
+
+#### Analytics & Reporting
+- **[Analytics API](./api/analytics.md)** - Comprehensive analytics for users, payments, and security monitoring
+- **Security Analytics** - Advanced threat detection and user behavior analysis
+- **Business Intelligence** - Revenue analysis, cohort studies, and growth metrics
+- **Compliance Reporting** - GDPR, audit trails, and data access patterns
 
 ## Frontend API Documentation
 
 ### TypeScript/React Documentation
 The frontend is built with React 18, TypeScript 5.3, and Redux Toolkit.
 
-- [**TypeDoc API Reference**](/docs/frontend-api/) - Complete TypeScript API documentation
+- **TypeDoc API Reference**: generated to `docs/frontend-api/index.md` during the build step
 - **Component Library**:
   - Authentication components
   - Payment UI components
@@ -105,7 +113,7 @@ All API interactions require:
 
 ## Support & Resources
 
-- [Architecture Documentation](/docs/category/architecture)
-- [Development Guide](/docs/category/development-guide)
-- [Security Documentation](/docs/security/overview)
-- [Testing Guide](/docs/testing/overview)
+- Architecture overview (`docs/architecture/overview`)
+- Backend module guides (`docs/backend/`)
+- Frontend guides (`docs/frontend/`)
+- Testing quick start (`docs/tutorial-basics/`)

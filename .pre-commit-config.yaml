@@ -1,6 +1,27 @@
 repos:
   - repo: local
     hooks:
+      - id: frontend-lint
+        name: Lint frontend code
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        files: '^frontend/.*\.(ts|tsx|js|jsx)$'
+        pass_filenames: false
+
+      - id: frontend-type-check
+        name: Type check frontend code
+        entry: bash -c 'cd frontend && npx tsc --noEmit'
+        language: system
+        files: '^frontend/.*\.(ts|tsx)$'
+        pass_filenames: false
+
+      - id: frontend-prettier
+        name: Format frontend code with Prettier
+        entry: bash -c 'cd frontend && npx prettier --write'
+        language: system
+        files: '^frontend/.*\.(ts|tsx|js|jsx|json|css|scss|md)$'
+        pass_filenames: true
+
       - id: docs-markdownlint
         name: Lint markdown files
         entry: bash -c 'cd docs && npx markdownlint-cli'
@@ -26,10 +47,8 @@ repos:
     rev: v4.4.0
     hooks:
       - id: trailing-whitespace
-        files: '^docs/.*'
       - id: end-of-file-fixer
-        files: '^docs/.*'
       - id: check-yaml
-        files: '^docs/.*\.ya?ml$'
       - id: check-json
-        files: '^docs/.*\.json$'
+      - id: check-merge-conflict
+      - id: check-added-large-files

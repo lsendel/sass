@@ -1,0 +1,372 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sass-platform-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: sass-platform
+    app.kubernetes.io/component: monitoring
+spec:
+  groups:
+  - name: sass-platform.application
+    interval: 30s
+    rules:
+    # Application Health Alerts
+    - alert: ApplicationDown
+      expr: up{job="sass-platform-backend"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "SASS Platform application is down"
+        description: "Application {{ $labels.instance }} has been down for more than 1 minute"
+        runbook_url: "https://docs.sass-platform.com/runbooks/application-down"
+
+    - alert: HighErrorRate
+      expr: rate(http_server_requests_seconds_count{status=~"5..",job="sass-platform-backend"}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "High error rate detected on SASS Platform"
+        description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/high-error-rate"
+
+    - alert: HighResponseTime
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="sass-platform-backend"}[5m])) > 2
+      for: 5m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "High response time detected on SASS Platform"
+        description: "95th percentile response time is {{ $value }}s for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/high-response-time"
+
+    # Payment Processing Alerts
+    - alert: PaymentProcessingFailure
+      expr: rate(payment_processing_failures_total[5m]) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: payments
+      annotations:
+        summary: "Payment processing failures detected"
+        description: "Payment failure rate is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/payment-failures"
+
+    - alert: StripeWebhookFailure
+      expr: rate(stripe_webhook_failures_total[5m]) > 0.01
+      for: 1m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: payments
+      annotations:
+        summary: "Stripe webhook processing failures"
+        description: "Stripe webhook failure rate is {{ $value | humanizePercentage }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/stripe-webhook-failures"
+
+    # Authentication & Authorization Alerts
+    - alert: AuthenticationFailureSpike
+      expr: rate(authentication_failures_total[5m]) > 1
+      for: 3m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: security
+      annotations:
+        summary: "High authentication failure rate"
+        description: "Authentication failure rate is {{ $value }} failures/sec"
+        runbook_url: "https://docs.sass-platform.com/runbooks/auth-failures"
+
+    - alert: SuspiciousLoginActivity
+      expr: rate(failed_login_attempts_total[1m]) > 10
+      for: 30s
+      labels:
+        severity: critical
+        service: sass-platform
+        team: security
+      annotations:
+        summary: "Suspicious login activity detected"
+        description: "Rapid failed login attempts: {{ $value }} attempts/min from {{ $labels.source_ip }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/suspicious-login"
+
+    # Database Performance Alerts
+    - alert: DatabaseConnectionPoolHigh
+      expr: hikaricp_connections_active / hikaricp_connections_max > 0.8
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "Database connection pool usage is high"
+        description: "Connection pool usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/db-connection-pool"
+
+    - alert: DatabaseSlowQueries
+      expr: rate(database_query_duration_seconds{quantile="0.95"}[5m]) > 1
+      for: 3m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "Database queries are slow"
+        description: "95th percentile query time is {{ $value }}s"
+        runbook_url: "https://docs.sass-platform.com/runbooks/slow-queries"
+
+    # JVM Performance Alerts
+    - alert: JVMMemoryHigh
+      expr: jvm_memory_used_bytes / jvm_memory_max_bytes > 0.85
+      for: 5m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "JVM memory usage is high"
+        description: "JVM memory usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/jvm-memory"
+
+    - alert: JVMGCTimeHigh
+      expr: rate(jvm_gc_collection_seconds_sum[5m]) > 0.1
+      for: 3m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "JVM garbage collection time is high"
+        description: "GC time is {{ $value | humanizePercentage }} of total time for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/jvm-gc"
+
+  - name: sass-platform.infrastructure
+    interval: 60s
+    rules:
+    # Kubernetes Pod Alerts
+    - alert: PodRestartLoop
+      expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+      for: 0m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "Pod {{ $labels.pod }} is restarting frequently"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in the last hour"
+        runbook_url: "https://docs.sass-platform.com/runbooks/pod-restarts"
+
+    - alert: PodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "Pod {{ $labels.pod }} is crash looping"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash looping"
+        runbook_url: "https://docs.sass-platform.com/runbooks/crash-loop"
+
+    # Node Resource Alerts
+    - alert: NodeMemoryHigh
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: infrastructure
+      annotations:
+        summary: "Node memory usage is high"
+        description: "Node {{ $labels.instance }} memory usage is {{ $value | humanizePercentage }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/node-memory"
+
+    - alert: NodeCPUHigh
+      expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: infrastructure
+      annotations:
+        summary: "Node CPU usage is high"
+        description: "Node {{ $labels.instance }} CPU usage is {{ $value }}%"
+        runbook_url: "https://docs.sass-platform.com/runbooks/node-cpu"
+
+    - alert: NodeDiskSpaceHigh
+      expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.85
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: infrastructure
+      annotations:
+        summary: "Node disk space usage is high"
+        description: "Disk usage on {{ $labels.instance }} mountpoint {{ $labels.mountpoint }} is {{ $value | humanizePercentage }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/disk-space"
+
+    # Redis Alerts
+    - alert: RedisConnectionFailure
+      expr: redis_connected_clients == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "Redis connection failure detected"
+        description: "Redis instance {{ $labels.instance }} has no connected clients"
+        runbook_url: "https://docs.sass-platform.com/runbooks/redis-connection"
+
+    - alert: RedisMemoryHigh
+      expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: platform
+      annotations:
+        summary: "Redis memory usage is high"
+        description: "Redis memory usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/redis-memory"
+
+  - name: sass-platform.business
+    interval: 300s
+    rules:
+    # Business Metrics Alerts
+    - alert: LowUserRegistrations
+      expr: rate(user_registrations_total[1h]) < 0.1
+      for: 30m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: growth
+      annotations:
+        summary: "User registration rate is low"
+        description: "User registration rate is {{ $value }} registrations/hour"
+        runbook_url: "https://docs.sass-platform.com/runbooks/low-registrations"
+
+    - alert: HighSubscriptionChurn
+      expr: rate(subscription_cancellations_total[24h]) / rate(subscription_activations_total[24h]) > 0.3
+      for: 1h
+      labels:
+        severity: warning
+        service: sass-platform
+        team: growth
+      annotations:
+        summary: "High subscription churn rate detected"
+        description: "Subscription churn rate is {{ $value | humanizePercentage }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/high-churn"
+
+    - alert: RevenueDropSignificant
+      expr: rate(revenue_total[24h]) < 0.8 * rate(revenue_total[24h] offset 7d)
+      for: 4h
+      labels:
+        severity: critical
+        service: sass-platform
+        team: business
+      annotations:
+        summary: "Significant revenue drop detected"
+        description: "Daily revenue is {{ $value | humanizePercentage }} lower than last week"
+        runbook_url: "https://docs.sass-platform.com/runbooks/revenue-drop"
+
+  - name: sass-platform.security
+    interval: 60s
+    rules:
+    # Security Alerts
+    - alert: UnauthorizedAPIAccess
+      expr: rate(http_server_requests_seconds_count{status="403",job="sass-platform-backend"}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: security
+      annotations:
+        summary: "High rate of unauthorized API access attempts"
+        description: "403 error rate is {{ $value }} requests/sec for {{ $labels.instance }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/unauthorized-access"
+
+    - alert: PotentialDataBreach
+      expr: rate(data_access_anomaly_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: security
+      annotations:
+        summary: "Potential data breach detected"
+        description: "Anomalous data access pattern detected for {{ $labels.user_id }}"
+        runbook_url: "https://docs.sass-platform.com/runbooks/data-breach"
+
+    - alert: FailedMFAAttempts
+      expr: rate(mfa_verification_failures_total[5m]) > 0.5
+      for: 3m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: security
+      annotations:
+        summary: "High rate of MFA verification failures"
+        description: "MFA failure rate is {{ $value }} failures/sec"
+        runbook_url: "https://docs.sass-platform.com/runbooks/mfa-failures"
+
+    # Compliance Alerts
+    - alert: AuditLogFailure
+      expr: rate(audit_log_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: compliance
+      annotations:
+        summary: "Audit logging failures detected"
+        description: "Audit log failure rate is {{ $value }} failures/sec"
+        runbook_url: "https://docs.sass-platform.com/runbooks/audit-log-failure"
+
+    - alert: GDPRViolationRisk
+      expr: gdpr_data_retention_exceeded_total > 0
+      for: 0m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: compliance
+      annotations:
+        summary: "GDPR data retention violation risk"
+        description: "{{ $value }} records exceed GDPR retention limits"
+        runbook_url: "https://docs.sass-platform.com/runbooks/gdpr-violation"
+
+  - name: sass-platform.sla
+    interval: 300s
+    rules:
+    # SLA Monitoring
+    - alert: AvailabilitySLABreach
+      expr: avg_over_time(up{job="sass-platform-backend"}[1h]) < 0.995
+      for: 5m
+      labels:
+        severity: critical
+        service: sass-platform
+        team: sre
+      annotations:
+        summary: "Availability SLA breach detected"
+        description: "Service availability is {{ $value | humanizePercentage }} over the last hour (SLA: 99.5%)"
+        runbook_url: "https://docs.sass-platform.com/runbooks/sla-breach"
+
+    - alert: ResponseTimeSLABreach
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="sass-platform-backend"}[1h])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        service: sass-platform
+        team: sre
+      annotations:
+        summary: "Response time SLA breach detected"
+        description: "95th percentile response time is {{ $value }}s over the last hour (SLA: 1s)"
+        runbook_url: "https://docs.sass-platform.com/runbooks/response-time-sla"

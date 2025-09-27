@@ -1,645 +1,557 @@
 #!/bin/bash
-set -euo pipefail
 
-# Production Deployment Script
-# Usage: ./scripts/deploy-production.sh [APP_VERSION]
+# Production Deployment Script for SASS Platform
+# Implements blue-green deployment with comprehensive validation and rollback capabilities
+
+set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-NAMESPACE="payment-platform-production"
-APP_VERSION="${1:-$(git describe --tags --always --dirty)}"
-CONTEXT="production-cluster"
-BACKUP_RETENTION_DAYS=30
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+DEPLOY_ENV="${DEPLOY_ENV:-production}"
+BLUE_GREEN="${BLUE_GREEN:-true}"
+DRY_RUN="${DRY_RUN:-false}"
+ROLLBACK="${ROLLBACK:-false}"
+TARGET_VERSION="${TARGET_VERSION:-}"
+PREVIOUS_VERSION="${PREVIOUS_VERSION:-}"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Logging functions
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-log_critical() { echo -e "${PURPLE}[CRITICAL]${NC} $1"; }
+log() {
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
+}
 
-# Error handling with rollback
-trap 'handle_error $LINENO' ERR
+warn() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARN: $1${NC}"
+}
 
-handle_error() {
-    log_error "Production deployment failed at line $1"
-    log_critical "Initiating emergency rollback procedures..."
+error() {
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
+}
 
-    if [[ "${ROLLBACK_ON_FAILURE:-true}" == "true" ]]; then
-        emergency_rollback
+success() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] SUCCESS: $1${NC}"
+}
+
+# Cleanup function
+cleanup() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        error "Deployment failed with exit code $exit_code"
+        if [ "$BLUE_GREEN" == "true" ] && [ "$ROLLBACK" != "true" ]; then
+            warn "Initiating automatic rollback..."
+            rollback_deployment
+        fi
     fi
-
-    exit 1
+    exit $exit_code
 }
 
-main() {
-    log_critical "🚨 PRODUCTION DEPLOYMENT INITIATED 🚨"
-    log_info "Version: $APP_VERSION"
-    log_info "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+trap cleanup EXIT
 
-    # Pre-deployment validation (extensive for production)
-    pre_deployment_validation
-
-    # Create database backup
-    create_database_backup
-
-    # Blue-green deployment preparation
-    prepare_blue_green_deployment
-
-    # Deploy to green environment
-    deploy_to_green_environment
-
-    # Comprehensive testing on green environment
-    comprehensive_testing
-
-    # Switch traffic to green (blue-green cutover)
-    switch_traffic_to_green
-
-    # Post-deployment monitoring
-    post_deployment_monitoring
-
-    # Cleanup blue environment (after verification)
-    cleanup_blue_environment
-
-    log_success "🎉 PRODUCTION DEPLOYMENT COMPLETED SUCCESSFULLY! 🎉"
-    send_deployment_notification "SUCCESS"
-}
-
-pre_deployment_validation() {
-    log_info "Running comprehensive pre-deployment validation..."
-
-    # Check deployment prerequisites
-    validate_prerequisites
-
-    # Security validation
-    security_validation
-
-    # Performance validation
-    performance_validation
-
-    # Database migration validation
-    database_migration_validation
-
-    # Business continuity validation
-    business_continuity_validation
-
-    log_success "Pre-deployment validation passed"
-}
-
+# Validation functions
 validate_prerequisites() {
-    log_info "Validating deployment prerequisites..."
+    log "Validating prerequisites..."
 
-    # Check tools availability
-    local required_tools=("kubectl" "helm" "curl" "jq" "pg_dump")
+    # Check required tools
+    local required_tools=("kubectl" "helm" "docker" "aws" "jq")
     for tool in "${required_tools[@]}"; do
         if ! command -v "$tool" &> /dev/null; then
-            log_error "$tool is not installed or not in PATH"
+            error "Required tool '$tool' is not installed"
             exit 1
         fi
     done
 
-    # Verify cluster connectivity
-    if ! kubectl cluster-info --context="$CONTEXT" &> /dev/null; then
-        log_error "Cannot connect to production cluster: $CONTEXT"
+    # Check AWS credentials
+    if ! aws sts get-caller-identity &> /dev/null; then
+        error "AWS credentials not configured or invalid"
         exit 1
     fi
 
-    # Switch to production context
-    kubectl config use-context "$CONTEXT"
-
-    # Verify required secrets exist
-    local required_secrets=("production-secrets" "production-tls")
-    for secret in "${required_secrets[@]}"; do
-        if ! kubectl get secret "$secret" -n "$NAMESPACE" &> /dev/null; then
-            log_error "Required secret '$secret' not found in namespace '$NAMESPACE'"
-            exit 1
-        fi
-    done
-
-    # Verify resource quotas
-    check_resource_quotas
-
-    log_success "Prerequisites validation passed"
-}
-
-security_validation() {
-    log_info "Running security validation..."
-
-    # Check image signatures (if implemented)
-    if [[ "${VERIFY_IMAGE_SIGNATURES:-false}" == "true" ]]; then
-        verify_image_signatures
-    fi
-
-    # Validate TLS certificates
-    validate_tls_certificates
-
-    # Check security policies
-    validate_security_policies
-
-    log_success "Security validation passed"
-}
-
-performance_validation() {
-    log_info "Running performance validation..."
-
-    # Check current resource usage
-    local cpu_usage=$(kubectl top nodes --no-headers | awk '{sum += $3} END {print sum/NR}' | cut -d'%' -f1)
-    local memory_usage=$(kubectl top nodes --no-headers | awk '{sum += $5} END {print sum/NR}' | cut -d'%' -f1)
-
-    if (( $(echo "$cpu_usage > 70" | bc -l) )); then
-        log_warning "High CPU usage detected: ${cpu_usage}%"
-        read -p "Continue with deployment? (y/N): " -n 1 -r
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_error "Deployment aborted due to high CPU usage"
-            exit 1
-        fi
-    fi
-
-    if (( $(echo "$memory_usage > 80" | bc -l) )); then
-        log_warning "High memory usage detected: ${memory_usage}%"
-        read -p "Continue with deployment? (y/N): " -n 1 -r
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_error "Deployment aborted due to high memory usage"
-            exit 1
-        fi
-    fi
-
-    log_success "Performance validation passed"
-}
-
-database_migration_validation() {
-    log_info "Validating database migrations..."
-
-    # Test migrations in dry-run mode if supported
-    # This would depend on your specific migration tool
-    log_info "Testing database migrations (dry-run)..."
-
-    # Add specific migration validation logic here
-    # Example: ./gradlew flywayValidate -Pflyway-prod
-
-    log_success "Database migration validation passed"
-}
-
-business_continuity_validation() {
-    log_info "Validating business continuity measures..."
-
-    # Check if maintenance window is active
-    if [[ "${MAINTENANCE_WINDOW_ACTIVE:-false}" == "true" ]]; then
-        log_info "Deployment during maintenance window - proceeding"
-    else
-        log_warning "Deployment outside maintenance window"
-        read -p "Continue with production deployment? (y/N): " -n 1 -r
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_error "Deployment aborted - outside maintenance window"
-            exit 1
-        fi
-    fi
-
-    # Verify backup systems are operational
-    verify_backup_systems
-
-    log_success "Business continuity validation passed"
-}
-
-create_database_backup() {
-    log_info "Creating production database backup..."
-
-    local backup_timestamp=$(date -u '+%Y%m%d_%H%M%S')
-    local backup_name="production_backup_${backup_timestamp}_pre_deploy"
-    local backup_path="/backups/${backup_name}.sql"
-
-    # Create backup directory if it doesn't exist
-    mkdir -p "$(dirname "$backup_path")"
-
-    # Create database backup
-    kubectl exec -n "$NAMESPACE" deployment/postgres-production -- \
-        pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" > "$backup_path"
-
-    # Verify backup integrity
-    if [[ -s "$backup_path" ]]; then
-        log_success "Database backup created: $backup_path"
-
-        # Store backup metadata
-        echo "{
-            \"backup_name\": \"$backup_name\",
-            \"timestamp\": \"$backup_timestamp\",
-            \"version\": \"$APP_VERSION\",
-            \"size\": \"$(du -h "$backup_path" | cut -f1)\"
-        }" > "${backup_path}.meta.json"
-    else
-        log_error "Database backup failed or is empty"
+    # Check Kubernetes context
+    local current_context=$(kubectl config current-context)
+    if [[ "$current_context" != *"$DEPLOY_ENV"* ]]; then
+        error "Kubernetes context '$current_context' does not match environment '$DEPLOY_ENV'"
         exit 1
     fi
 
-    # Cleanup old backups
-    find /backups -name "production_backup_*.sql" -mtime +$BACKUP_RETENTION_DAYS -delete 2>/dev/null || true
-    find /backups -name "production_backup_*.sql.meta.json" -mtime +$BACKUP_RETENTION_DAYS -delete 2>/dev/null || true
-}
-
-prepare_blue_green_deployment() {
-    log_info "Preparing blue-green deployment..."
-
-    # Tag current deployment as "blue"
-    kubectl patch deployment payment-platform-backend-production -n "$NAMESPACE" \
-        -p '{"metadata":{"labels":{"deployment-color":"blue"}}}'
-    kubectl patch deployment payment-platform-frontend-production -n "$NAMESPACE" \
-        -p '{"metadata":{"labels":{"deployment-color":"blue"}}}'
-
-    # Create green deployment manifests
-    create_green_deployment_manifests
-
-    log_success "Blue-green deployment preparation completed"
-}
-
-create_green_deployment_manifests() {
-    log_info "Creating green deployment manifests..."
-
-    # Create temporary directory for green manifests
-    local green_manifests_dir="/tmp/green-deployment-$$"
-    mkdir -p "$green_manifests_dir"
-
-    # Generate green deployment manifests
-    export APP_VERSION
-    export DEPLOYMENT_COLOR="green"
-
-    envsubst < "$PROJECT_ROOT/deployment/environments/production.yml" | \
-        sed "s|payment-platform-backend-production|payment-platform-backend-production-green|g" | \
-        sed "s|payment-platform-frontend-production|payment-platform-frontend-production-green|g" | \
-        sed "s|payment-platform-backend:production|payment-platform-backend:$APP_VERSION|g" | \
-        sed "s|payment-platform-frontend:production|payment-platform-frontend:$APP_VERSION|g" \
-        > "$green_manifests_dir/green-deployment.yml"
-
-    # Store green manifests path for later use
-    export GREEN_MANIFESTS_DIR="$green_manifests_dir"
-}
-
-deploy_to_green_environment() {
-    log_info "Deploying to green environment..."
-
-    # Apply green deployment
-    kubectl apply -f "$GREEN_MANIFESTS_DIR/green-deployment.yml" -n "$NAMESPACE"
-
-    # Wait for green deployment to be ready
-    log_info "Waiting for green backend deployment..."
-    kubectl rollout status deployment/payment-platform-backend-production-green -n "$NAMESPACE" --timeout=600s
-
-    log_info "Waiting for green frontend deployment..."
-    kubectl rollout status deployment/payment-platform-frontend-production-green -n "$NAMESPACE" --timeout=600s
-
-    # Create temporary services for testing green environment
-    create_green_test_services
-
-    log_success "Green environment deployment completed"
-}
-
-create_green_test_services() {
-    log_info "Creating temporary services for green environment testing..."
-
-    # Create temporary service for green backend
-    kubectl create service clusterip payment-platform-backend-production-green-test \
-        --tcp=80:8080 \
-        --dry-run=client -o yaml | kubectl apply -f - -n "$NAMESPACE"
-
-    kubectl patch service payment-platform-backend-production-green-test -n "$NAMESPACE" \
-        -p '{"spec":{"selector":{"app":"payment-platform-backend","deployment-color":"green"}}}'
-
-    # Create temporary service for green frontend
-    kubectl create service clusterip payment-platform-frontend-production-green-test \
-        --tcp=80:80 \
-        --dry-run=client -o yaml | kubectl apply -f - -n "$NAMESPACE"
-
-    kubectl patch service payment-platform-frontend-production-green-test -n "$NAMESPACE" \
-        -p '{"spec":{"selector":{"app":"payment-platform-frontend","deployment-color":"green"}}}'
-}
-
-comprehensive_testing() {
-    log_info "Running comprehensive tests on green environment..."
-
-    # Wait for services to stabilize
-    sleep 60
-
-    # Get test service endpoints
-    local backend_test_ip=$(kubectl get service payment-platform-backend-production-green-test -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
-    local frontend_test_ip=$(kubectl get service payment-platform-frontend-production-green-test -n "$NAMESPACE" -o jsonpath='{.spec.clusterIP}')
-
-    # Health checks
-    run_health_checks "$backend_test_ip" "$frontend_test_ip"
-
-    # Functional tests
-    run_functional_tests "$backend_test_ip"
-
-    # Performance tests
-    run_performance_tests "$backend_test_ip"
-
-    # Security tests
-    run_security_tests "$backend_test_ip"
-
-    log_success "Comprehensive testing completed"
-}
-
-run_health_checks() {
-    local backend_ip="$1"
-    local frontend_ip="$2"
-
-    log_info "Running health checks..."
-
-    # Backend health check
-    if ! kubectl exec -n "$NAMESPACE" deployment/payment-platform-backend-production-green -- \
-        curl -f "http://$backend_ip/actuator/health" > /dev/null 2>&1; then
-        log_error "Green backend health check failed"
-        return 1
+    # Check Helm repository
+    if ! helm repo list | grep -q "sass-platform"; then
+        warn "Adding Helm repository..."
+        helm repo add sass-platform oci://ghcr.io/sass-platform/helm-charts
+        helm repo update
     fi
 
-    # Frontend health check
-    if ! kubectl exec -n "$NAMESPACE" deployment/payment-platform-frontend-production-green -- \
-        curl -f "http://$frontend_ip/health" > /dev/null 2>&1; then
-        log_error "Green frontend health check failed"
-        return 1
-    fi
-
-    log_success "Health checks passed"
+    success "Prerequisites validation completed"
 }
 
-run_functional_tests() {
-    local backend_ip="$1"
+validate_environment() {
+    log "Validating deployment environment..."
 
-    log_info "Running functional tests..."
+    # Check namespace exists
+    if ! kubectl get namespace "$DEPLOY_ENV" &> /dev/null; then
+        error "Namespace '$DEPLOY_ENV' does not exist"
+        exit 1
+    fi
 
-    # Test critical API endpoints
-    local test_endpoints=(
-        "/actuator/health"
-        "/api/v1/auth/methods"
-        "/actuator/info"
-    )
+    # Check database connectivity
+    log "Checking database connectivity..."
+    local db_pod=$(kubectl get pods -n "$DEPLOY_ENV" -l app.kubernetes.io/name=postgresql -o jsonpath='{.items[0].metadata.name}')
+    if [ -z "$db_pod" ]; then
+        error "PostgreSQL pod not found in namespace '$DEPLOY_ENV'"
+        exit 1
+    fi
 
-    for endpoint in "${test_endpoints[@]}"; do
-        if ! kubectl exec -n "$NAMESPACE" deployment/payment-platform-backend-production-green -- \
-            curl -f "http://$backend_ip$endpoint" > /dev/null 2>&1; then
-            log_error "Functional test failed for endpoint: $endpoint"
-            return 1
+    # Check Redis connectivity
+    log "Checking Redis connectivity..."
+    local redis_pod=$(kubectl get pods -n "$DEPLOY_ENV" -l app.kubernetes.io/name=redis -o jsonpath='{.items[0].metadata.name}')
+    if [ -z "$redis_pod" ]; then
+        error "Redis pod not found in namespace '$DEPLOY_ENV'"
+        exit 1
+    fi
+
+    success "Environment validation completed"
+}
+
+get_current_version() {
+    local deployment_name="sass-platform-backend"
+    kubectl get deployment "$deployment_name" -n "$DEPLOY_ENV" -o jsonpath='{.metadata.labels.version}' 2>/dev/null || echo "unknown"
+}
+
+# Database migration functions
+run_database_migrations() {
+    log "Running database migrations..."
+
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would run database migrations"
+        return 0
+    fi
+
+    # Create migration job
+    local migration_job="sass-platform-migration-$(date +%s)"
+
+    cat <<EOF | kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: $migration_job
+  namespace: $DEPLOY_ENV
+  labels:
+    app.kubernetes.io/name: sass-platform
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/version: $TARGET_VERSION
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migration
+        image: ghcr.io/sass-platform/sass-backend:$TARGET_VERSION
+        command: ["java"]
+        args: ["-jar", "app.jar", "--spring.profiles.active=migration"]
+        envFrom:
+        - configMapRef:
+            name: sass-platform-backend-config
+        - secretRef:
+            name: sass-platform-backend-secret
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+EOF
+
+    # Wait for migration to complete
+    log "Waiting for database migration to complete..."
+    if ! kubectl wait --for=condition=complete job/$migration_job -n "$DEPLOY_ENV" --timeout=600s; then
+        error "Database migration failed"
+        kubectl logs job/$migration_job -n "$DEPLOY_ENV"
+        exit 1
+    fi
+
+    success "Database migrations completed successfully"
+}
+
+# Blue-green deployment functions
+deploy_green_environment() {
+    log "Deploying green environment (version: $TARGET_VERSION)..."
+
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would deploy green environment with version $TARGET_VERSION"
+        return 0
+    fi
+
+    # Deploy with green suffix
+    helm upgrade --install sass-platform-green \
+        oci://ghcr.io/sass-platform/helm-charts/sass-platform \
+        --version "$TARGET_VERSION" \
+        --namespace "$DEPLOY_ENV" \
+        --set deployment.suffix="-green" \
+        --set image.backend.tag="$TARGET_VERSION" \
+        --set image.frontend.tag="$TARGET_VERSION" \
+        --set environment="$DEPLOY_ENV" \
+        --values "$PROJECT_ROOT/k8s/helm-chart/values-$DEPLOY_ENV.yaml" \
+        --wait \
+        --timeout=10m
+
+    success "Green environment deployed successfully"
+}
+
+validate_green_environment() {
+    log "Validating green environment..."
+
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would validate green environment"
+        return 0
+    fi
+
+    # Wait for deployments to be ready
+    local deployments=("sass-platform-backend-green" "sass-platform-frontend-green")
+    for deployment in "${deployments[@]}"; do
+        log "Waiting for deployment $deployment to be ready..."
+        if ! kubectl rollout status deployment/$deployment -n "$DEPLOY_ENV" --timeout=300s; then
+            error "Deployment $deployment failed to become ready"
+            exit 1
         fi
     done
 
-    log_success "Functional tests passed"
-}
+    # Health check
+    log "Performing health checks..."
+    local backend_service="sass-platform-backend-green"
+    local health_check_url="http://$backend_service:8080/actuator/health"
 
-run_performance_tests() {
-    local backend_ip="$1"
+    # Port forward for health check
+    kubectl port-forward service/$backend_service 8080:8080 -n "$DEPLOY_ENV" &
+    local port_forward_pid=$!
+    sleep 5
 
-    log_info "Running performance tests..."
+    # Perform health check
+    local health_status=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/actuator/health" || echo "000")
+    kill $port_forward_pid 2>/dev/null || true
 
-    # Basic performance test (measure response time)
-    local response_time=$(kubectl exec -n "$NAMESPACE" deployment/payment-platform-backend-production-green -- \
-        curl -o /dev/null -s -w '%{time_total}' "http://$backend_ip/actuator/health")
-
-    if (( $(echo "$response_time > 5.0" | bc -l) )); then
-        log_warning "Performance test shows high response time: ${response_time}s"
-        read -p "Continue with deployment? (y/N): " -n 1 -r
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_error "Deployment aborted due to performance issues"
-            return 1
-        fi
+    if [ "$health_status" != "200" ]; then
+        error "Health check failed with status: $health_status"
+        exit 1
     fi
 
-    log_success "Performance tests passed (response time: ${response_time}s)"
+    success "Green environment validation completed"
 }
 
-run_security_tests() {
-    local backend_ip="$1"
+switch_to_green() {
+    log "Switching traffic to green environment..."
 
-    log_info "Running security tests..."
-
-    # Test security headers
-    local security_headers=$(kubectl exec -n "$NAMESPACE" deployment/payment-platform-backend-production-green -- \
-        curl -I "http://$backend_ip/actuator/health" 2>/dev/null | grep -E "(X-Frame-Options|X-Content-Type-Options|X-XSS-Protection)")
-
-    if [[ -z "$security_headers" ]]; then
-        log_warning "Some security headers may be missing"
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would switch traffic to green environment"
+        return 0
     fi
 
-    log_success "Security tests passed"
-}
+    # Update ingress to point to green services
+    kubectl patch ingress sass-platform -n "$DEPLOY_ENV" --type='json' \
+        -p='[{"op": "replace", "path": "/spec/rules/0/http/paths/0/backend/service/name", "value": "sass-platform-backend-green"}]'
 
-switch_traffic_to_green() {
-    log_info "Switching traffic to green environment..."
+    kubectl patch ingress sass-platform -n "$DEPLOY_ENV" --type='json' \
+        -p='[{"op": "replace", "path": "/spec/rules/0/http/paths/1/backend/service/name", "value": "sass-platform-frontend-green"}]'
 
-    # Update service selectors to point to green deployment
-    kubectl patch service payment-platform-backend-production -n "$NAMESPACE" \
-        -p '{"spec":{"selector":{"app":"payment-platform-backend","deployment-color":"green"}}}'
-
-    kubectl patch service payment-platform-frontend-production -n "$NAMESPACE" \
-        -p '{"spec":{"selector":{"app":"payment-platform-frontend","deployment-color":"green"}}}'
-
-    # Wait for traffic switch to take effect
+    # Wait for ingress update
     sleep 30
 
-    # Verify traffic is flowing to green environment
-    verify_traffic_switch
-
-    log_success "Traffic successfully switched to green environment"
-}
-
-verify_traffic_switch() {
-    log_info "Verifying traffic switch..."
-
-    # Get production URLs
-    local backend_url=$(kubectl get ingress payment-platform-production-ingress -n "$NAMESPACE" -o jsonpath='{.spec.rules[1].host}')
-    local frontend_url=$(kubectl get ingress payment-platform-production-ingress -n "$NAMESPACE" -o jsonpath='{.spec.rules[0].host}')
-
-    # Test public endpoints
-    if ! curl -f "https://$backend_url/actuator/health" > /dev/null 2>&1; then
-        log_error "Traffic switch verification failed for backend"
-        return 1
-    fi
-
-    if ! curl -f "https://$frontend_url" > /dev/null 2>&1; then
-        log_error "Traffic switch verification failed for frontend"
-        return 1
-    fi
-
-    log_success "Traffic switch verification passed"
-}
-
-post_deployment_monitoring() {
-    log_info "Starting post-deployment monitoring..."
-
-    # Monitor for 5 minutes after deployment
-    local monitor_duration=300
-    local monitor_interval=30
-    local iterations=$((monitor_duration / monitor_interval))
-
-    for ((i=1; i<=iterations; i++)); do
-        log_info "Monitoring iteration $i/$iterations..."
-
-        # Check pod health
-        local unhealthy_pods=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep -v Running | wc -l)
-        if [[ $unhealthy_pods -gt 0 ]]; then
-            log_warning "$unhealthy_pods unhealthy pods detected"
-            kubectl get pods -n "$NAMESPACE"
-        fi
-
-        # Check error rates (this would integrate with your monitoring system)
-        check_error_rates
-
-        sleep $monitor_interval
-    done
-
-    log_success "Post-deployment monitoring completed"
-}
-
-check_error_rates() {
-    # This would integrate with your monitoring system (Prometheus, DataDog, etc.)
-    # For now, we'll do a basic health check
-    if ! curl -f "https://api.payment-platform.com/actuator/health" > /dev/null 2>&1; then
-        log_warning "Health check failed during monitoring"
-    fi
+    success "Traffic switched to green environment"
 }
 
 cleanup_blue_environment() {
-    log_info "Cleaning up blue environment..."
+    log "Cleaning up blue environment..."
 
-    # Wait additional time to ensure green is stable
-    log_info "Waiting 10 minutes before cleaning up blue environment..."
-    sleep 600
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would cleanup blue environment"
+        return 0
+    fi
 
-    # Final verification before cleanup
-    if curl -f "https://api.payment-platform.com/actuator/health" > /dev/null 2>&1; then
-        # Delete blue deployments
-        kubectl delete deployment payment-platform-backend-production -n "$NAMESPACE" --ignore-not-found
-        kubectl delete deployment payment-platform-frontend-production -n "$NAMESPACE" --ignore-not-found
+    # Remove blue deployment
+    helm uninstall sass-platform-blue -n "$DEPLOY_ENV" || true
 
-        # Rename green deployments to production
-        kubectl patch deployment payment-platform-backend-production-green -n "$NAMESPACE" \
-            --type='merge' -p '{"metadata":{"name":"payment-platform-backend-production"}}'
-        kubectl patch deployment payment-platform-frontend-production-green -n "$NAMESPACE" \
-            --type='merge' -p '{"metadata":{"name":"payment-platform-frontend-production"}}'
+    # Rename green to main
+    helm upgrade sass-platform \
+        oci://ghcr.io/sass-platform/helm-charts/sass-platform \
+        --version "$TARGET_VERSION" \
+        --namespace "$DEPLOY_ENV" \
+        --set image.backend.tag="$TARGET_VERSION" \
+        --set image.frontend.tag="$TARGET_VERSION" \
+        --set environment="$DEPLOY_ENV" \
+        --values "$PROJECT_ROOT/k8s/helm-chart/values-$DEPLOY_ENV.yaml" \
+        --wait \
+        --timeout=10m
 
-        # Update labels
-        kubectl label deployment payment-platform-backend-production -n "$NAMESPACE" deployment-color-
-        kubectl label deployment payment-platform-frontend-production -n "$NAMESPACE" deployment-color-
+    success "Blue environment cleanup completed"
+}
 
-        # Clean up test services
-        kubectl delete service payment-platform-backend-production-green-test -n "$NAMESPACE" --ignore-not-found
-        kubectl delete service payment-platform-frontend-production-green-test -n "$NAMESPACE" --ignore-not-found
+# Standard deployment (non-blue-green)
+deploy_standard() {
+    log "Deploying standard update (version: $TARGET_VERSION)..."
 
-        # Clean up temporary files
-        rm -rf "$GREEN_MANIFESTS_DIR"
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would deploy standard update with version $TARGET_VERSION"
+        return 0
+    fi
 
-        log_success "Blue environment cleanup completed"
+    helm upgrade sass-platform \
+        oci://ghcr.io/sass-platform/helm-charts/sass-platform \
+        --version "$TARGET_VERSION" \
+        --namespace "$DEPLOY_ENV" \
+        --set image.backend.tag="$TARGET_VERSION" \
+        --set image.frontend.tag="$TARGET_VERSION" \
+        --set environment="$DEPLOY_ENV" \
+        --values "$PROJECT_ROOT/k8s/helm-chart/values-$DEPLOY_ENV.yaml" \
+        --wait \
+        --timeout=10m
+
+    # Wait for rollout
+    kubectl rollout status deployment/sass-platform-backend -n "$DEPLOY_ENV" --timeout=300s
+    kubectl rollout status deployment/sass-platform-frontend -n "$DEPLOY_ENV" --timeout=300s
+
+    success "Standard deployment completed successfully"
+}
+
+# Rollback functions
+rollback_deployment() {
+    log "Rolling back deployment..."
+
+    if [ -z "$PREVIOUS_VERSION" ]; then
+        warn "No previous version specified, attempting automatic rollback..."
+        helm rollback sass-platform -n "$DEPLOY_ENV"
     else
-        log_error "Green environment appears unhealthy - preserving blue environment"
-        return 1
-    fi
-}
-
-emergency_rollback() {
-    log_critical "INITIATING EMERGENCY ROLLBACK"
-
-    # Switch traffic back to blue environment
-    kubectl patch service payment-platform-backend-production -n "$NAMESPACE" \
-        -p '{"spec":{"selector":{"app":"payment-platform-backend","deployment-color":"blue"}}}' || true
-
-    kubectl patch service payment-platform-frontend-production -n "$NAMESPACE" \
-        -p '{"spec":{"selector":{"app":"payment-platform-frontend","deployment-color":"blue"}}}' || true
-
-    # Delete green deployments
-    kubectl delete deployment payment-platform-backend-production-green -n "$NAMESPACE" --ignore-not-found || true
-    kubectl delete deployment payment-platform-frontend-production-green -n "$NAMESPACE" --ignore-not-found || true
-
-    log_critical "Emergency rollback completed"
-    send_deployment_notification "ROLLBACK"
-}
-
-send_deployment_notification() {
-    local status="$1"
-
-    if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
-        local message="Production Deployment $status: $APP_VERSION at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-        curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"$message\"}" \
-            "$SLACK_WEBHOOK_URL" || log_warning "Failed to send Slack notification"
+        log "Rolling back to version: $PREVIOUS_VERSION"
+        helm upgrade sass-platform \
+            oci://ghcr.io/sass-platform/helm-charts/sass-platform \
+            --version "$PREVIOUS_VERSION" \
+            --namespace "$DEPLOY_ENV" \
+            --set image.backend.tag="$PREVIOUS_VERSION" \
+            --set image.frontend.tag="$PREVIOUS_VERSION" \
+            --set environment="$DEPLOY_ENV" \
+            --values "$PROJECT_ROOT/k8s/helm-chart/values-$DEPLOY_ENV.yaml" \
+            --wait \
+            --timeout=10m
     fi
 
-    if [[ -n "${TEAMS_WEBHOOK_URL:-}" ]]; then
-        local message="Production Deployment $status: $APP_VERSION at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-        curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"$message\"}" \
-            "$TEAMS_WEBHOOK_URL" || log_warning "Failed to send Teams notification"
+    success "Rollback completed successfully"
+}
+
+# Post-deployment validation
+post_deployment_validation() {
+    log "Performing post-deployment validation..."
+
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would perform post-deployment validation"
+        return 0
     fi
-}
 
-# Utility functions
-check_resource_quotas() {
-    local cpu_request=$(kubectl describe resourcequota -n "$NAMESPACE" | grep "requests.cpu" | awk '{print $2}' || echo "0")
-    local memory_request=$(kubectl describe resourcequota -n "$NAMESPACE" | grep "requests.memory" | awk '{print $2}' || echo "0")
-
-    log_info "Current resource usage - CPU: $cpu_request, Memory: $memory_request"
-}
-
-verify_image_signatures() {
-    log_info "Verifying image signatures..."
-    # Add image signature verification logic here
-    log_info "Image signature verification skipped (not implemented)"
-}
-
-validate_tls_certificates() {
-    log_info "Validating TLS certificates..."
-
-    local domains=("payment-platform.com" "api.payment-platform.com")
-    for domain in "${domains[@]}"; do
-        local cert_expiry=$(echo | openssl s_client -servername "$domain" -connect "$domain":443 2>/dev/null | \
-            openssl x509 -noout -dates | grep notAfter | cut -d= -f2)
-
-        log_info "Certificate for $domain expires: $cert_expiry"
+    # Check deployment status
+    local deployments=$(kubectl get deployments -n "$DEPLOY_ENV" -l app.kubernetes.io/name=sass-platform -o jsonpath='{.items[*].metadata.name}')
+    for deployment in $deployments; do
+        if ! kubectl get deployment "$deployment" -n "$DEPLOY_ENV" -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; then
+            error "Deployment $deployment is not available"
+            exit 1
+        fi
     done
-}
 
-validate_security_policies() {
-    log_info "Validating security policies..."
+    # Smoke tests
+    log "Running smoke tests..."
+    local frontend_url=$(kubectl get ingress sass-platform -n "$DEPLOY_ENV" -o jsonpath='{.spec.rules[0].host}')
+    local response_code=$(curl -s -o /dev/null -w "%{http_code}" "https://$frontend_url/health" || echo "000")
 
-    # Check if Pod Security Policies are in place
-    if kubectl get psp &> /dev/null; then
-        log_info "Pod Security Policies are active"
-    else
-        log_warning "Pod Security Policies not found"
-    fi
-}
-
-verify_backup_systems() {
-    log_info "Verifying backup systems..."
-
-    # Check if backup cronjobs are running
-    local backup_jobs=$(kubectl get cronjob -n "$NAMESPACE" --no-headers | grep backup | wc -l)
-    if [[ $backup_jobs -gt 0 ]]; then
-        log_info "$backup_jobs backup jobs found"
-    else
-        log_warning "No backup jobs found"
-    fi
-}
-
-# Script execution
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    # Production deployment requires explicit confirmation
-    log_critical "🚨 PRODUCTION DEPLOYMENT WARNING 🚨"
-    log_critical "You are about to deploy to PRODUCTION environment"
-    log_critical "Version: $APP_VERSION"
-    log_critical "This action is IRREVERSIBLE and will affect live users"
-    echo
-    read -p "Type 'DEPLOY TO PRODUCTION' to confirm: " -r
-
-    if [[ "$REPLY" != "DEPLOY TO PRODUCTION" ]]; then
-        log_error "Confirmation failed. Deployment aborted."
+    if [ "$response_code" != "200" ]; then
+        error "Frontend smoke test failed with response code: $response_code"
         exit 1
     fi
 
-    main "$@"
+    # Check metrics endpoint
+    local backend_service=$(kubectl get service -n "$DEPLOY_ENV" -l app.kubernetes.io/component=backend -o jsonpath='{.items[0].metadata.name}')
+    kubectl port-forward service/$backend_service 8080:8080 -n "$DEPLOY_ENV" &
+    local port_forward_pid=$!
+    sleep 5
+
+    local metrics_response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/actuator/prometheus" || echo "000")
+    kill $port_forward_pid 2>/dev/null || true
+
+    if [ "$metrics_response" != "200" ]; then
+        error "Metrics endpoint smoke test failed with response code: $metrics_response"
+        exit 1
+    fi
+
+    success "Post-deployment validation completed successfully"
+}
+
+# Monitoring setup
+setup_monitoring() {
+    log "Setting up monitoring and alerting..."
+
+    if [ "$DRY_RUN" == "true" ]; then
+        log "DRY RUN: Would setup monitoring and alerting"
+        return 0
+    fi
+
+    # Deploy Prometheus monitoring
+    helm upgrade --install prometheus-stack \
+        prometheus-community/kube-prometheus-stack \
+        --namespace monitoring \
+        --create-namespace \
+        --values "$PROJECT_ROOT/k8s/monitoring/prometheus-values.yaml" \
+        --wait \
+        --timeout=10m
+
+    # Deploy custom alerts
+    kubectl apply -f "$PROJECT_ROOT/k8s/monitoring/alerts/" -n monitoring
+
+    success "Monitoring setup completed"
+}
+
+# Main deployment function
+main() {
+    log "Starting SASS Platform deployment..."
+    log "Environment: $DEPLOY_ENV"
+    log "Blue-Green Deployment: $BLUE_GREEN"
+    log "Dry Run: $DRY_RUN"
+    log "Target Version: ${TARGET_VERSION:-latest}"
+
+    if [ "$ROLLBACK" == "true" ]; then
+        rollback_deployment
+        return 0
+    fi
+
+    # Get current version for potential rollback
+    if [ -z "$PREVIOUS_VERSION" ]; then
+        PREVIOUS_VERSION=$(get_current_version)
+        log "Current version: $PREVIOUS_VERSION"
+    fi
+
+    # Validation phase
+    validate_prerequisites
+    validate_environment
+
+    # Database migrations
+    run_database_migrations
+
+    # Deployment phase
+    if [ "$BLUE_GREEN" == "true" ]; then
+        log "Executing blue-green deployment..."
+        deploy_green_environment
+        validate_green_environment
+        switch_to_green
+        cleanup_blue_environment
+    else
+        log "Executing standard deployment..."
+        deploy_standard
+    fi
+
+    # Post-deployment
+    post_deployment_validation
+    setup_monitoring
+
+    success "SASS Platform deployment completed successfully!"
+    log "Deployed version: $TARGET_VERSION"
+    log "Previous version: $PREVIOUS_VERSION"
+}
+
+# Help function
+show_help() {
+    cat << EOF
+SASS Platform Production Deployment Script
+
+Usage: $0 [OPTIONS]
+
+Options:
+    -e, --environment ENV       Deployment environment (default: production)
+    -v, --version VERSION       Target version to deploy
+    -p, --previous VERSION      Previous version (for rollback reference)
+    -b, --blue-green           Enable blue-green deployment (default: true)
+    -s, --standard             Use standard deployment (disable blue-green)
+    -d, --dry-run              Perform dry run without actual deployment
+    -r, --rollback             Perform rollback to previous version
+    -h, --help                 Show this help message
+
+Environment Variables:
+    DEPLOY_ENV                 Deployment environment
+    TARGET_VERSION             Target version to deploy
+    PREVIOUS_VERSION           Previous version for rollback
+    BLUE_GREEN                 Enable/disable blue-green deployment
+    DRY_RUN                    Enable/disable dry run mode
+    ROLLBACK                   Enable rollback mode
+
+Examples:
+    # Standard blue-green deployment
+    $0 --version v1.2.3
+
+    # Dry run deployment
+    $0 --version v1.2.3 --dry-run
+
+    # Standard deployment (non-blue-green)
+    $0 --version v1.2.3 --standard
+
+    # Rollback to previous version
+    $0 --rollback --previous v1.2.2
+
+    # Deploy to staging environment
+    $0 --environment staging --version v1.2.3-rc1
+
+EOF
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -e|--environment)
+            DEPLOY_ENV="$2"
+            shift 2
+            ;;
+        -v|--version)
+            TARGET_VERSION="$2"
+            shift 2
+            ;;
+        -p|--previous)
+            PREVIOUS_VERSION="$2"
+            shift 2
+            ;;
+        -b|--blue-green)
+            BLUE_GREEN="true"
+            shift
+            ;;
+        -s|--standard)
+            BLUE_GREEN="false"
+            shift
+            ;;
+        -d|--dry-run)
+            DRY_RUN="true"
+            shift
+            ;;
+        -r|--rollback)
+            ROLLBACK="true"
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# Validate required parameters
+if [ "$ROLLBACK" != "true" ] && [ -z "$TARGET_VERSION" ]; then
+    error "Target version is required for deployment"
+    show_help
+    exit 1
 fi
+
+# Execute main deployment
+main

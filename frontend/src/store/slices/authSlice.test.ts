@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
+
 import authReducer, { setCredentials, logout, setLoading } from './authSlice'
+
 import { createMockUser } from '@/test/fixtures/users'
 
 describe('authSlice', () => {

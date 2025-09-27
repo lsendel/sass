@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+
 import {
   authApi,
   type OAuth2Provider,
@@ -8,6 +9,7 @@ import {
   type PasswordRegisterRequest,
   type AuthMethodsResponse,
 } from './authApi'
+
 import { createMockUser } from '@/test/fixtures/users'
 
 // Mock import.meta.env

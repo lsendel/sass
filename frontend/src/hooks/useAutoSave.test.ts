@@ -1,5 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { vi } from 'vitest'
+
 import { useAutoSave } from './useAutoSave'
 
 describe('useAutoSave', () => {
@@ -15,28 +16,28 @@ describe('useAutoSave', () => {
     const mockSave = vi.fn().mockResolvedValue(undefined)
     const data = { name: 'Test', slug: 'test' }
 
-    const { result } = renderHook(() =>
-      useAutoSave(data, {
+    const { result, rerender } = renderHook(
+      ({ data }) => useAutoSave(data, {
         delay: 1000,
         onSave: mockSave,
-      })
+      }),
+      { initialProps: { data: {} } }
     )
 
     expect(result.current.status).toBe('idle')
     expect(mockSave).not.toHaveBeenCalled()
 
-    // Fast forward time to trigger save
-    act(() => {
+    // Update data to trigger auto-save
+    rerender({ data })
+
+    // Fast forward time to trigger save and run all async operations
+    await act(async () => {
       vi.advanceTimersByTime(1000)
+      await vi.runOnlyPendingTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(mockSave).toHaveBeenCalledWith(data)
-    })
-
-    await waitFor(() => {
-      expect(result.current.status).toBe('saved')
-    })
+    expect(mockSave).toHaveBeenCalledWith(data)
+    expect(result.current.status).toBe('saved')
   })
 
   it('should show saving state during save', async () => {
@@ -53,22 +54,21 @@ describe('useAutoSave', () => {
       })
     )
 
-    act(() => {
+    // Trigger the timer and wait for the save to start
+    await act(async () => {
       vi.advanceTimersByTime(500)
+      await vi.runOnlyPendingTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.status).toBe('saving')
-    })
+    expect(result.current.status).toBe('saving')
 
     // Resolve the save
-    act(() => {
+    await act(async () => {
       resolveSave!()
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.status).toBe('saved')
-    })
+    expect(result.current.status).toBe('saved')
   })
 
   it('should handle save errors', async () => {
@@ -85,15 +85,14 @@ describe('useAutoSave', () => {
       })
     )
 
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(500)
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.status).toBe('error')
-      expect(result.current.error).toBe(mockError)
-      expect(mockOnError).toHaveBeenCalledWith(mockError)
-    })
+    expect(result.current.status).toBe('error')
+    expect(result.current.error).toBe(mockError)
+    expect(mockOnError).toHaveBeenCalledWith(mockError)
   })
 
   it('should retry failed saves', async () => {
@@ -110,23 +109,21 @@ describe('useAutoSave', () => {
     )
 
     // Initial save attempt
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(500)
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.status).toBe('error')
-    })
+    expect(result.current.status).toBe('error')
 
     // Retry
-    act(() => {
+    await act(async () => {
       result.current.retry()
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.status).toBe('saved')
-      expect(mockSave).toHaveBeenCalledTimes(2)
-    })
+    expect(result.current.status).toBe('saved')
+    expect(mockSave).toHaveBeenCalledTimes(2)
   })
 
   it('should detect unsaved changes', () => {
@@ -147,7 +144,7 @@ describe('useAutoSave', () => {
     expect(result.current.hasUnsavedChanges).toBe(true)
   })
 
-  it('should not save empty data', () => {
+  it('should not save empty data', async () => {
     const mockSave = vi.fn().mockResolvedValue(undefined)
     const emptyData = {}
 
@@ -158,8 +155,9 @@ describe('useAutoSave', () => {
       })
     )
 
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(500)
+      await vi.runAllTimersAsync()
     })
 
     expect(mockSave).not.toHaveBeenCalled()
@@ -175,24 +173,23 @@ describe('useAutoSave', () => {
 
     // Rapid changes
     rerender({ data: { name: 'Test2' } })
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(500)
     })
 
     rerender({ data: { name: 'Test3' } })
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(500)
     })
 
     rerender({ data: { name: 'Test4' } })
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(1000)
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(mockSave).toHaveBeenCalledTimes(1)
-      expect(mockSave).toHaveBeenCalledWith({ name: 'Test4' })
-    })
+    expect(mockSave).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledWith({ name: 'Test4' })
   })
 
   it('should provide manual save function', async () => {
@@ -207,13 +204,12 @@ describe('useAutoSave', () => {
     )
 
     // Manual save before auto-save delay
-    act(() => {
+    await act(async () => {
       result.current.save()
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(mockSave).toHaveBeenCalledWith(data)
-      expect(result.current.status).toBe('saved')
-    })
+    expect(mockSave).toHaveBeenCalledWith(data)
+    expect(result.current.status).toBe('saved')
   })
 })

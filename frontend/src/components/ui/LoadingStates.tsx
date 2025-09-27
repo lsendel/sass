@@ -1,5 +1,6 @@
 import React from 'react'
 import { clsx } from 'clsx'
+
 import LoadingSpinner from './LoadingSpinner'
 
 // Standard loading button component

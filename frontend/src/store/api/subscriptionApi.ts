@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+
 import { withAuthHeader } from './utils'
 
 const API_BASE_URL =
@@ -13,7 +14,7 @@ export type SubscriptionStatus =
   | 'INCOMPLETE'
   | 'INCOMPLETE_EXPIRED'
 
-export type Subscription = {
+export interface Subscription {
   id: string
   organizationId: string
   planId: string
@@ -29,7 +30,7 @@ export type Subscription = {
 
 export type PlanInterval = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
 
-export type Plan = {
+export interface Plan {
   id: string
   name: string
   slug: string
@@ -48,7 +49,7 @@ export type Plan = {
 
 export type InvoiceStatus = 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE'
 
-export type Invoice = {
+export interface Invoice {
   id: string
   organizationId: string
   subscriptionId: string
@@ -64,33 +65,33 @@ export type Invoice = {
   createdAt: string
 }
 
-export type SubscriptionStatistics = {
+export interface SubscriptionStatistics {
   status: SubscriptionStatus | null
   totalInvoices: number
   totalAmount: number
   recentAmount: number
 }
 
-export type CreateSubscriptionRequest = {
+export interface CreateSubscriptionRequest {
   organizationId: string
   planId: string
   paymentMethodId?: string
   trialEligible?: boolean
 }
 
-export type ChangePlanRequest = {
+export interface ChangePlanRequest {
   organizationId: string
   newPlanId: string
   prorationBehavior?: boolean
 }
 
-export type CancelSubscriptionRequest = {
+export interface CancelSubscriptionRequest {
   organizationId: string
   immediate?: boolean
   cancelAt?: string
 }
 
-export type ReactivateSubscriptionRequest = {
+export interface ReactivateSubscriptionRequest {
   organizationId: string
 }
 

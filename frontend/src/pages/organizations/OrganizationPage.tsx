@@ -1,15 +1,5 @@
 import React, { useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { logger } from '../../utils/logger'
-import {
-  useGetUserOrganizationsQuery,
-  useGetOrganizationMembersQuery,
-  useInviteUserMutation,
-  useRemoveMemberMutation,
-} from '../../store/api/organizationApi'
-import { useGetOrganizationSubscriptionQuery } from '../../store/api/subscriptionApi'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import CreateOrganizationModal from '../../components/organizations/CreateOrganizationModal'
 import { UserPlusIcon, UsersIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
@@ -17,6 +7,17 @@ import { clsx } from 'clsx'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+
+import CreateOrganizationModal from '../../components/organizations/CreateOrganizationModal'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { useGetOrganizationSubscriptionQuery } from '../../store/api/subscriptionApi'
+import {
+  useGetUserOrganizationsQuery,
+  useGetOrganizationMembersQuery,
+  useInviteUserMutation,
+  useRemoveMemberMutation,
+} from '../../store/api/organizationApi'
+import { logger } from '../../utils/logger'
 import { parseApiError } from '../../utils/apiError'
 import PageHeader from '../../components/ui/PageHeader'
 
@@ -43,12 +44,12 @@ const OrganizationPage: React.FC = () => {
     data: members,
     isLoading: membersLoading,
     refetch: refetchMembers,
-  } = useGetOrganizationMembersQuery(organization?.id || '', {
+  } = useGetOrganizationMembersQuery(organization?.id ?? '', {
     skip: !organization?.id,
   })
 
   const { data: subscription } = useGetOrganizationSubscriptionQuery(
-    organization?.id || '',
+    organization?.id ?? '',
     {
       skip: !organization?.id,
     }
@@ -94,11 +95,11 @@ const OrganizationPage: React.FC = () => {
       toast.success(`Invitation sent to ${data.email}`)
       reset()
       setShowInviteForm(false)
-      refetchMembers()
+      void refetchMembers()
     } catch (err) {
       const parsed = parseApiError(err)
       logger.error('Failed to invite member:', parsed)
-      toast.error(parsed.message || 'Failed to send invitation')
+      toast.error(parsed.message ?? 'Failed to send invitation')
     }
   }
 
@@ -118,11 +119,11 @@ const OrganizationPage: React.FC = () => {
       }).unwrap()
 
       toast.success('Member removed successfully')
-      refetchMembers()
+      void refetchMembers()
     } catch (err) {
       const parsed = parseApiError(err)
       logger.error('Failed to remove member:', parsed)
-      toast.error(parsed.message || 'Failed to remove member')
+      toast.error(parsed.message ?? 'Failed to remove member')
     }
   }
 
@@ -137,7 +138,7 @@ const OrganizationPage: React.FC = () => {
       <span
         className={clsx(
           'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-          roleStyles[role as keyof typeof roleStyles] ||
+          roleStyles[role as keyof typeof roleStyles] ??
             'bg-gray-100 text-gray-800'
         )}
       >
@@ -208,7 +209,7 @@ const OrganizationPage: React.FC = () => {
                   {
                     (
                       organization.settings as { description?: string }
-                    ).description as string
+                    ).description!
                   }
                 </dd>
               </div>
@@ -265,7 +266,7 @@ const OrganizationPage: React.FC = () => {
                     <div className="flex-shrink-0">
                       <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-700">
-                          {(member.userName || member.userEmail)
+                          {(member.userName ?? member.userEmail)
                             .charAt(0)
                             .toUpperCase()}
                         </span>
@@ -274,7 +275,7 @@ const OrganizationPage: React.FC = () => {
                     <div className="ml-4">
                       <div className="flex items-center">
                         <p className="text-sm font-medium text-gray-900">
-                          {member.userName || member.userEmail}
+                          {member.userName ?? member.userEmail}
                         </p>
                         <div className="ml-2">{getRoleBadge(member.role)}</div>
                       </div>
@@ -290,7 +291,7 @@ const OrganizationPage: React.FC = () => {
                     {member.role !== 'OWNER' && (
                       <button
                         onClick={() =>
-                          handleRemoveMember(member.userId, member.userEmail)
+                          void handleRemoveMember(member.userId, member.userEmail)
                         }
                         className="text-red-600 hover:text-red-500"
                       >
@@ -326,7 +327,7 @@ const OrganizationPage: React.FC = () => {
               <p>Send an invitation to join this organization.</p>
             </div>
             <form
-              onSubmit={handleSubmit(handleInviteMember)}
+              onSubmit={(e) => void handleSubmit(handleInviteMember)(e)}
               className="mt-5 space-y-4"
             >
               <div>

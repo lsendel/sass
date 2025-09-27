@@ -67,13 +67,13 @@ async function analyzeApplication() {
     // Try to find a way to get to dashboard - look for mock login or direct access
     try {
       await page.goto('http://localhost:3000/dashboard', { waitUntil: 'networkidle', timeout: 5000 });
-    } catch (e) {
+    } catch {
       // If dashboard is protected, try mock login
       try {
         await page.goto('http://localhost:3000/mock-login', { waitUntil: 'networkidle', timeout: 5000 });
         await page.click('button', { timeout: 5000 });
         await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 10000 });
-      } catch (mockError) {
+      } catch {
         console.log('⚠️ Could not access dashboard - authentication required');
         await browser.close();
         return;

@@ -3,6 +3,7 @@
  */
 
 import { createSelector } from '@reduxjs/toolkit'
+
 import type { RootState } from '../store'
 
 // Cache duration constants (in milliseconds)
@@ -63,7 +64,7 @@ export const selectPrimaryOrganization = createSelector(
 // Background data prefetching utility
 export class DataPrefetcher {
   private static instance: DataPrefetcher
-  private prefetchQueue: Set<string> = new Set()
+  private prefetchQueue = new Set<string>()
   private isProcessing = false
 
   static getInstance(): DataPrefetcher {
@@ -211,7 +212,7 @@ export class ConnectionMonitor {
   private static instance: ConnectionMonitor
   private isOnline = navigator.onLine
   private connectionQuality: 'fast' | 'slow' | 'offline' = 'fast'
-  private listeners: ((quality: 'fast' | 'slow' | 'offline') => void)[] = []
+  private listeners: Array<(quality: 'fast' | 'slow' | 'offline') => void> = []
 
   static getInstance(): ConnectionMonitor {
     if (!ConnectionMonitor.instance) {

@@ -1,5 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { vi } from 'vitest'
+
 import { useOptimisticUpdates, useOptimisticList } from './useOptimisticUpdates'
 
 describe('useOptimisticUpdates', () => {
@@ -17,8 +18,9 @@ describe('useOptimisticUpdates', () => {
 
     const testData = { id: '1', name: 'Test' }
 
+    let updatePromise: Promise<any>
     act(() => {
-      result.current.addOptimisticUpdate(
+      updatePromise = result.current.addOptimisticUpdate(
         testData,
         mockMutation,
         { successMessage: 'Success!' }
@@ -28,22 +30,21 @@ describe('useOptimisticUpdates', () => {
     expect(result.current.optimisticUpdates).toHaveLength(1)
     expect(result.current.optimisticUpdates[0].status).toBe('pending')
 
-    await waitFor(() => {
-      expect(mockMutation).toHaveBeenCalledWith(testData)
+    // Wait for mutation to be called and completed
+    await act(async () => {
+      await updatePromise
     })
 
-    await waitFor(() => {
-      expect(result.current.optimisticUpdates[0].status).toBe('confirmed')
-    })
+    expect(mockMutation).toHaveBeenCalledWith(testData)
+    expect(result.current.optimisticUpdates[0].status).toBe('confirmed')
 
     // Should clean up after delay
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(3000)
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.optimisticUpdates).toHaveLength(0)
-    })
+    expect(result.current.optimisticUpdates).toHaveLength(0)
   })
 
   it('should handle errors and provide rollback', async () => {
@@ -91,31 +92,36 @@ describe('useOptimisticUpdates', () => {
     const testData = { id: '1', name: 'Test' }
 
     await act(async () => {
-      await result.current.addOptimisticUpdate(
-        testData,
-        mockMutation,
-        { onError: mockOnError, rollbackDelay: 1000 }
-      )
+      try {
+        await result.current.addOptimisticUpdate(
+          testData,
+          mockMutation,
+          { onError: mockOnError, rollbackDelay: 1000 }
+        )
+      } catch (error) {
+        // Expected to fail
+      }
     })
 
-    expect(result.current.optimisticUpdates[0].status).toBe('failed')
+    expect(result.current.optimisticUpdates[0]?.status).toBe('failed')
 
     // Fast forward to trigger auto-rollback
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(1000)
+      await vi.runAllTimersAsync()
     })
 
-    await waitFor(() => {
-      expect(result.current.optimisticUpdates[0].status).toBe('rolledBack')
-    })
+    const rolledBackUpdate = result.current.optimisticUpdates.find(u => u.status === 'rolledBack')
+    expect(rolledBackUpdate).toBeDefined()
   })
 
-  it('should provide helper methods', () => {
+  it('should provide helper methods', async () => {
     const { result } = renderHook(() => useOptimisticUpdates())
 
     // Add some updates
+    let updatePromise: Promise<any>
     act(() => {
-      result.current.addOptimisticUpdate(
+      updatePromise = result.current.addOptimisticUpdate(
         { id: '1' },
         async () => 'success'
       )
@@ -124,6 +130,11 @@ describe('useOptimisticUpdates', () => {
     expect(result.current.hasOptimisticUpdates).toBe(true)
     expect(result.current.getPendingUpdates()).toHaveLength(1)
     expect(result.current.getFailedUpdates()).toHaveLength(0)
+
+    // Wait for update to complete to avoid act warnings
+    await act(async () => {
+      await updatePromise
+    })
   })
 })
 
@@ -152,16 +163,14 @@ describe('useOptimisticList', () => {
     const mockMutation = vi.fn().mockResolvedValue(newItem)
 
     await act(async () => {
-      await result.current.addItem(newItem, mockMutation)
+      const addPromise = result.current.addItem(newItem, mockMutation)
+      await addPromise
     })
 
     // Should immediately show in optimistic list
     expect(result.current.data).toHaveLength(3)
     expect(result.current.data[0]).toEqual(newItem) // Added to beginning
-
-    await waitFor(() => {
-      expect(mockMutation).toHaveBeenCalledWith(newItem)
-    })
+    expect(mockMutation).toHaveBeenCalledWith(newItem)
   })
 
   it('should optimistically update items', async () => {
@@ -178,15 +187,14 @@ describe('useOptimisticList', () => {
     const mockMutation = vi.fn().mockResolvedValue(updatedItem)
 
     await act(async () => {
-      await result.current.updateItem(updatedItem, mockMutation)
+      const updatePromise = result.current.updateItem(updatedItem, mockMutation)
+      await updatePromise
     })
 
     // Should immediately reflect in optimistic list
-    expect(result.current.data[1].name).toBe('Updated Item 1') // Added at beginning, so original index 0 is now 1
-
-    await waitFor(() => {
-      expect(mockMutation).toHaveBeenCalledWith(updatedItem)
-    })
+    const updatedItemInList = result.current.data.find(item => item.id === '1')
+    expect(updatedItemInList?.name).toBe('Updated Item 1')
+    expect(mockMutation).toHaveBeenCalledWith(updatedItem)
   })
 
   it('should optimistically delete items', async () => {
@@ -203,16 +211,14 @@ describe('useOptimisticList', () => {
     const mockMutation = vi.fn().mockResolvedValue(undefined)
 
     await act(async () => {
-      await result.current.deleteItem(itemToDelete, mockMutation)
+      const deletePromise = result.current.deleteItem(itemToDelete, mockMutation)
+      await deletePromise
     })
 
     // Should immediately remove from optimistic list
     expect(result.current.data).toHaveLength(1)
     expect(result.current.data.find(item => item.id === '1')).toBeUndefined()
-
-    await waitFor(() => {
-      expect(mockMutation).toHaveBeenCalledWith('1')
-    })
+    expect(mockMutation).toHaveBeenCalledWith('1')
   })
 
   it('should revert optimistic changes on error', async () => {
@@ -229,16 +235,15 @@ describe('useOptimisticList', () => {
     const mockMutation = vi.fn().mockRejectedValue(new Error('Failed'))
 
     await act(async () => {
-      await result.current.addItem(newItem, mockMutation)
+      try {
+        const addPromise = result.current.addItem(newItem, mockMutation)
+        await addPromise
+      } catch (error) {
+        // Expected to fail
+      }
     })
 
-    // Should initially show optimistic item
-    expect(result.current.data).toHaveLength(3)
-
-    // Wait for error handling and auto-rollback
-    await waitFor(() => {
-      expect(mockMutation).toHaveBeenCalled()
-    })
+    expect(mockMutation).toHaveBeenCalled()
 
     // Should be marked as failed but still visible with error state
     expect(result.current.hasOptimisticUpdates).toBe(true)

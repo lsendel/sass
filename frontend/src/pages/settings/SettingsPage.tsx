@@ -1,15 +1,4 @@
 import React, { useState } from 'react'
-import { logger } from '../../utils/logger'
-import {
-  useGetCurrentUserQuery,
-  useUpdateProfileMutation,
-} from '../../store/api/userApi'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { LoadingCard, LoadingButton } from '../../components/ui/LoadingStates'
-import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
-import { parseApiError } from '../../utils/apiError'
-import { useCrossComponentSync } from '../../hooks/useDataSync'
-import { useNotifications } from '../../components/ui/FeedbackSystem'
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -21,6 +10,18 @@ import {
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+
+import { logger } from '../../utils/logger'
+import {
+  useGetCurrentUserQuery,
+  useUpdateProfileMutation,
+} from '../../store/api/userApi'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { LoadingCard, LoadingButton } from '../../components/ui/LoadingStates'
+import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
+import { parseApiError } from '../../utils/apiError'
+import { useCrossComponentSync } from '../../hooks/useDataSync'
+import { useNotifications } from '../../components/ui/FeedbackSystem'
 import PageHeader from '../../components/ui/PageHeader'
 
 const profileSchema = z.object({
@@ -63,18 +64,18 @@ const SettingsPage: React.FC = () => {
     values: profile
       ? (() => {
           const prefs = (profile.preferences ?? {}) as Record<string, unknown>
-          const notif = (prefs['notifications'] as
+          const notif = (prefs.notifications as
             | Record<string, unknown>
             | undefined) ?? {}
           return {
             name: profile.name || '',
             email: profile.email || '',
-            timezone: String(prefs['timezone'] ?? 'UTC'),
-            language: String(prefs['language'] ?? 'en'),
+            timezone: String(prefs.timezone ?? 'UTC'),
+            language: String(prefs.language ?? 'en'),
             notifications: {
-              email: Boolean(notif['email'] ?? true),
-              push: Boolean(notif['push'] ?? true),
-              sms: Boolean(notif['sms'] ?? false),
+              email: Boolean(notif.email ?? true),
+              push: Boolean(notif.push ?? true),
+              sms: Boolean(notif.sms ?? false),
             },
           }
         })()

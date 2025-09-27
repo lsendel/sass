@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseApiError, type ParsedApiError } from './apiError'
 import type { FetchBaseQueryError, SerializedError } from '@reduxjs/toolkit/query'
+
+import { parseApiError, type ParsedApiError } from './apiError'
 
 describe('parseApiError', () => {
   describe('FetchBaseQueryError handling', () => {

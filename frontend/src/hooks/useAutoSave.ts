@@ -47,7 +47,7 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
 
   const retry = useCallback(() => {
     if (status === 'error') {
-      save()
+      void save()
     }
   }, [save, status])
 
@@ -66,7 +66,7 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
     // Only auto-save if there's actual content
     const currentData = JSON.stringify(data)
     if (currentData !== JSON.stringify({}) && currentData !== initialDataRef.current) {
-      timeoutRef.current = setTimeout(save, delay)
+      timeoutRef.current = setTimeout(() => void save(), delay)
     }
 
     return () => {

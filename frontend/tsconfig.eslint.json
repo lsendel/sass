@@ -1,11 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "include": [
-    "src",
-    ".storybook",
-    "tests",
+    "src/**/*",
+    ".storybook/**/*",
+    "tests/**/*",
     "*.js",
+    "*.mjs",
+    "*.cjs",
     "*.ts",
+    "*.mts",
+    "*.cts",
     "*.d.ts"
   ]
 }

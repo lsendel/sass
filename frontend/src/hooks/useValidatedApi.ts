@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { z } from 'zod';
+
 import { useApiErrorHandler } from '@/lib/api/errorHandling';
 import { validateApiResponse, ApiValidationError } from '@/lib/api/validation';
 
@@ -64,7 +65,7 @@ export function useValidatedQuery<T>(
   const cacheRef = useRef<Map<string, { data: T; timestamp: number }>>(new Map());
   const { handleError, createRetryHandler } = useApiErrorHandler();
 
-  const executeQuery = useCallback(async (force: boolean = false) => {
+  const executeQuery = useCallback(async (force = false) => {
     if (!enabled) return;
 
     const now = Date.now();
@@ -126,7 +127,7 @@ export function useValidatedQuery<T>(
 
   // Auto-execute on mount and when dependencies change
   React.useEffect(() => {
-    executeQuery();
+    void executeQuery();
   }, [executeQuery]);
 
   const refetch = useCallback(() => executeQuery(true), [executeQuery]);
@@ -287,7 +288,7 @@ export function useValidatedInfiniteQuery<T>(
 
   const { handleError } = useApiErrorHandler();
 
-  const fetchPage = useCallback(async (pageParam: number, isNext: boolean = true) => {
+  const fetchPage = useCallback(async (pageParam: number, isNext = true) => {
     if (isNext) {
       setIsFetchingNextPage(true);
     } else {
@@ -338,7 +339,7 @@ export function useValidatedInfiniteQuery<T>(
 
     const nextParam = getNextPageParam?.(pages[pages.length - 1], pages);
     if (nextParam !== undefined) {
-      fetchPage(nextParam, true);
+      void fetchPage(nextParam, true);
     }
   }, [pages, hasNextPage, isFetchingNextPage, getNextPageParam, fetchPage]);
 
@@ -347,7 +348,7 @@ export function useValidatedInfiniteQuery<T>(
 
     const prevParam = getPreviousPageParam?.(pages[0], pages);
     if (prevParam !== undefined) {
-      fetchPage(prevParam, false);
+      void fetchPage(prevParam, false);
     }
   }, [pages, hasPreviousPage, isFetchingPreviousPage, getPreviousPageParam, fetchPage]);
 
@@ -355,7 +356,7 @@ export function useValidatedInfiniteQuery<T>(
   React.useEffect(() => {
     if (enabled && pages.length === 0) {
       setIsLoading(true);
-      fetchPage(0);
+      void fetchPage(0);
     }
   }, [enabled, pages.length, fetchPage]);
 

@@ -44,7 +44,25 @@
     "build-storybook": "storybook build",
     "docs": "typedoc",
     "docs:watch": "typedoc --watch",
-    "docs:build": "typedoc && echo 'TypeDoc documentation generated in ../docs/docs/frontend-api'"
+    "docs:build": "typedoc && echo 'TypeDoc documentation generated in ../docs/docs/frontend-api'",
+    "pre-push": "npm run typecheck && npm run lint && npm run test:unit",
+    "quality:check": "npm run typecheck && npm run lint && npm run format:check && npm run test:unit",
+    "quality:fix": "npm run lint:fix && npm run format",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write",
+      "npm run typecheck"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -72,6 +90,8 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "@playwright/test": "^1.55.1",
     "@storybook/addon-a11y": "^9.1.8",
     "@storybook/addon-docs": "^9.1.8",
@@ -88,10 +108,16 @@
     "@vitest/ui": "3.2.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-storybook": "^9.1.8",
     "globals": "^15.8.0",
+    "husky": "^9.1.7",
     "jsdom": "^27.0.0",
+    "lint-staged": "^16.2.1",
     "msw": "^2.11.3",
     "nyc": "^17.1.0",
     "postcss": "^8.4.49",

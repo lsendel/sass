@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react'
+
 import { useAppDispatch } from '../store/hooks'
 
 interface DataSyncOptions {
@@ -45,7 +46,7 @@ export const useDataSync = (options: DataSyncOptions) => {
     }
 
     timeoutRef.current = setTimeout(() => {
-      onSync(data)
+      void onSync(data)
     }, debounceMs)
   }, [onSync, debounceMs])
 
@@ -70,7 +71,7 @@ export const useDataSync = (options: DataSyncOptions) => {
   useEffect(() => {
     if (interval && enabled) {
       intervalRef.current = setInterval(() => {
-        onSync(lastSyncRef.current)
+        void onSync(lastSyncRef.current)
       }, interval)
     }
 
@@ -106,34 +107,32 @@ export const useDataSync = (options: DataSyncOptions) => {
 export const useCrossComponentSync = () => {
   const dispatch = useAppDispatch()
 
-  const syncOrganizationData = useCallback(async () => {
+  const syncOrganizationData = useCallback(() => {
     // Trigger refetch of organization data across all components
     dispatch({ type: 'api/invalidateTags', payload: ['Organization'] })
   }, [dispatch])
 
-  const syncPaymentData = useCallback(async () => {
+  const syncPaymentData = useCallback(() => {
     // Trigger refetch of payment data across all components
     dispatch({ type: 'api/invalidateTags', payload: ['Payment', 'PaymentStatistics'] })
   }, [dispatch])
 
-  const syncSubscriptionData = useCallback(async () => {
+  const syncSubscriptionData = useCallback(() => {
     // Trigger refetch of subscription data across all components
     dispatch({ type: 'api/invalidateTags', payload: ['Subscription'] })
   }, [dispatch])
 
-  const syncUserData = useCallback(async () => {
+  const syncUserData = useCallback(() => {
     // Trigger refetch of user data across all components
     dispatch({ type: 'api/invalidateTags', payload: ['User'] })
   }, [dispatch])
 
-  const syncAllData = useCallback(async () => {
+  const syncAllData = useCallback(() => {
     // Sync all data types
-    await Promise.all([
-      syncOrganizationData(),
-      syncPaymentData(),
-      syncSubscriptionData(),
-      syncUserData(),
-    ])
+    syncOrganizationData()
+    syncPaymentData()
+    syncSubscriptionData()
+    syncUserData()
   }, [syncOrganizationData, syncPaymentData, syncSubscriptionData, syncUserData])
 
   return {

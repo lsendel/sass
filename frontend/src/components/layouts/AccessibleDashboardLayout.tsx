@@ -1,18 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { logout, selectCurrentUser } from '../../store/slices/authSlice'
-import { useLogoutMutation } from '../../store/api/authApi'
-import { logger } from '../../utils/logger'
-import {
-  useFocusTrap,
-  useKeyboardNavigation,
-  useScreenReader,
-  useReducedMotion,
-  useAccessibilityContext,
-  useSkipLinks
-} from '../../hooks/useAccessibility'
-import { CommandPalette } from '../ui/InteractionPatterns'
 import {
   HomeIcon,
   BuildingOfficeIcon,
@@ -26,6 +13,19 @@ import {
   LockClosedIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline'
+
+import { useAppDispatch, useAppSelector } from '../../store/hooks'
+import { logout, selectCurrentUser } from '../../store/slices/authSlice'
+import { useLogoutMutation } from '../../store/api/authApi'
+import { logger } from '../../utils/logger'
+import {
+  useFocusTrap,
+  useKeyboardNavigation,
+  useReducedMotion,
+  useAccessibilityContext,
+} from '../../hooks/useAccessibility'
+import { CommandPalette } from '../ui/InteractionPatterns'
+
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -71,7 +71,6 @@ const AccessibleDashboardLayout: React.FC = () => {
   const [logoutMutation] = useLogoutMutation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
   // Accessibility hooks
   const { announce, components: { AnnouncementRegion, StatusRegion, SkipLink } } = useAccessibilityContext()
@@ -306,7 +305,7 @@ const AccessibleDashboardLayout: React.FC = () => {
   )
 }
 
-type SidebarContentProps = {
+interface SidebarContentProps {
   onLogout: () => void
   currentPath: string
   user: any
@@ -319,7 +318,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   onLogout,
   currentPath,
   user,
-  isMobile = false,
+  isMobile: _isMobile = false,
   navRef,
   onNavigate
 }) => {

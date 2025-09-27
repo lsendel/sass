@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import type { Page, Route } from '@playwright/test'
+
 import type { Organization } from '@/store/api/organizationApi'
 import type { User } from '@/types/api'
 
@@ -251,7 +252,7 @@ export async function performDemoLogin(
   await page.waitForURL(waitForUrl, { timeout: 10000 })
 }
 
-export type NavigationLink = {
+export interface NavigationLink {
   name: string
   href: string
   testId?: string
@@ -261,7 +262,7 @@ export type NavigationLink = {
 /**
  * Ensure expected navigation links exist and are visible.
  */
-export async function verifyNavigationLinks(page: Page, links: ReadonlyArray<NavigationLink>) {
+export async function verifyNavigationLinks(page: Page, links: readonly NavigationLink[]) {
   for (const link of links) {
     const navLink = page.locator(`nav a[href="${link.href}"]`).first()
     await expect(navLink, `Nav link for ${link.name} should be visible`).toBeVisible()

@@ -1,0 +1,149 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sass-platform.fullname" . }}-frontend{{ .Values.deployment.suffix | default "" }}
+  labels:
+    {{- include "sass-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  {{- with .Values.frontend.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.frontend.autoscaling.enabled }}
+  replicas: {{ .Values.frontend.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 50%
+  selector:
+    matchLabels:
+      {{- include "sass-platform.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/frontend-configmap.yaml") . | sha256sum }}
+        {{- with .Values.frontend.pod.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "sass-platform.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+        {{- with .Values.frontend.pod.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sass-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
+      containers:
+      - name: frontend
+        securityContext:
+          {{- toYaml .Values.security.securityContext | nindent 10 }}
+        image: "{{ .Values.image.frontend.repository }}:{{ .Values.image.frontend.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.frontend.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        # Application configuration
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "80"
+
+        # API configuration
+        - name: VITE_API_BASE_URL
+          value: {{ .Values.config.api.baseUrl | default "/api" }}
+
+        # Feature flags
+        {{- range $key, $value := .Values.features }}
+        - name: VITE_FEATURE_{{ $key | upper | replace "-" "_" }}
+          value: "{{ $value }}"
+        {{- end }}
+
+        # Stripe configuration
+        - name: VITE_STRIPE_PUBLISHABLE_KEY
+          value: {{ .Values.config.stripe.publishableKey }}
+
+        # Environment configuration
+        - name: VITE_ENVIRONMENT
+          value: {{ .Values.environment }}
+        - name: VITE_REGION
+          value: {{ .Values.region }}
+
+        # Analytics configuration
+        {{- if .Values.monitoring.enabled }}
+        - name: VITE_ANALYTICS_ENABLED
+          value: "true"
+        {{- end }}
+
+        envFrom:
+        - configMapRef:
+            name: {{ include "sass-platform.fullname" . }}-frontend-config
+
+        livenessProbe:
+          {{- toYaml .Values.frontend.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.frontend.readinessProbe | nindent 10 }}
+
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 10 }}
+
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+        {{- if .Values.security.securityContext.readOnlyRootFilesystem }}
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d
+        {{- end }}
+
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      {{- if .Values.security.securityContext.readOnlyRootFilesystem }}
+      - name: nginx-conf
+        configMap:
+          name: {{ include "sass-platform.fullname" . }}-frontend-nginx-config
+      {{- end }}
+
+      {{- with .Values.frontend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      terminationGracePeriodSeconds: 30
+
+      # DNS configuration
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: edns0
+{{- end }}

@@ -1,10 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+
 import { withAuthHeader } from './utils'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
-export type Organization = {
+export interface Organization {
   id: string
   name: string
   slug: string
@@ -16,7 +17,7 @@ export type Organization = {
 
 export type OrganizationMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER'
 
-export type OrganizationMember = {
+export interface OrganizationMember {
   id: string
   userId: string
   organizationId: string
@@ -24,7 +25,7 @@ export type OrganizationMember = {
   joinedAt: string
 }
 
-export type OrganizationMemberInfo = {
+export interface OrganizationMemberInfo {
   userId: string
   userEmail: string
   userName: string
@@ -32,7 +33,7 @@ export type OrganizationMemberInfo = {
   joinedAt: string
 }
 
-export type Invitation = {
+export interface Invitation {
   id: string
   organizationId: string
   invitedBy: string
@@ -44,27 +45,27 @@ export type Invitation = {
   createdAt: string
 }
 
-export type CreateOrganizationRequest = {
+export interface CreateOrganizationRequest {
   name: string
   slug: string
   settings?: Record<string, unknown>
 }
 
-export type UpdateOrganizationRequest = {
+export interface UpdateOrganizationRequest {
   name: string
   settings?: Record<string, unknown>
 }
 
-export type UpdateSettingsRequest = {
+export interface UpdateSettingsRequest {
   settings: Record<string, unknown>
 }
 
-export type InviteUserRequest = {
+export interface InviteUserRequest {
   email: string
   role: OrganizationMemberRole
 }
 
-export type UpdateMemberRoleRequest = {
+export interface UpdateMemberRoleRequest {
   role: OrganizationMemberRole
 }
 

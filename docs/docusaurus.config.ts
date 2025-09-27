@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
@@ -40,12 +41,15 @@ const config: Config = {
     [
       'docusaurus-plugin-typedoc',
       {
-        entryPoints: ['/Users/lsendel/IdeaProjects/sass/frontend/src'],
-        entryPointStrategy: 'resolve',
-        tsconfig: '/Users/lsendel/IdeaProjects/sass/frontend/tsconfig.json',
+        id: 'frontend-api',
+        entryPoints: [path.resolve(__dirname, '..', 'frontend', 'src')],
+        entryPointStrategy: 'expand',
+        tsconfig: path.resolve(__dirname, '..', 'frontend', 'tsconfig.json'),
+        plugin: ['typedoc-plugin-markdown'],
         out: 'frontend-api',
-        exclude: ['**/*.test.tsx'],
+        exclude: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**', '**/lib/theme.ts'],
         skipErrorChecking: true,
+        includeVersion: true,
       },
     ],
   ],

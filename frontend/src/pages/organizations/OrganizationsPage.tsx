@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  BuildingOfficeIcon,
+  PlusIcon,
+  UserGroupIcon,
+  CalendarDaysIcon,
+} from '@heroicons/react/24/outline'
+import { format } from 'date-fns'
+
 import { useGetUserOrganizationsQuery, useCreateOrganizationMutation } from '../../store/api/organizationApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
@@ -10,13 +18,6 @@ import { useCrossComponentSync } from '../../hooks/useDataSync'
 import { useOptimisticList } from '../../hooks/useOptimisticUpdates'
 import { useOptimisticNotifications } from '../../hooks/useNotificationIntegration'
 import { OptimisticListItem, OptimisticOverlay } from '../../components/ui/OptimisticComponents'
-import {
-  BuildingOfficeIcon,
-  PlusIcon,
-  UserGroupIcon,
-  CalendarDaysIcon,
-} from '@heroicons/react/24/outline'
-import { format } from 'date-fns'
 import { getIconClasses, getCardClasses } from '../../lib/theme'
 import { logger } from '../../utils/logger'
 import type { Organization } from '../../types/api'
@@ -91,9 +92,9 @@ const OrganizationsPage: React.FC = () => {
 
         <ApiErrorDisplay
           error={error}
-          onRetry={async () => {
-            await refetch()
-            await syncOrganizationData()
+          onRetry={() => {
+            void refetch()
+            void syncOrganizationData()
           }}
           fallbackMessage="Failed to load organizations. Please try again."
         />

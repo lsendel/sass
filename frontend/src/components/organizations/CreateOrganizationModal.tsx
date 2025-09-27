@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useCreateOrganizationMutation } from '../../store/api/organizationApi'
 import {
   XMarkIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline'
-import { parseApiError } from '../../utils/apiError'
 import { toast } from 'react-hot-toast'
-import { logger } from '../../utils/logger'
 import { clsx } from 'clsx'
+
+import { useCreateOrganizationMutation } from '../../store/api/organizationApi'
+import { parseApiError } from '../../utils/apiError'
+import { logger } from '../../utils/logger'
 import { useAutoSave } from '../../hooks/useAutoSave'
 import { AutoSaveIndicator, UnsavedChangesWarning } from '../ui/AutoSaveComponents'
 import { useFormSubmissionNotifications } from '../../hooks/useNotificationIntegration'
@@ -43,7 +44,7 @@ const createOrganizationSchema = z.object({
 
 type CreateOrganizationForm = z.infer<typeof createOrganizationSchema>
 
-type CreateOrganizationModalProps = {
+interface CreateOrganizationModalProps {
   isOpen: boolean
   onClose: () => void
   onOptimisticCreate?: (organization: any) => Promise<any>
@@ -81,7 +82,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
   const formData = { name: watchedName, slug: watchedSlug, description: watchedDescription }
   const autoSave = useAutoSave(formData, {
     delay: 2000,
-    onSave: async (data) => {
+    onSave: (data) => {
       // Only save if there's actually some content and the modal is open
       if (isOpen && (data.name || data.slug || data.description)) {
         localStorage.setItem('createOrganizationDraft', JSON.stringify({
@@ -142,7 +143,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
         .replace(/-+/g, '-')
         .substring(0, 50)
       setValue('slug', slug)
-      trigger('slug') // Re-validate slug when auto-generated
+      void trigger('slug') // Re-validate slug when auto-generated
     }
   }, [watchedName, setValue, trigger, fieldTouched.slug])
 
@@ -298,7 +299,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
               </div>
 
               <form
-                onSubmit={handleSubmit(onSubmit)}
+                onSubmit={(e) => void handleSubmit(onSubmit)(e)}
                 className="mt-6 space-y-6"
               >
                 <div>

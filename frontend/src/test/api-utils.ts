@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import type { BaseQueryFn, Api } from '@reduxjs/toolkit/query'
+
 import authSlice from '../store/slices/authSlice'
 import uiSlice from '../store/slices/uiSlice'
 

@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import type { ReactNode } from 'react'
 
-export type PageHeaderProps = {
+export interface PageHeaderProps {
   title: string
   description?: ReactNode
   actions?: ReactNode

@@ -17,7 +17,7 @@ async function globalSetup(config: FullConfig) {
   try {
     // Wait for the app to be ready
     console.log('⏳ Waiting for application to be ready...')
-    await page.goto(baseURL || 'http://localhost:3000')
+    await page.goto(baseURL ?? 'http://localhost:3000')
 
     // Wait for app to load
     await page.waitForSelector('[data-testid="app-ready"]', {

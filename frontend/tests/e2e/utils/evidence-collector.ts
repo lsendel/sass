@@ -1,6 +1,7 @@
-import { Page, TestInfo } from '@playwright/test'
 import path from 'path'
 import fs from 'fs/promises'
+
+import { Page, TestInfo } from '@playwright/test'
 
 /**
  * Enhanced Evidence Collector for Playwright Tests

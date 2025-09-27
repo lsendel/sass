@@ -8,6 +8,7 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
+
 import type { AutoSaveStatus } from '../../hooks/useAutoSave'
 
 interface AutoSaveIndicatorProps {
@@ -138,7 +139,7 @@ export const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
           <div className="mt-2 flex space-x-2">
             {onSave && (
               <button
-                onClick={handleSave}
+                onClick={() => void handleSave()}
                 disabled={isSaving}
                 className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 disabled:opacity-50 transition-colors"
               >

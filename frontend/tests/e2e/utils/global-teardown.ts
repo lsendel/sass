@@ -15,7 +15,7 @@ async function globalTeardown(config: FullConfig) {
   const page = await browser.newPage()
 
   try {
-    await page.goto(baseURL || 'http://localhost:3000')
+    await page.goto(baseURL ?? 'http://localhost:3000')
 
     // Clean up test data
     console.log('🗑️ Cleaning up test data...')
@@ -73,8 +73,8 @@ async function generateTestArtifacts() {
       timestamp: new Date().toISOString(),
       testRun: {
         completed: true,
-        environment: process.env.NODE_ENV || 'test',
-        baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+        environment: process.env.NODE_ENV ?? 'test',
+        baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
       },
       cleanup: {
         completed: true,

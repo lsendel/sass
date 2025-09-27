@@ -4,16 +4,18 @@ import {
   useElements,
   CardElement,
 } from '@stripe/react-stripe-js'
-import { useCreateSetupIntentMutation } from '../../store/api/paymentApi'
-import { Button } from '../ui/button'
 import { toast } from 'react-hot-toast'
-import { logger } from '../../utils/logger'
 import {
   CreditCardIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
+
+import { useCreateSetupIntentMutation } from '../../store/api/paymentApi'
+import { Button } from '../ui/button'
+import { logger } from '../../utils/logger'
+
 
 interface AddPaymentMethodFormProps {
   organizationId: string
@@ -312,7 +314,10 @@ const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
         <h4 className="text-sm font-medium text-gray-900">Card Information</h4>
 
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            id="card-details-label"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Card Details *
           </label>
           <div
@@ -321,6 +326,8 @@ const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
               cardError ? 'border-red-300' : 'border-gray-300',
               'focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500'
             )}
+            role="group"
+            aria-labelledby="card-details-label"
           >
             <CardElement
               onChange={handleCardChange}

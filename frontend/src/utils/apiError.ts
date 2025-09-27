@@ -1,7 +1,7 @@
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import type { SerializedError } from '@reduxjs/toolkit'
 
-export type ParsedApiError = {
+export interface ParsedApiError {
   status?: number
   message: string
 }
@@ -17,14 +17,14 @@ export function parseApiError(err: unknown): ParsedApiError {
       (data && typeof data === 'object' && data !== null &&
         ((data as Record<string, unknown>).message ??
           (data as Record<string, unknown>).error ??
-          (data as Record<string, unknown>).detail)) || undefined
+          (data as Record<string, unknown>).detail)) ?? undefined
 
     const message =
       (typeof rawMessage === 'string'
         ? rawMessage
         : rawMessage != null
           ? String(rawMessage)
-          : undefined) ||
+          : undefined) ??
       (status === 401
         ? 'Unauthorized'
         : status === 403
@@ -36,7 +36,7 @@ export function parseApiError(err: unknown): ParsedApiError {
   // SerializedError or generic
   const se = err as SerializedError
   if (se && typeof se === 'object' && ('message' in se || 'name' in se)) {
-    return { message: (se.message as string) || 'Unexpected error' }
+    return { message: (se.message!) ?? 'Unexpected error' }
   }
 
   return { message: 'Unexpected error' }

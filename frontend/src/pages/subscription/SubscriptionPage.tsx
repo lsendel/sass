@@ -1,4 +1,13 @@
 import React, { useState } from 'react'
+import {
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  ArrowUpIcon,
+  ReceiptRefundIcon,
+} from '@heroicons/react/24/outline'
+import { format } from 'date-fns'
+import { clsx } from 'clsx'
+
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
 import { logger } from '../../utils/logger'
 import {
@@ -14,14 +23,6 @@ import { ApiErrorDisplay, EmptyState } from '../../components/ui/ErrorStates'
 import UpgradePlanModal from '../../components/subscription/UpgradePlanModal'
 import { useCrossComponentSync } from '../../hooks/useDataSync'
 import { useNotifications } from '../../components/ui/FeedbackSystem'
-import {
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-  ArrowUpIcon,
-  ReceiptRefundIcon,
-} from '@heroicons/react/24/outline'
-import { format } from 'date-fns'
-import { clsx } from 'clsx'
 import PageHeader from '../../components/ui/PageHeader'
 import StatsCard from '../../components/ui/StatsCard'
 
@@ -118,7 +119,7 @@ const SubscriptionPage: React.FC = () => {
 
         <ApiErrorDisplay
           error={orgsError}
-          onRetry={async () => {
+          onRetry={() => {
             window.location.reload()
           }}
           fallbackMessage="Failed to load organization data. Please try again."
@@ -135,9 +136,9 @@ const SubscriptionPage: React.FC = () => {
 
         <ApiErrorDisplay
           error={subError}
-          onRetry={async () => {
-            await refetchSubscription()
-            await syncSubscriptionData()
+          onRetry={() => {
+            void refetchSubscription()
+            void syncSubscriptionData()
           }}
           fallbackMessage="Failed to load subscription data. Please try again."
         />
@@ -258,7 +259,7 @@ const SubscriptionPage: React.FC = () => {
                     Change Plan
                   </LoadingButton>
                   <LoadingButton
-                    onClick={handleCancelSubscription}
+                    onClick={() => void handleCancelSubscription()}
                     variant="secondary"
                     size="md"
                   >
@@ -268,7 +269,7 @@ const SubscriptionPage: React.FC = () => {
               )}
               {subscription.cancelAt && (
                 <LoadingButton
-                  onClick={handleReactivateSubscription}
+                  onClick={() => void handleReactivateSubscription()}
                   variant="success"
                   size="md"
                 >

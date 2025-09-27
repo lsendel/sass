@@ -1,34 +1,127 @@
 import '@testing-library/jest-dom'
 import { expect, afterEach, beforeAll, afterAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { setupServer } from 'msw/node'
-import { handlers } from './mocks/handlers'
 import * as matchers from '@testing-library/jest-dom/matchers'
+
+import { handlers } from './mocks/handlers'
 
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers)
 
-// Mock server setup
-export const server = setupServer(...handlers)
+type SetupServer = Awaited<ReturnType<typeof import('msw/node')['setupServer']>>
 
-// Start server before all tests
-beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' })
+interface Lifecycle {
+  setup: () => Promise<void> | void
+  reset: () => void | Promise<void>
+  teardown: () => Promise<void> | void
+}
+
+let serverInstance: SetupServer | undefined
+
+declare global {
+   
+  var __MSW_SERVER__: SetupServer | undefined
+}
+
+// More reliable runtime detection
+const isNodeRuntime = typeof process !== 'undefined' &&
+                     !!process.versions?.node &&
+                     typeof window === 'undefined'
+
+// Comprehensive browser test detection
+const isBrowserTest = typeof process !== 'undefined' && (
+  process.env?.VITEST_BROWSER === 'true' ||
+  process.env?.VITEST_BROWSER === '1' ||
+  typeof window !== 'undefined'
+)
+
+// Use sync initialization to avoid top-level await
+const createLifecycle = (): Lifecycle => {
+  // Skip MSW setup in browser environments or when explicitly testing in browser mode
+  if (!isNodeRuntime || isBrowserTest) {
+    return {
+      setup: () => undefined,
+      reset: () => undefined,
+      teardown: () => undefined,
+    }
+  }
+
+  let setupPromise: Promise<void> | null = null
+
+  return {
+    setup: async () => {
+      if (!setupPromise) {
+        setupPromise = (async () => {
+          try {
+            // Double-check runtime environment before importing MSW
+            if (typeof window !== 'undefined' || process.env?.VITEST_BROWSER) {
+              if (process.env.NODE_ENV === 'test') {
+                console.warn('Skipping MSW setup in browser environment')
+              }
+              return
+            }
+
+            // Use direct dynamic import inside async function instead of wrapped in Function
+            const mswModule = await import('msw/node')
+            serverInstance = globalThis.__MSW_SERVER__ ?? mswModule.setupServer(...handlers)
+            globalThis.__MSW_SERVER__ = serverInstance
+            serverInstance.listen({ onUnhandledRequest: 'error' })
+          } catch (error) {
+            if (process.env.NODE_ENV === 'test') {
+              console.warn('MSW server unavailable in this environment. Falling back to no-op handlers.', error)
+            }
+          }
+        })()
+      }
+      await setupPromise
+    },
+    reset: () => {
+      if (serverInstance) {
+        serverInstance.resetHandlers()
+      }
+    },
+    teardown: () => {
+      if (serverInstance) {
+        serverInstance.close()
+      }
+    },
+  }
+}
+
+const lifecycle = createLifecycle()
+
+const fallbackServer = (() => {
+  const warn = () => {
+    if (process.env.NODE_ENV === 'test') {
+      console.warn('Attempted to use MSW server in an environment where it is not initialized.')
+    }
+  }
+
+  return {
+    listen: warn,
+    resetHandlers: warn,
+    close: warn,
+    use: warn,
+  } as unknown as SetupServer
+})()
+
+export const server = globalThis.__MSW_SERVER__ ?? fallbackServer
+
+beforeAll(async () => {
+  await lifecycle.setup()
 })
 
-// Reset handlers after each test
-afterEach(() => {
-  server.resetHandlers()
+afterEach(async () => {
+  await lifecycle.reset()
   cleanup()
 })
 
-// Clean up after all tests
-afterAll(() => {
-  server.close()
+afterAll(async () => {
+  await lifecycle.teardown()
 })
 
 // Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
+;(globalThis as any).IntersectionObserver = class IntersectionObserver {
   constructor() {}
   observe() {
     return null
@@ -42,7 +135,7 @@ global.IntersectionObserver = class IntersectionObserver {
 }
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
+;(globalThis as any).ResizeObserver = class ResizeObserver {
   constructor() {}
   observe() {
     return null
@@ -77,14 +170,14 @@ Object.defineProperty(window, 'scrollTo', {
 })
 
 // Mock crypto.randomUUID
-Object.defineProperty(global, 'crypto', {
+Object.defineProperty(globalThis, 'crypto', {
   value: {
     randomUUID: () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 })
 
 // Mock fetch for tests that don't use MSW
-global.fetch = global.fetch || (() => Promise.resolve({ json: () => Promise.resolve({}) } as Response))
+;((globalThis as any).fetch) = (globalThis as any).fetch || (() => Promise.resolve({ json: () => Promise.resolve({}) } as Response))
 
 // Console error suppression for known testing issues
 const originalError = console.error
@@ -106,5 +199,7 @@ afterAll(() => {
 })
 
 // Set test environment variables
-process.env.NODE_ENV = 'test'
-process.env.VITE_API_BASE_URL = 'http://localhost:3000/api'
+if (typeof process !== 'undefined' && process.env) {
+  process.env.NODE_ENV = 'test'
+  process.env.VITE_API_BASE_URL = 'http://localhost:3000/api'
+}

@@ -1,0 +1,46 @@
+apiVersion: v2
+name: sass-platform
+description: Spring Boot Modulith Payment Platform - Comprehensive Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/sass-platform/sass
+sources:
+  - https://github.com/sass-platform/sass
+maintainers:
+  - name: Platform Team
+    email: platform@sass.com
+keywords:
+  - spring-boot
+  - modulith
+  - payment-platform
+  - microservices
+  - kubernetes
+annotations:
+  category: Business
+  licenses: Apache-2.0
+dependencies:
+  - name: postgresql
+    version: 12.12.10
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 18.1.5
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: nginx-ingress
+    version: 4.8.3
+    repository: https://kubernetes.github.io/ingress-nginx
+    condition: ingress.enabled
+  - name: cert-manager
+    version: 1.13.2
+    repository: https://charts.jetstack.io
+    condition: certManager.enabled
+  - name: prometheus
+    version: 25.3.1
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.prometheus.enabled
+  - name: grafana
+    version: 7.0.11
+    repository: https://grafana.github.io/helm-charts
+    condition: monitoring.grafana.enabled

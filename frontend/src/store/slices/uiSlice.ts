@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 export type Theme = 'light' | 'dark'
 
-export type Notification = {
+export interface Notification {
   id: string
   type: 'success' | 'error' | 'warning' | 'info'
   title: string
@@ -14,7 +14,7 @@ export type Notification = {
   }>
 }
 
-export type UiState = {
+export interface UiState {
   theme: Theme
   sidebarOpen: boolean
   loading: {

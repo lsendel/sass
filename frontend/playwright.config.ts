@@ -1,5 +1,16 @@
-import { defineConfig, devices } from '@playwright/test'
 import path from 'path'
+
+import { defineConfig, devices } from '@playwright/test'
+
+// Type-safe environment variables and Node.js APIs
+const env = process.env as {
+  CI?: string;
+  PLAYWRIGHT_BASE_URL?: string;
+}
+
+// Type-safe path operations
+const pathJoin = (...paths: string[]) => path.join(...paths)
+const pathResolve = (...paths: string[]) => path.resolve(...paths)
 
 /**
  * Comprehensive Playwright configuration for E2E testing
@@ -10,23 +21,23 @@ export default defineConfig({
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
+  forbidOnly: !!env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { outputFolder: path.join('test-results', 'report'), open: 'never' }],
-    ['json', { outputFile: path.join('test-results', 'results.json') }],
-    ['junit', { outputFile: path.join('test-results', 'results.xml') }],
+    ['html', { outputFolder: pathJoin('test-results', 'report'), open: 'never' }],
+    ['json', { outputFile: pathJoin('test-results', 'results.json') }],
+    ['junit', { outputFile: pathJoin('test-results', 'results.xml') }],
     ['line'],
-    [path.resolve('./tests/e2e/utils/enhanced-reporter.ts')],
+    [pathResolve('./tests/e2e/utils/enhanced-reporter.ts')],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL: env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
 
     /* Enhanced evidence collection - collect traces for all tests */
     trace: 'on',
@@ -67,7 +78,7 @@ export default defineConfig({
   },
 
   // Global output directory for attachments (screenshots, videos, traces)
-  outputDir: path.join('test-results', 'evidence'),
+  outputDir: pathJoin('test-results', 'evidence'),
 
   /* Configure projects for major browsers */
   projects: [

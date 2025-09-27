@@ -1,5 +1,6 @@
-import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
+
+import { test, expect } from './fixtures'
 import type { EvidenceCollector } from './utils/evidence-collector'
 import { performDemoLogin, verifyNavigationLinks } from './utils/test-utils'
 

@@ -1,5 +1,7 @@
 import { useCallback } from 'react'
+
 import { useNotifications, createNotificationHelpers } from '../components/ui/FeedbackSystem'
+
 import { useOptimisticUpdates, type OptimisticUpdateOptions } from './useOptimisticUpdates'
 
 /**
@@ -80,7 +82,7 @@ export const useOptimisticNotifications = <T>() => {
                     label: 'Retry',
                     onClick: () => {
                       // Retry the operation
-                      addOptimisticUpdateWithNotifications(data, mutationFn, options)
+                      void addOptimisticUpdateWithNotifications(data, mutationFn, options)
                     },
                     variant: 'primary'
                   },

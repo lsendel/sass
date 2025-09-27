@@ -1,0 +1,492 @@
+# Prometheus Configuration for SASS Platform
+# Production-ready monitoring setup with comprehensive alerting and service discovery
+
+# =============================================================================
+# GLOBAL CONFIGURATION
+# =============================================================================
+
+global:
+  evaluation_interval: 30s
+  scrape_interval: 15s
+  external_labels:
+    cluster: sass-platform
+    environment: production
+    region: us-east-1
+
+# =============================================================================
+# PROMETHEUS SERVER
+# =============================================================================
+
+prometheus:
+  prometheusSpec:
+    # Resource configuration
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 4Gi
+
+    # Storage configuration
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 100Gi
+
+    # Data retention
+    retention: 30d
+    retentionSize: 90GB
+
+    # Service discovery configuration
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+
+    # Additional scrape configs
+    additionalScrapeConfigs:
+      # Spring Boot Actuator endpoints
+      - job_name: 'spring-boot-actuator'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+      # Nginx Ingress Controller
+      - job_name: 'nginx-ingress'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - ingress-nginx
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: keep
+            regex: ingress-nginx
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "10254"
+
+    # Alert manager configuration
+    alerting:
+      alertmanagers:
+        - kubernetes_sd_configs:
+            - role: pod
+          tls_config:
+            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_namespace]
+              regex: default
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              regex: alertmanager
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_container_port_number]
+              regex: "9093"
+              action: keep
+
+# =============================================================================
+# ALERTMANAGER
+# =============================================================================
+
+alertmanager:
+  alertmanagerSpec:
+    # Resource configuration
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+    # Storage configuration
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+    # Configuration
+    config:
+      global:
+        smtp_smarthost: 'localhost:587'
+        smtp_from: 'alerts@sass-platform.com'
+
+      route:
+        group_by: ['alertname', 'cluster', 'service']
+        group_wait: 10s
+        group_interval: 10s
+        repeat_interval: 1h
+        receiver: 'web.hook'
+        routes:
+          - match:
+              alertname: Watchdog
+            receiver: 'null'
+          - match:
+              severity: critical
+            receiver: 'critical-alerts'
+          - match:
+              severity: warning
+            receiver: 'warning-alerts'
+
+      receivers:
+        - name: 'null'
+        - name: 'web.hook'
+          webhook_configs:
+            - url: 'http://127.0.0.1:5001/'
+        - name: 'critical-alerts'
+          email_configs:
+            - to: 'platform-team@sass-platform.com'
+              subject: 'CRITICAL Alert: {{ .GroupLabels.alertname }}'
+              body: |
+                {{ range .Alerts }}
+                Alert: {{ .Annotations.summary }}
+                Description: {{ .Annotations.description }}
+                Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+                {{ end }}
+          slack_configs:
+            - api_url: 'SLACK_WEBHOOK_URL'
+              channel: '#alerts-critical'
+              title: 'Critical Alert'
+              text: |
+                {{ range .Alerts }}
+                Alert: {{ .Annotations.summary }}
+                {{ end }}
+        - name: 'warning-alerts'
+          email_configs:
+            - to: 'platform-team@sass-platform.com'
+              subject: 'Warning: {{ .GroupLabels.alertname }}'
+
+# =============================================================================
+# GRAFANA
+# =============================================================================
+
+grafana:
+  enabled: true
+
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Storage configuration
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 20Gi
+
+  # Admin configuration
+  adminPassword: admin
+
+  # Grafana configuration
+  grafana.ini:
+    server:
+      root_url: https://grafana.sass-platform.com
+    security:
+      admin_user: admin
+    auth:
+      disable_login_form: false
+    auth.anonymous:
+      enabled: false
+    analytics:
+      reporting_enabled: false
+
+  # Data sources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server:80
+          access: proxy
+          isDefault: true
+        - name: Loki
+          type: loki
+          url: http://loki:3100
+          access: proxy
+
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'sass-platform'
+          orgId: 1
+          folder: 'SASS Platform'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/sass-platform
+
+  # Import dashboards
+  dashboards:
+    sass-platform:
+      # Application Performance Dashboard
+      application-performance:
+        gnetId: 4701
+        revision: 1
+        datasource: Prometheus
+
+      # JVM Dashboard
+      jvm-metrics:
+        gnetId: 4701
+        revision: 1
+        datasource: Prometheus
+
+      # Kubernetes Cluster Monitoring
+      kubernetes-cluster:
+        gnetId: 6417
+        revision: 1
+        datasource: Prometheus
+
+      # PostgreSQL Dashboard
+      postgresql:
+        gnetId: 9628
+        revision: 1
+        datasource: Prometheus
+
+      # Redis Dashboard
+      redis:
+        gnetId: 763
+        revision: 1
+        datasource: Prometheus
+
+      # Nginx Ingress Controller
+      nginx-ingress:
+        gnetId: 9614
+        revision: 1
+        datasource: Prometheus
+
+# =============================================================================
+# NODE EXPORTER
+# =============================================================================
+
+nodeExporter:
+  enabled: true
+
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# =============================================================================
+# KUBE STATE METRICS
+# =============================================================================
+
+kubeStateMetrics:
+  enabled: true
+
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# =============================================================================
+# PROMETHEUS OPERATOR
+# =============================================================================
+
+prometheusOperator:
+  enabled: true
+
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  # Admission webhooks
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true
+
+# =============================================================================
+# CUSTOM MONITORING RULES
+# =============================================================================
+
+# Define custom PrometheusRule for SASS Platform specific alerts
+additionalPrometheusRulesMap:
+  sass-platform-alerts:
+    groups:
+      - name: sass-platform.application
+        rules:
+          # Application Health
+          - alert: ApplicationDown
+            expr: up{job="spring-boot-actuator"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Application {{ $labels.instance }} is down"
+              description: "Application has been down for more than 1 minute"
+
+          # High Error Rate
+          - alert: HighErrorRate
+            expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High error rate detected"
+              description: "Error rate is {{ $value }} errors per second"
+
+          # High Response Time
+          - alert: HighResponseTime
+            expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High response time detected"
+              description: "95th percentile response time is {{ $value }}s"
+
+          # Database Connection Pool
+          - alert: DatabaseConnectionPoolHigh
+            expr: hikaricp_connections_active / hikaricp_connections_max > 0.8
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Database connection pool usage is high"
+              description: "Connection pool usage is {{ $value | humanizePercentage }}"
+
+          # JVM Memory Usage
+          - alert: JVMMemoryHigh
+            expr: jvm_memory_used_bytes / jvm_memory_max_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "JVM memory usage is high"
+              description: "JVM memory usage is {{ $value | humanizePercentage }}"
+
+          # Redis Connection Issues
+          - alert: RedisConnectionFailure
+            expr: increase(redis_connected_clients[5m]) < 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Redis connection failure detected"
+              description: "Redis connections are dropping"
+
+      - name: sass-platform.infrastructure
+        rules:
+          # Kubernetes Pod Restarts
+          - alert: PodRestartHigh
+            expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod {{ $labels.pod }} is restarting frequently"
+              description: "Pod has restarted {{ $value }} times in the last hour"
+
+          # Node Memory Usage
+          - alert: NodeMemoryHigh
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Node memory usage is high"
+              description: "Node {{ $labels.instance }} memory usage is {{ $value | humanizePercentage }}"
+
+          # Node CPU Usage
+          - alert: NodeCPUHigh
+            expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Node CPU usage is high"
+              description: "Node {{ $labels.instance }} CPU usage is {{ $value }}%"
+
+          # Disk Space Usage
+          - alert: DiskSpaceHigh
+            expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.85
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Disk space usage is high"
+              description: "Disk usage on {{ $labels.instance }} is {{ $value | humanizePercentage }}"
+
+# =============================================================================
+# SERVICE MONITORS
+# =============================================================================
+
+# Service monitor for the SASS Platform backend
+additionalServiceMonitors:
+  - name: sass-backend
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: sass-backend
+    endpoints:
+      - port: http
+        path: /actuator/prometheus
+        interval: 30s
+        scrapeTimeout: 10s
+
+  - name: sass-frontend
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: sass-frontend
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s
+        scrapeTimeout: 10s

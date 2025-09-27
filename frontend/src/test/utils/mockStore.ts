@@ -1,8 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit'
+
 import authReducer, { type AuthState } from '@/store/slices/authSlice'
 import uiReducer, { type UiState } from '@/store/slices/uiSlice'
 
-export type PartialTestState = {
+export interface PartialTestState {
   auth?: Partial<AuthState>
   ui?: Partial<UiState>
 }

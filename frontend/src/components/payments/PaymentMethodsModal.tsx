@@ -1,10 +1,4 @@
 import React, { useState } from 'react'
-import { logger } from '../../utils/logger'
-import {
-  useGetOrganizationPaymentMethodsQuery,
-  useSetDefaultPaymentMethodMutation,
-  useDetachPaymentMethodMutation,
-} from '../../store/api/paymentApi'
 import {
   XMarkIcon,
   CreditCardIcon,
@@ -13,11 +7,20 @@ import {
   ArrowLeftIcon,
 } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
-import LoadingSpinner from '../ui/LoadingSpinner'
-import AddPaymentMethodForm from './AddPaymentMethodForm'
 import { clsx } from 'clsx'
 
-type PaymentMethodsModalProps = {
+import { logger } from '../../utils/logger'
+import {
+  useGetOrganizationPaymentMethodsQuery,
+  useSetDefaultPaymentMethodMutation,
+  useDetachPaymentMethodMutation,
+} from '../../store/api/paymentApi'
+import LoadingSpinner from '../ui/LoadingSpinner'
+
+import AddPaymentMethodForm from './AddPaymentMethodForm'
+
+
+interface PaymentMethodsModalProps {
   isOpen: boolean
   onClose: () => void
   organizationId: string
@@ -48,7 +51,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
       }).unwrap()
 
       toast.success('Default payment method updated')
-      refetch()
+      void refetch()
     } catch (error) {
       logger.error('Failed to set default payment method:', error)
       toast.error('Failed to update default payment method')
@@ -67,7 +70,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
       }).unwrap()
 
       toast.success('Payment method removed')
-      refetch()
+      void refetch()
     } catch (error) {
       logger.error('Failed to remove payment method:', error)
       toast.error('Failed to remove payment method')
@@ -76,7 +79,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
 
   const handleAddPaymentMethodSuccess = () => {
     setShowAddForm(false)
-    refetch()
+    void refetch()
   }
 
   const handleCloseModal = () => {
@@ -193,7 +196,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                               </span>
                             ) : (
                               <button
-                                onClick={() => handleSetDefault(method.id)}
+                                onClick={() => void handleSetDefault(method.id)}
                                 className="text-sm text-primary-600 hover:text-primary-500"
                               >
                                 Set as default
@@ -202,7 +205,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
 
                             {!method.isDefault && (
                               <button
-                                onClick={() => handleRemove(method.id)}
+                                onClick={() => void handleRemove(method.id)}
                                 className="text-sm text-red-600 hover:text-red-500"
                               >
                                 Remove

@@ -1,9 +1,11 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
-import { AutoSaveIndicator, UnsavedChangesWarning } from './AutoSaveComponents'
 import { format } from 'date-fns'
+
 import type { AutoSaveStatus } from '../../hooks/useAutoSave'
+
+import { AutoSaveIndicator, UnsavedChangesWarning } from './AutoSaveComponents'
 
 describe('AutoSaveComponents', () => {
   describe('AutoSaveIndicator', () => {

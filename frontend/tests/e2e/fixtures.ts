@@ -1,10 +1,12 @@
-import { test as base, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+
+import { test as base, expect } from '@playwright/test'
+
 import { EvidenceCollector, withEvidenceCollection } from './utils/evidence-collector'
 
 // Extended Playwright test that captures Istanbul coverage and enhanced evidence
-type MyFixtures = {
+interface MyFixtures {
   evidenceCollector: EvidenceCollector
 }
 
@@ -16,7 +18,7 @@ export const test = base.extend<MyFixtures>({
       // Try to read window.__coverage__ from the page
       const coverage = await page.evaluate(() => {
         const g = globalThis as Record<string, unknown>
-        const c = g['__coverage__']
+        const c = g.__coverage__
         return (c && typeof c === 'object') ? (c as Record<string, unknown>) : null
       })
       if (coverage) {

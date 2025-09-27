@@ -2,7 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
+
 import App from './App'
+
+import type { RootState } from '@/store'
+import type { SessionInfo } from '@/types/api'
 import { createMockStore, type PartialTestState } from '@/test/utils/mockStore'
 import { createMockUser } from '@/test/fixtures/users'
 
@@ -68,9 +72,17 @@ vi.mock('./components/ui/ErrorBoundary', () => ({
 }))
 
 // Mock API hooks
-const mockUseGetSessionQuery = vi.fn()
+interface QueryResult<T> {
+  data?: T
+  error?: unknown
+  isLoading: boolean
+  isSuccess: boolean
+  isError: boolean
+}
+
+const mockUseGetSessionQuery = vi.fn<[], QueryResult<SessionInfo>>()
 vi.mock('./store/api/authApi', () => ({
-  useGetSessionQuery: () => mockUseGetSessionQuery(),
+  useGetSessionQuery: mockUseGetSessionQuery,
 }))
 
 // Mock auth slice selectors
@@ -78,8 +90,8 @@ vi.mock('./store/slices/authSlice', async () => {
   const actual = await vi.importActual('./store/slices/authSlice')
   return {
     ...actual,
-    selectIsAuthenticated: (state: any) => state.auth.isAuthenticated,
-    selectAuthLoading: (state: any) => state.auth.isLoading,
+    selectIsAuthenticated: (state: RootState) => state.auth.isAuthenticated,
+    selectAuthLoading: (state: RootState) => state.auth.isLoading,
   }
 })
 

@@ -11,6 +11,7 @@
 
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit'
 import type { AnyAction, Middleware } from '@reduxjs/toolkit'
+
 import { logger } from '../../utils/logger'
 import { performanceMonitor } from '../../utils/performance'
 
@@ -129,8 +130,8 @@ const cacheStrategies: CacheStrategy[] = [
 
 // Cache analytics tracker
 class CacheAnalytics {
-  private metrics: Map<string, CacheMetrics> = new Map()
-  private queryTimes: Map<string, number> = new Map()
+  private metrics = new Map<string, CacheMetrics>()
+  private queryTimes = new Map<string, number>()
 
   public recordQueryStart(endpoint: string): void {
     this.queryTimes.set(endpoint, performance.now())
@@ -259,7 +260,7 @@ class MemoryPressureManager {
 
 // Background refresh manager
 class BackgroundRefreshManager {
-  private refreshQueue: Set<string> = new Set()
+  private refreshQueue = new Set<string>()
   private refreshInterval: number | null = null
   private isRefreshing = false
 
@@ -327,7 +328,7 @@ export class CacheEnhancer {
   private analytics: CacheAnalytics
   private memoryManager: MemoryPressureManager
   private backgroundRefresh: BackgroundRefreshManager
-  private policies: Map<string, CachePolicy> = new Map()
+  private policies = new Map<string, CachePolicy>()
 
   constructor() {
     this.analytics = new CacheAnalytics()

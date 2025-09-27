@@ -1,4 +1,8 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
+import { z } from 'zod'
+
+import { withAuthHeader } from './utils'
+
 import { createValidatedBaseQuery, createValidatedEndpoint, wrapSuccessResponse } from '@/lib/api/validation'
 import {
   PaymentSchema,
@@ -7,8 +11,6 @@ import {
   type Payment,
   type PaymentMethod,
 } from '@/types/api'
-import { z } from 'zod'
-import { withAuthHeader } from './utils'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '/api/v1'

@@ -1,14 +1,4 @@
 import React from 'react'
-import { useAppSelector } from '../../store/hooks'
-import { selectCurrentUser } from '../../store/slices/authSlice'
-import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
-import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
-import { useGetSubscriptionStatisticsQuery } from '../../store/api/subscriptionApi'
-import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { LoadingCard, CardSkeleton, InlineLoading } from '../../components/ui/LoadingStates'
-import { Button } from '../../components/ui/button'
-import StatsCard from '../../components/ui/StatsCard'
 import {
   BuildingOfficeIcon,
   CreditCardIcon,
@@ -20,11 +10,28 @@ import {
   BellIcon,
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
-import { getCardClasses } from '../../lib/theme'
 import clsx from 'clsx'
+
+import { useAppSelector } from '../../store/hooks'
+import { selectCurrentUser } from '../../store/slices/authSlice'
+import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
+import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
+import { useGetSubscriptionStatisticsQuery } from '../../store/api/subscriptionApi'
+import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { LoadingCard, CardSkeleton, InlineLoading } from '../../components/ui/LoadingStates'
+import { Button } from '../../components/ui/button'
+import StatsCard from '../../components/ui/StatsCard'
+import { getCardClasses } from '../../lib/theme'
+import { usePagePerformance, usePerformanceTracking } from '../../utils/performance'
+
 
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
+
+  // Performance tracking for dashboard
+  usePagePerformance('Dashboard')
+  const performanceTracking = usePerformanceTracking()
   const {
     data: organizations,
     isLoading: orgsLoading,
@@ -52,7 +59,8 @@ const DashboardPage: React.FC = () => {
   // Set up real-time updates for dashboard data
   const realTimeUpdates = useRealTimeUpdates(
     async () => {
-      // Refresh all statistics and return the data
+      // Measure refresh performance
+      // Refresh all statistics without performance tracking for now
       const [paymentData, subscriptionData] = await Promise.all([
         refetchPaymentStats(),
         refetchSubscriptionStats(),
@@ -139,7 +147,7 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
           <button
-            onClick={realTimeUpdates.forceUpdate}
+            onClick={() => void realTimeUpdates.forceUpdate()}
             className="text-xs text-primary-600 hover:text-primary-500 underline"
           >
             Refresh now
@@ -261,7 +269,7 @@ const DashboardPage: React.FC = () => {
   )
 }
 
-type QuickActionCardProps = {
+interface QuickActionCardProps {
   title: string
   description: string
   href: string

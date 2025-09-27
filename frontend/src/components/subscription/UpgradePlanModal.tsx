@@ -1,17 +1,19 @@
 import React, { useState } from 'react'
+import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { toast } from 'react-hot-toast'
+import { clsx } from 'clsx'
+
 import { logger } from '../../utils/logger'
 import {
   useGetAvailablePlansQuery,
   useCreateSubscriptionMutation,
   useChangeSubscriptionPlanMutation,
 } from '../../store/api/subscriptionApi'
-import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
-import { toast } from 'react-hot-toast'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import { parseApiError } from '../../utils/apiError'
-import { clsx } from 'clsx'
 
-type UpgradePlanModalProps = {
+
+interface UpgradePlanModalProps {
   isOpen: boolean
   onClose: () => void
   currentPlanId?: string
@@ -203,7 +205,7 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={handlePlanSelection}
+                      onClick={() => void handlePlanSelection()}
                       disabled={
                         !selectedPlanId ||
                         selectedPlanId === currentPlanId ||

@@ -1,5 +1,6 @@
 import React from 'react';
 import { z } from 'zod';
+
 import { useValidatedQuery, useValidatedMutation } from '@/hooks/useValidatedApi';
 import {
   UserSchema,
@@ -19,9 +20,9 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Mock API functions for demonstration
 const mockApiClient = {
-  async getUser(id: string): Promise<unknown> {
+  getUser(id: string): Promise<unknown> {
     // Simulate API response - could be invalid in real scenarios
-    return {
+    return Promise.resolve({
       success: true,
       data: {
         id: id,
@@ -34,11 +35,11 @@ const mockApiClient = {
         updatedAt: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),
-    };
+    });
   },
 
-  async getPayments(organizationId: string): Promise<unknown> {
-    return {
+  getPayments(organizationId: string): Promise<unknown> {
+    return Promise.resolve({
       success: true,
       data: {
         items: [
@@ -76,11 +77,11 @@ const mockApiClient = {
         },
       },
       timestamp: new Date().toISOString(),
-    };
+    });
   },
 
-  async createPayment(request: CreatePaymentIntentRequest): Promise<unknown> {
-    return {
+  createPayment(request: CreatePaymentIntentRequest): Promise<unknown> {
+    return Promise.resolve({
       success: true,
       data: {
         id: crypto.randomUUID(),
@@ -92,7 +93,7 @@ const mockApiClient = {
         metadata: request.metadata || null,
       },
       timestamp: new Date().toISOString(),
-    };
+    });
   },
 };
 

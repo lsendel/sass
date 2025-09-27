@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import {
   setCredentials,
@@ -8,7 +10,6 @@ import {
 } from '../../store/slices/authSlice'
 import { useHandleCallbackMutation } from '../../store/api/authApi'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { parseApiError } from '../../utils/apiError'
 import { logger } from '../../utils/logger'
 
@@ -28,7 +29,7 @@ const CallbackPage: React.FC = () => {
 
       // Handle OAuth errors
       if (error) {
-        const message = errorDescription || `Authentication failed: ${error}`
+        const message = errorDescription ?? `Authentication failed: ${error}`
         setLocalError(message)
         dispatch(setError(message))
         return
@@ -46,7 +47,7 @@ const CallbackPage: React.FC = () => {
         // Exchange code for user session
         const result = await handleCallback({
           code,
-          state: state || undefined,
+          state: state ?? undefined,
         }).unwrap()
 
         // Set credentials (token handled via httpOnly cookie from server)
@@ -59,7 +60,7 @@ const CallbackPage: React.FC = () => {
         const parsed = parseApiError(err)
         logger.error('Callback processing failed:', parsed)
         const message =
-          parsed.message || 'Authentication failed. Please try again.'
+          parsed.message ?? 'Authentication failed. Please try again.'
         setLocalError(message)
         dispatch(setError(message))
       }

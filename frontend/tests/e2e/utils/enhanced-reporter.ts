@@ -1,6 +1,7 @@
-import { FullConfig, FullResult, Reporter, Suite, TestCase, TestResult } from '@playwright/test/reporter'
 import fs from 'fs/promises'
 import path from 'path'
+
+import { FullConfig, FullResult, Reporter, Suite, TestCase, TestResult } from '@playwright/test/reporter'
 
 /**
  * Enhanced Playwright Reporter
@@ -11,7 +12,7 @@ export class EnhancedEvidenceReporter implements Reporter {
   private config: FullConfig | undefined
   private results: TestResult[] = []
   private testCases: TestCase[] = []
-  private startTime: number = 0
+  private startTime = 0
 
   onBegin(config: FullConfig, suite: Suite) {
     this.config = config

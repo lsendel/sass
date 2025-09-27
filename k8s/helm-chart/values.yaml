@@ -1,0 +1,621 @@
+# Default values for SASS Platform Helm Chart
+# Production-ready configuration with security, scalability, and observability
+
+# =============================================================================
+# GLOBAL CONFIGURATION
+# =============================================================================
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Environment configuration
+environment: production
+region: us-east-1
+availabilityZone: us-east-1a
+
+# =============================================================================
+# APPLICATION IMAGES
+# =============================================================================
+
+image:
+  backend:
+    repository: ghcr.io/sass-platform/sass-backend
+    tag: ""
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: ghcr.io/sass-platform/sass-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+# =============================================================================
+# BACKEND SERVICE CONFIGURATION
+# =============================================================================
+
+backend:
+  enabled: true
+
+  replicaCount: 3
+
+  deployment:
+    annotations: {}
+    labels: {}
+
+  pod:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      prometheus.io/path: "/actuator/prometheus"
+    labels: {}
+
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  # JVM configuration
+  jvm:
+    heapSize: "2g"
+    maxMetaspaceSize: "512m"
+    additionalOptions: |
+      -XX:+UseG1GC
+      -XX:MaxGCPauseMillis=200
+      -XX:+UseStringDeduplication
+      -XX:+OptimizeStringConcat
+      -Djava.security.egd=file:/dev/./urandom
+      -Dspring.backgroundpreinitializer.ignore=true
+
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  # Node assignment
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - sass-backend
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# FRONTEND SERVICE CONFIGURATION
+# =============================================================================
+
+frontend:
+  enabled: true
+
+  replicaCount: 2
+
+  deployment:
+    annotations: {}
+    labels: {}
+
+  pod:
+    annotations: {}
+    labels: {}
+
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 80
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  # Node assignment
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - sass-frontend
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+postgresql:
+  enabled: true
+
+  # Bitnami PostgreSQL chart configuration
+  auth:
+    postgresPassword: ""  # Set via secret
+    username: "sass_user"
+    password: ""          # Set via secret
+    database: "sass_platform"
+
+  architecture: replication
+
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: ""
+
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 4Gi
+
+    configuration: |
+      # Performance tuning
+      shared_preload_libraries = 'pg_stat_statements'
+      max_connections = 200
+      shared_buffers = 2GB
+      effective_cache_size = 6GB
+      maintenance_work_mem = 512MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 16MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+      work_mem = 20MB
+      min_wal_size = 1GB
+      max_wal_size = 4GB
+
+      # Logging
+      log_statement = 'all'
+      log_duration = on
+      log_min_duration_statement = 1000
+
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 100Gi
+
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# =============================================================================
+# REDIS CONFIGURATION
+# =============================================================================
+
+redis:
+  enabled: true
+
+  # Bitnami Redis chart configuration
+  architecture: replication
+
+  auth:
+    enabled: true
+    password: ""  # Set via secret
+
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+    configuration: |
+      # Performance configuration
+      maxmemory 1536mb
+      maxmemory-policy allkeys-lru
+      timeout 300
+      tcp-keepalive 300
+
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 20Gi
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# =============================================================================
+# NETWORKING & INGRESS
+# =============================================================================
+
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+  hosts:
+    - host: sass-platform.com
+      paths:
+        - path: /api/(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: sass-backend
+              port:
+                number: 8080
+        - path: /(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: sass-frontend
+              port:
+                number: 80
+
+  tls:
+    - secretName: sass-platform-tls
+      hosts:
+        - sass-platform.com
+
+# Network Policies
+networkPolicy:
+  enabled: true
+
+  # Backend network policies
+  backend:
+    ingress:
+      - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nginx-ingress
+        ports:
+        - protocol: TCP
+          port: 8080
+      - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: sass-frontend
+        ports:
+        - protocol: TCP
+          port: 8080
+
+    egress:
+      - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+        ports:
+        - protocol: TCP
+          port: 5432
+      - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+        ports:
+        - protocol: TCP
+          port: 6379
+
+  # Frontend network policies
+  frontend:
+    ingress:
+      - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nginx-ingress
+        ports:
+        - protocol: TCP
+          port: 80
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+security:
+  # Pod Security Standards
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Container Security Context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+
+  # Service Account
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+    automountServiceAccountToken: false
+
+# =============================================================================
+# MONITORING & OBSERVABILITY
+# =============================================================================
+
+monitoring:
+  enabled: true
+
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+
+  # Grafana configuration
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+
+  # Logging
+  logging:
+    level: INFO
+    format: json
+
+  # Tracing
+  tracing:
+    enabled: true
+    jaeger:
+      enabled: true
+
+  # Metrics
+  metrics:
+    backend:
+      enabled: true
+      port: 8080
+      path: /actuator/prometheus
+    frontend:
+      enabled: true
+      port: 80
+      path: /metrics
+
+# =============================================================================
+# BACKUP & DISASTER RECOVERY
+# =============================================================================
+
+backup:
+  enabled: true
+
+  # Database backup configuration
+  database:
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention: "30d"
+    storageClass: ""
+
+  # Application backup configuration
+  application:
+    schedule: "0 3 * * *"  # Daily at 3 AM
+    retention: "7d"
+
+# =============================================================================
+# CONFIGURATION & SECRETS
+# =============================================================================
+
+config:
+  # Application configuration
+  spring:
+    profiles:
+      active: production
+    datasource:
+      url: jdbc:postgresql://sass-postgresql:5432/sass_platform
+      username: sass_user
+    data:
+      redis:
+        host: sass-redis-master
+        port: 6379
+
+  # Stripe configuration
+  stripe:
+    publishableKey: ""  # Set via secret
+
+  # OAuth configuration
+  oauth:
+    providers: []
+
+  # Analytics configuration
+  analytics:
+    enabled: true
+    retention:
+      raw: "P7D"        # 7 days
+      aggregated: "P1Y" # 1 year
+
+# Secrets (referenced, not stored here)
+secrets:
+  database:
+    password: ""
+  redis:
+    password: ""
+  stripe:
+    secretKey: ""
+    webhookSecret: ""
+  oauth:
+    clientSecrets: {}
+  jwt:
+    secret: ""
+
+# =============================================================================
+# JOBS & CRON JOBS
+# =============================================================================
+
+jobs:
+  # Database migration job
+  migration:
+    enabled: true
+    image:
+      repository: migrate/migrate
+      tag: v4.16.2
+    schedule: ""  # Manual trigger only
+
+  # Database backup job
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"
+    retention: "30d"
+
+  # Cleanup job
+  cleanup:
+    enabled: true
+    schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+features:
+  multiTenancy: true
+  analytics: true
+  internationalPayments: true
+  mfa: true
+  rbac: true
+  auditLogging: true

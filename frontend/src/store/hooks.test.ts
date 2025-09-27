@@ -2,8 +2,10 @@ import { describe, it, expect, vi } from 'vitest'
 import React from 'react'
 import { renderHook } from '@testing-library/react'
 import { Provider } from 'react-redux'
-import { useAppDispatch, useAppSelector } from './hooks'
 import type { ReactNode } from 'react'
+
+import { useAppDispatch, useAppSelector } from './hooks'
+
 import {
   createMockStore,
   type MockStore,
@@ -11,7 +13,7 @@ import {
 import { createMockUser } from '@/test/fixtures/users'
 
 const createWrapper = (store: MockStore) => {
-  // eslint-disable-next-line react/display-name
+   
   return ({ children }: { children: ReactNode }) => (
     // @ts-ignore - JSX element
     React.createElement(Provider, { store }, children)

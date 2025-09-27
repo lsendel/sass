@@ -1,5 +1,7 @@
 import { z } from 'zod';
+
 import { ApiValidationError, ApiResponseError } from './validation';
+
 import { ApiErrorResponseSchema } from '@/types/api';
 
 /**
@@ -327,7 +329,7 @@ export function createApiError(error: unknown): ApiError {
 /**
  * Determines if an error should trigger a retry
  */
-export function shouldRetry(error: ErrorInfo, attemptCount: number, maxRetries: number = 3): boolean {
+export function shouldRetry(error: ErrorInfo, attemptCount: number, maxRetries = 3): boolean {
   if (attemptCount >= maxRetries) {
     return false;
   }
@@ -348,7 +350,7 @@ export function shouldRetry(error: ErrorInfo, attemptCount: number, maxRetries: 
 /**
  * Calculates retry delay with exponential backoff
  */
-export function getRetryDelay(attemptCount: number, baseDelay: number = 1000): number {
+export function getRetryDelay(attemptCount: number, baseDelay = 1000): number {
   return baseDelay * Math.pow(2, attemptCount) + Math.random() * 1000;
 }
 
@@ -379,10 +381,10 @@ export function useApiErrorHandler() {
 
   const createRetryHandler = (
     operation: () => Promise<any>,
-    maxRetries: number = 3,
-    baseDelay: number = 1000
+    maxRetries = 3,
+    baseDelay = 1000
   ) => {
-    return async (attemptCount: number = 0): Promise<any> => {
+    return async (attemptCount = 0): Promise<any> => {
       try {
         return await operation();
       } catch (error) {

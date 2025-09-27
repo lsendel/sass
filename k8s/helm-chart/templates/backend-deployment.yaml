@@ -1,0 +1,207 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sass-platform.fullname" . }}-backend{{ .Values.deployment.suffix | default "" }}
+  labels:
+    {{- include "sass-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  {{- with .Values.backend.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 50%
+  selector:
+    matchLabels:
+      {{- include "sass-platform.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/backend-secret.yaml") . | sha256sum }}
+        {{- with .Values.backend.pod.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "sass-platform.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+        {{- with .Values.backend.pod.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sass-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
+      containers:
+      - name: backend
+        securityContext:
+          {{- toYaml .Values.security.securityContext | nindent 10 }}
+        image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: management
+          containerPort: 8080
+          protocol: TCP
+        env:
+        # Spring Boot configuration
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.config.spring.profiles.active }}
+        - name: SERVER_PORT
+          value: "8080"
+        - name: MANAGEMENT_SERVER_PORT
+          value: "8080"
+
+        # JVM configuration
+        - name: JAVA_OPTS
+          value: |
+            -Xms{{ .Values.backend.jvm.heapSize }}
+            -Xmx{{ .Values.backend.jvm.heapSize }}
+            -XX:MaxMetaspaceSize={{ .Values.backend.jvm.maxMetaspaceSize }}
+            {{ .Values.backend.jvm.additionalOptions | nindent 12 }}
+
+        # Database configuration
+        - name: SPRING_DATASOURCE_URL
+          value: {{ .Values.config.spring.datasource.url }}
+        - name: SPRING_DATASOURCE_USERNAME
+          value: {{ .Values.config.spring.datasource.username }}
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "sass-platform.fullname" . }}-backend-secret
+              key: database-password
+
+        # Redis configuration
+        - name: SPRING_DATA_REDIS_HOST
+          value: {{ .Values.config.spring.data.redis.host }}
+        - name: SPRING_DATA_REDIS_PORT
+          value: "{{ .Values.config.spring.data.redis.port }}"
+        {{- if .Values.redis.auth.enabled }}
+        - name: SPRING_DATA_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "sass-platform.fullname" . }}-backend-secret
+              key: redis-password
+        {{- end }}
+
+        # Stripe configuration
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "sass-platform.fullname" . }}-backend-secret
+              key: stripe-secret-key
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "sass-platform.fullname" . }}-backend-secret
+              key: stripe-webhook-secret
+
+        # JWT configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "sass-platform.fullname" . }}-backend-secret
+              key: jwt-secret
+
+        # Application configuration
+        - name: APP_ENVIRONMENT
+          value: {{ .Values.environment }}
+        - name: APP_REGION
+          value: {{ .Values.region }}
+
+        # Feature flags
+        {{- range $key, $value := .Values.features }}
+        - name: FEATURE_{{ $key | upper | replace "-" "_" }}
+          value: "{{ $value }}"
+        {{- end }}
+
+        # Monitoring configuration
+        {{- if .Values.monitoring.enabled }}
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus"
+        - name: MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
+          value: "always"
+        - name: MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED
+          value: "true"
+        {{- end }}
+
+        # Tracing configuration
+        {{- if .Values.monitoring.tracing.enabled }}
+        - name: SPRING_SLEUTH_ZIPKIN_BASE_URL
+          value: "http://jaeger-collector:14268"
+        - name: SPRING_SLEUTH_SAMPLER_PROBABILITY
+          value: "0.1"
+        {{- end }}
+
+        envFrom:
+        - configMapRef:
+            name: {{ include "sass-platform.fullname" . }}-backend-config
+
+        livenessProbe:
+          {{- toYaml .Values.backend.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.backend.readinessProbe | nindent 10 }}
+        startupProbe:
+          {{- toYaml .Values.backend.startupProbe | nindent 10 }}
+
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+        {{- if .Values.security.securityContext.readOnlyRootFilesystem }}
+        - name: cache
+          mountPath: /app/cache
+        {{- end }}
+
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      {{- if .Values.security.securityContext.readOnlyRootFilesystem }}
+      - name: cache
+        emptyDir: {}
+      {{- end }}
+
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      terminationGracePeriodSeconds: 60
+
+      # DNS configuration for better performance
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: edns0
+{{- end }}

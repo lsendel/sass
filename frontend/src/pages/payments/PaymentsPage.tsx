@@ -1,4 +1,13 @@
 import React, { useState, useMemo } from 'react'
+import {
+  CreditCardIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline'
+import { format } from 'date-fns'
+import { clsx } from 'clsx'
+
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
 import {
   useGetOrganizationPaymentsQuery,
@@ -15,14 +24,6 @@ import {
   ResultsCounter
 } from '../../components/ui/SearchAndFilter'
 import PaymentMethodsModal from '../../components/payments/PaymentMethodsModal'
-import {
-  CreditCardIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-} from '@heroicons/react/24/outline'
-import { format } from 'date-fns'
-import { clsx } from 'clsx'
 import PageHeader from '../../components/ui/PageHeader'
 import StatsCard from '../../components/ui/StatsCard'
 
@@ -169,10 +170,10 @@ const PaymentsPage: React.FC = () => {
 
         <ApiErrorDisplay
           error={paymentsError}
-          onRetry={async () => {
-            await refetchPayments()
-            await refetchStatistics()
-            await syncPaymentData()
+          onRetry={() => {
+            void refetchPayments()
+            void refetchStatistics()
+            void syncPaymentData()
           }}
           fallbackMessage="Failed to load payment data. Please try again."
         />

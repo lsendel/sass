@@ -110,7 +110,7 @@ export const useRealTimeUpdates = (
     setIsActive(true)
 
     // Set up the main update interval
-    intervalRef.current = setInterval(performUpdate, interval)
+    intervalRef.current = setInterval(() => void performUpdate(), interval)
 
     // Set up inactivity detection
     if (pauseWhenInactive && pauseAfterInactivity > 0) {

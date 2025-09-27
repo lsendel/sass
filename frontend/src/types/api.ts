@@ -117,7 +117,7 @@ export const PaymentSchema = z.object({
   organizationId: z.string().uuid(),
   subscriptionId: z.string().uuid().optional(),
   description: z.string().optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   paidAt: z.string().datetime().optional(),
@@ -193,7 +193,7 @@ export const ApiErrorResponseSchema = z.object({
   error: z.object({
     code: z.string(),
     message: z.string(),
-    details: z.record(z.any()).optional(),
+    details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   }),
   correlationId: z.string().uuid().optional(),
   timestamp: z.string().datetime(),
@@ -223,7 +223,7 @@ export const AuditEventSchema = z.object({
   userId: z.string().uuid().optional(),
   organizationId: z.string().uuid().optional(),
   action: z.string(),
-  details: z.record(z.any()),
+  details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
   // Zod v4 does not include a built-in .ip() validator. Use a conservative IPv4/IPv6 regex.
   // This keeps validation strict without adding extra deps.
   ipAddress: z
@@ -263,12 +263,12 @@ export type Invoice = z.infer<typeof InvoiceSchema>;
 
 export type AuditEvent = z.infer<typeof AuditEventSchema>;
 
-export type ApiSuccessResponse<T> = {
+export interface ApiSuccessResponse<T> {
   success: true;
   data: T;
   message?: string;
   timestamp: string;
-};
+}
 
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
 

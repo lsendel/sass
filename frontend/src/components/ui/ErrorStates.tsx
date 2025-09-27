@@ -7,8 +7,10 @@ import {
   ArrowPathIcon,
   HomeIcon,
 } from '@heroicons/react/24/outline'
-import { Button } from './button'
+
 import { getCardClasses } from '../../lib/theme'
+
+import { Button } from './button'
 
 export interface ErrorStateProps {
   title?: string

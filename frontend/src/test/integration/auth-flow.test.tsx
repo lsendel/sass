@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
-import { server } from '../setup'
 import { http, HttpResponse } from 'msw'
+
+import { server } from '../setup'
 import { customRender, unauthenticatedState, testUtils } from '../utils/test-utils'
+
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 
@@ -258,18 +260,15 @@ describe('Authentication Flow Integration', () => {
 
   describe('Session Management', () => {
     it('should handle session expiry gracefully', async () => {
+      // Session expiry now returns 200 with authenticated: false
       server.use(
         http.get('http://localhost:3000/api/auth/session', () => {
           return HttpResponse.json(
             {
-              success: false,
-              error: {
-                code: 'AUTH_003',
-                message: 'Session expired',
-              },
+              authenticated: false,
               timestamp: new Date().toISOString(),
             },
-            { status: 401 }
+            { status: 200 }
           )
         })
       )
@@ -279,7 +278,7 @@ describe('Authentication Flow Integration', () => {
         withRouter: true,
       })
 
-      // Component should handle session expiry
+      // Component should handle session expiry with 200 + authenticated: false
       await waitFor(() => {
         expect(screen.queryByText(/dashboard/i)).not.toBeInTheDocument()
       })
@@ -291,23 +290,21 @@ describe('Authentication Flow Integration', () => {
         http.get('http://localhost:3000/api/auth/session', () => {
           sessionCallCount++
           return HttpResponse.json({
-            success: true,
-            data: {
-              user: {
-                id: 'user-123',
-                email: 'test@example.com',
-                firstName: 'Test',
-                lastName: 'User',
-                role: 'USER',
-                emailVerified: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-              session: {
-                activeTokens: 1,
-                lastActiveAt: new Date().toISOString(),
-                createdAt: new Date().toISOString(),
-              },
+            authenticated: true,
+            user: {
+              id: 'user-123',
+              email: 'test@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'USER',
+              emailVerified: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            session: {
+              activeTokens: 1,
+              lastActiveAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
             timestamp: new Date().toISOString(),
           })

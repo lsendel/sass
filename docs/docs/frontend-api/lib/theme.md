@@ -36,7 +36,9 @@ This file defines the core visual identity for the application.
 All components should use these tokens for consistent styling.
 
 Usage:
+```ts
 import { STYLE, COLOR, ACCENT_COLOR } from '@/lib/theme'
+```
 
 ***
 

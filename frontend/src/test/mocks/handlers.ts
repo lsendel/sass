@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+
 import { generateRealisticMockData } from '@/lib/api/testing'
 import {
   UserSchema,
@@ -111,7 +112,7 @@ export const handlers = [
   http.get(`${API_BASE_URL}/auth/session`, ({ request }) => {
     const authHeader = request.headers.get('authorization')
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return HttpResponse.json(
         {
           success: false,

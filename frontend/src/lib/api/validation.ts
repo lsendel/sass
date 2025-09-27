@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
 import { ApiErrorResponseSchema, ApiSuccessResponseSchema } from '@/types/api';
 
 /**
