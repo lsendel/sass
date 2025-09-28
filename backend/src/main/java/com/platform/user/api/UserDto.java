@@ -10,27 +10,50 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Data transfer objects for user-related operations.
- * These DTOs prevent direct access to internal entities from controllers.
+ * A container for all Data Transfer Objects (DTOs) related to user and organization operations.
+ *
+ * <p>This class uses nested records and enums to define the data structures for API requests and
+ * responses. This approach encapsulates all user-related data contracts, preventing the direct
+ * exposure of internal domain entities.
  */
 public class UserDto {
 
-  /**
-   * Role enumeration for API layer.
-   */
+  /** Defines the roles a user can have within an organization at the API layer. */
   public enum Role {
-    OWNER, ADMIN, MEMBER, VIEWER
+    /** The owner of the organization with full access. */
+    OWNER,
+    /** An administrator with permissions to manage the organization. */
+    ADMIN,
+    /** A standard member of the organization. */
+    MEMBER,
+    /** A read-only member of the organization. */
+    VIEWER
   }
 
-  /**
-   * Invitation status enumeration for API layer.
-   */
+  /** Defines the possible statuses of an invitation at the API layer. */
   public enum InvitationStatus {
-    PENDING, ACCEPTED, DECLINED, EXPIRED, REVOKED
+    /** The invitation is pending and awaiting a response. */
+    PENDING,
+    /** The invitation has been accepted. */
+    ACCEPTED,
+    /** The invitation has been declined. */
+    DECLINED,
+    /** The invitation has expired. */
+    EXPIRED,
+    /** The invitation has been revoked by the sender. */
+    REVOKED
   }
 
   /**
-   * Response DTO for user information.
+   * Represents the data for a user sent in API responses.
+   *
+   * @param id the unique identifier of the user
+   * @param email the email address of the user
+   * @param name the full name of the user
+   * @param provider the authentication provider used by the user
+   * @param preferences a map of the user's preferences
+   * @param createdAt the timestamp when the user was created
+   * @param lastActiveAt the timestamp of the user's last activity
    */
   public record UserResponse(
       UUID id,
@@ -39,26 +62,34 @@ public class UserDto {
       String provider,
       Map<String, Object> preferences,
       Instant createdAt,
-      Instant lastActiveAt) {
-  }
+      Instant lastActiveAt) {}
 
   /**
-   * Request DTO for updating user profile.
+   * Represents the data required to update a user's profile.
+   *
+   * @param name the new name for the user
+   * @param preferences a map of new preferences for the user
    */
   public record UpdateProfileRequest(
-      @NotBlank String name,
-      Map<String, Object> preferences) {
-  }
+      @NotBlank String name, Map<String, Object> preferences) {}
 
   /**
-   * Request DTO for updating user preferences.
+   * Represents the data required to update a user's preferences.
+   *
+   * @param preferences a map of new preferences for the user
    */
-  public record UpdatePreferencesRequest(
-      @NotNull Map<String, Object> preferences) {
-  }
+  public record UpdatePreferencesRequest(@NotNull Map<String, Object> preferences) {}
 
   /**
-   * Response DTO for paginated user results.
+   * Represents a paginated list of users.
+   *
+   * @param users the list of users on the current page
+   * @param page the current page number
+   * @param size the number of users per page
+   * @param totalElements the total number of users across all pages
+   * @param totalPages the total number of pages
+   * @param first whether this is the first page
+   * @param last whether this is the last page
    */
   public record PagedUserResponse(
       List<UserResponse> users,
@@ -67,22 +98,34 @@ public class UserDto {
       long totalElements,
       int totalPages,
       boolean first,
-      boolean last) {
-  }
+      boolean last) {}
 
   /**
-   * Response DTO for user statistics.
+   * Represents a summary of user-related statistics.
+   *
+   * @param totalUsers the total number of users
+   * @param activeUsers the number of users active in a recent period
+   * @param newUsersThisMonth the number of new users created in the current month
+   * @param usersByProvider a map of user counts by authentication provider
+   * @param averageSessionDuration an estimated average session duration in minutes
    */
   public record UserStatistics(
       long totalUsers,
       long activeUsers,
       long newUsersThisMonth,
       Map<String, Long> usersByProvider,
-      double averageSessionDuration) {
-  }
+      double averageSessionDuration) {}
 
   /**
-   * Response DTO for organization information.
+   * Represents the data for an organization sent in API responses.
+   *
+   * @param id the unique identifier of the organization
+   * @param name the name of the organization
+   * @param slug a unique, URL-friendly identifier for the organization
+   * @param ownerId the ID of the user who owns the organization
+   * @param settings a map of custom settings for the organization
+   * @param createdAt the timestamp when the organization was created
+   * @param updatedAt the timestamp when the organization was last updated
    */
   public record OrganizationResponse(
       UUID id,
@@ -91,33 +134,44 @@ public class UserDto {
       UUID ownerId,
       Map<String, Object> settings,
       Instant createdAt,
-      Instant updatedAt) {
-  }
+      Instant updatedAt) {}
 
   /**
-   * Response DTO for organization member information.
+   * Represents information about a member of an organization.
+   *
+   * @param userId the ID of the user
+   * @param userEmail the email address of the user
+   * @param userName the name of the user
+   * @param role the role of the member in the organization
+   * @param joinedAt the timestamp when the member joined the organization
    */
   public record OrganizationMemberInfoResponse(
-      UUID userId,
-      String userEmail,
-      String userName,
-      Role role,
-      Instant joinedAt) {
-  }
+      UUID userId, String userEmail, String userName, Role role, Instant joinedAt) {}
 
   /**
-   * Response DTO for organization member.
+   * Represents an organization membership record.
+   *
+   * @param id the unique identifier of the membership
+   * @param userId the ID of the user
+   * @param organizationId the ID of the organization
+   * @param role the role of the member
+   * @param joinedAt the timestamp when the member joined
    */
   public record OrganizationMemberResponse(
-      UUID id,
-      UUID userId,
-      UUID organizationId,
-      Role role,
-      Instant joinedAt) {
-  }
+      UUID id, UUID userId, UUID organizationId, Role role, Instant joinedAt) {}
 
   /**
-   * Response DTO for invitation information.
+   * Represents an invitation to join an organization.
+   *
+   * @param id the unique identifier of the invitation
+   * @param organizationId the ID of the organization
+   * @param invitedBy the ID of the user who sent the invitation
+   * @param email the email address of the recipient
+   * @param role the role to be assigned upon acceptance
+   * @param status the current status of the invitation
+   * @param token the unique token for the invitation
+   * @param expiresAt the timestamp when the invitation expires
+   * @param createdAt the timestamp when the invitation was created
    */
   public record InvitationResponse(
       UUID id,
@@ -128,62 +182,65 @@ public class UserDto {
       InvitationStatus status,
       String token,
       Instant expiresAt,
-      Instant createdAt) {
-  }
+      Instant createdAt) {}
 
   /**
-   * Request DTO for creating an organization.
+   * Represents the data required to create a new organization.
+   *
+   * @param name the name of the organization
+   * @param slug a unique, URL-friendly slug for the organization
+   * @param settings a map of custom settings for the organization
    */
   public record CreateOrganizationRequest(
-      @NotBlank String name,
-      @NotBlank String slug,
-      Map<String, Object> settings) {
-  }
+      @NotBlank String name, @NotBlank String slug, Map<String, Object> settings) {}
 
   /**
-   * Request DTO for updating an organization.
+   * Represents the data required to update an organization.
+   *
+   * @param name the new name for the organization
+   * @param settings a map of new settings for the organization
    */
   public record UpdateOrganizationRequest(
-      @NotBlank String name,
-      Map<String, Object> settings) {
-  }
+      @NotBlank String name, Map<String, Object> settings) {}
 
   /**
-   * Request DTO for updating organization settings.
+   * Represents the data required to update an organization's settings.
+   *
+   * @param settings a map of new settings for the organization
    */
-  public record UpdateSettingsRequest(
-      @NotNull Map<String, Object> settings) {
-  }
+  public record UpdateSettingsRequest(@NotNull Map<String, Object> settings) {}
 
   /**
-   * Request DTO for inviting a user.
+   * Represents the data required to invite a user to an organization.
+   *
+   * @param email the email address of the user to invite
+   * @param role the role to assign to the user
    */
-  public record InviteUserRequest(
-      @Email @NotBlank String email,
-      @NotNull Role role) {
-  }
+  public record InviteUserRequest(@Email @NotBlank String email, @NotNull Role role) {}
 
   /**
-   * Request DTO for updating member role.
+   * Represents the data required to update a member's role.
+   *
+   * @param role the new role for the member
    */
-  public record UpdateMemberRoleRequest(
-      @NotNull Role role) {
-  }
+  public record UpdateMemberRoleRequest(@NotNull Role role) {}
 
   /**
-   * Request DTO for creating a user.
+   * Represents the data required to create a new user.
+   *
+   * @param email the email address of the new user
+   * @param name the name of the new user
+   * @param role the role of the new user
    */
   public record CreateUserRequest(
-      @Email @NotBlank String email,
-      @NotBlank String name,
-      String role) {
-  }
+      @Email @NotBlank String email, @NotBlank String name, String role) {}
 
   /**
-   * Request DTO for changing password.
+   * Represents the data required to change a user's password.
+   *
+   * @param currentPassword the user's current password
+   * @param newPassword the new password to set
    */
   public record ChangePasswordRequest(
-      @NotBlank String currentPassword,
-      @NotBlank String newPassword) {
-  }
+      @NotBlank String currentPassword, @NotBlank String newPassword) {}
 }

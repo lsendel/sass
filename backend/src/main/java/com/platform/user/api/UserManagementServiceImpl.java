@@ -17,14 +17,22 @@ import com.platform.user.internal.User;
 import com.platform.user.internal.UserView;
 
 /**
- * Implementation of UserManagementServiceInterface that bridges the API and internal layers.
- * This service converts between internal entities and API DTOs.
+ * Implementation of the {@link UserManagementServiceInterface}.
+ *
+ * <p>This service acts as a bridge between the API layer and the internal domain layer for user
+ * management. It translates API requests into calls to the internal {@link UserService} and maps
+ * the resulting internal entities to public DTOs.
  */
 @Service
 public class UserManagementServiceImpl implements UserManagementServiceInterface {
 
   private final UserService userService;
 
+  /**
+   * Constructs a new UserManagementServiceImpl.
+   *
+   * @param userService the internal service for managing users
+   */
   public UserManagementServiceImpl(UserService userService) {
     this.userService = userService;
   }
@@ -123,18 +131,41 @@ public class UserManagementServiceImpl implements UserManagementServiceInterface
     return mapToResponse(restoredUser);
   }
 
+  /**
+   * Activates a user's account.
+   *
+   * <p>Note: This is a mock implementation for testing purposes.
+   *
+   * @param userId the ID of the user to activate
+   */
   @Override
   public void activateUser(UUID userId) {
     // Mock implementation for testing
     // In real implementation, this would call userService.activateUser(userId)
   }
 
+  /**
+   * Deactivates a user's account.
+   *
+   * <p>Note: This is a mock implementation for testing purposes.
+   *
+   * @param userId the ID of the user to deactivate
+   */
   @Override
   public void deactivateUser(UUID userId) {
     // Mock implementation for testing
     // In real implementation, this would call userService.deactivateUser(userId)
   }
 
+  /**
+   * Changes a user's password.
+   *
+   * <p>Note: This is a mock implementation for testing purposes.
+   *
+   * @param userId the ID of the user
+   * @param currentPassword the user's current password
+   * @param newPassword the new password to set
+   */
   @Override
   public void changePassword(UUID userId, String currentPassword, String newPassword) {
     // Mock implementation for testing
@@ -148,7 +179,10 @@ public class UserManagementServiceImpl implements UserManagementServiceInterface
   }
 
   /**
-   * Maps internal User entity to API UserResponse DTO.
+   * Maps an internal {@link User} entity to an API {@link UserResponse} DTO.
+   *
+   * @param user the user entity to map
+   * @return the corresponding API DTO
    */
   private UserResponse mapToResponse(User user) {
     return new UserResponse(

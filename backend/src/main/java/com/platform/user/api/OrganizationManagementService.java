@@ -12,141 +12,147 @@ import com.platform.user.api.UserDto.InvitationResponse;
 import com.platform.user.api.UserDto.Role;
 
 /**
- * Service interface for organization management operations.
- * This interface provides the API layer with access to organization functionality
- * without depending on internal implementation details.
+ * Defines the contract for managing organizations, memberships, and invitations.
+ *
+ * <p>This service interface provides a high-level API for all organization-related operations,
+ * serving as an abstraction layer between the API controllers and the internal implementation
+ * details.
  */
 public interface OrganizationManagementService {
 
   /**
    * Creates a new organization.
    *
-   * @param name the organization name
-   * @param slug the organization slug
-   * @param settings the organization settings
-   * @return the created organization
+   * @param name the name of the organization
+   * @param slug a unique, URL-friendly slug for the organization
+   * @param settings a map of custom settings for the organization
+   * @return an {@link OrganizationResponse} representing the newly created organization
    */
   OrganizationResponse createOrganization(String name, String slug, Map<String, Object> settings);
 
   /**
-   * Finds an organization by ID.
+   * Finds an organization by its ID.
    *
-   * @param organizationId the organization ID
-   * @return the organization if found
+   * @param organizationId the ID of the organization
+   * @return an {@link Optional} containing the {@link OrganizationResponse} if found, otherwise an
+   *     empty {@link Optional}
    */
   Optional<OrganizationResponse> findById(UUID organizationId);
 
   /**
-   * Finds an organization by slug.
+   * Finds an organization by its slug.
    *
-   * @param slug the organization slug
-   * @return the organization if found
+   * @param slug the slug of the organization
+   * @return an {@link Optional} containing the {@link OrganizationResponse} if found, otherwise an
+   *     empty {@link Optional}
    */
   Optional<OrganizationResponse> findBySlug(String slug);
 
   /**
-   * Gets organizations for the current user.
+   * Retrieves all organizations the current user is a member of.
    *
-   * @return list of user organizations
+   * @return a list of {@link OrganizationResponse}s
    */
   List<OrganizationResponse> getUserOrganizations();
 
   /**
-   * Gets all organizations (test-only endpoint).
+   * Retrieves all organizations in the system.
    *
-   * @return list of all organizations
+   * <p>This method is intended for administrative or testing purposes.
+   *
+   * @return a list of all {@link OrganizationResponse}s
    */
   List<OrganizationResponse> getAllOrganizations();
 
   /**
-   * Updates an organization.
+   * Updates the details of an organization.
    *
-   * @param organizationId the organization ID
-   * @param name the new organization name
-   * @param settings the new organization settings
-   * @return the updated organization
+   * @param organizationId the ID of the organization to update
+   * @param name the new name for the organization
+   * @param settings a map of new settings for the organization
+   * @return an {@link OrganizationResponse} representing the updated organization
    */
   OrganizationResponse updateOrganization(UUID organizationId, String name, Map<String, Object> settings);
 
   /**
-   * Updates organization settings.
+   * Updates the settings of an organization.
    *
-   * @param organizationId the organization ID
-   * @param settings the new settings
-   * @return the updated organization
+   * @param organizationId the ID of the organization to update
+   * @param settings a map of new settings for the organization
+   * @return an {@link OrganizationResponse} representing the updated organization
    */
   OrganizationResponse updateSettings(UUID organizationId, Map<String, Object> settings);
 
   /**
    * Deletes an organization.
    *
-   * @param organizationId the organization ID
+   * @param organizationId the ID of the organization to delete
    */
   void deleteOrganization(UUID organizationId);
 
   /**
-   * Gets organization members.
+   * Retrieves a list of all members in an organization.
    *
-   * @param organizationId the organization ID
-   * @return list of organization members
+   * @param organizationId the ID of the organization
+   * @return a list of {@link OrganizationMemberInfoResponse}s
    */
   List<OrganizationMemberInfoResponse> getMembers(UUID organizationId);
 
   /**
-   * Invites a user to an organization.
+   * Invites a user to join an organization.
    *
-   * @param organizationId the organization ID
-   * @param email the user email
-   * @param role the member role
-   * @return the created invitation
+   * @param organizationId the ID of the organization
+   * @param email the email address of the user to invite
+   * @param role the role to assign to the user
+   * @return an {@link InvitationResponse} representing the created invitation
    */
   InvitationResponse inviteUser(UUID organizationId, String email, Role role);
 
   /**
-   * Accepts an invitation.
+   * Accepts an invitation to join an organization.
    *
    * @param token the invitation token
-   * @return the created organization member
+   * @return an {@link OrganizationMemberResponse} representing the new membership
    */
   OrganizationMemberResponse acceptInvitation(String token);
 
   /**
-   * Declines an invitation.
+   * Declines an invitation to join an organization.
    *
    * @param token the invitation token
    */
   void declineInvitation(String token);
 
   /**
-   * Gets pending invitations for an organization.
+   * Retrieves a list of pending invitations for an organization.
    *
-   * @param organizationId the organization ID
-   * @return list of pending invitations
+   * @param organizationId the ID of the organization
+   * @return a list of {@link InvitationResponse}s
    */
   List<InvitationResponse> getPendingInvitations(UUID organizationId);
 
   /**
-   * Revokes an invitation.
+   * Revokes a pending invitation.
    *
-   * @param invitationId the invitation ID
+   * @param invitationId the ID of the invitation to revoke
    */
   void revokeInvitation(UUID invitationId);
 
   /**
    * Removes a member from an organization.
    *
-   * @param organizationId the organization ID
-   * @param userId the user ID
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user to remove
    */
   void removeMember(UUID organizationId, UUID userId);
 
   /**
-   * Updates a member's role.
+   * Updates the role of a member in an organization.
    *
-   * @param organizationId the organization ID
-   * @param userId the user ID
-   * @param role the new role
-   * @return the updated organization member
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user whose role is to be updated
+   * @param role the new role to assign
+   * @return an {@link OrganizationMemberResponse} representing the updated membership
    */
   OrganizationMemberResponse updateMemberRole(UUID organizationId, UUID userId, Role role);
 }

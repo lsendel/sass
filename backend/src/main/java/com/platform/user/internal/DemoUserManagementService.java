@@ -8,8 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service for managing demo users and organizations for testing purposes.
- * This service is in the internal package and delegates to internal services.
+ * Service for managing demo users and organizations for testing and demonstration purposes.
+ *
+ * <p>This service provides a simplified interface for creating and retrieving user and organization
+ * data, intended for use in non-production environments. It delegates to the internal {@link
+ * UserService} and {@link OrganizationService} to perform its operations.
+ *
+ * @see UserService
+ * @see OrganizationService
  */
 @Service
 @Transactional
@@ -18,6 +24,12 @@ public class DemoUserManagementService {
   private final OrganizationService organizationService;
   private final UserService userService;
 
+  /**
+   * Constructs a new DemoUserManagementService.
+   *
+   * @param organizationService the service for managing organizations
+   * @param userService the service for managing users
+   */
   public DemoUserManagementService(
       OrganizationService organizationService, UserService userService) {
     this.organizationService = organizationService;
@@ -25,10 +37,14 @@ public class DemoUserManagementService {
   }
 
   /**
-   * Finds a user by email if they are not deleted.
+   * Finds a user by their email address.
    *
-   * @param email the email to search for
-   * @return Optional containing the user if found
+   * <p>This method searches for a user with the specified email and returns their information as a
+   * {@link UserInfo} DTO if found.
+   *
+   * @param email the email address to search for
+   * @return an {@link Optional} containing the {@link UserInfo} if a user is found, otherwise an
+   *     empty {@link Optional}
    */
   public Optional<UserInfo> findUserByEmail(String email) {
     return userService
@@ -37,12 +53,12 @@ public class DemoUserManagementService {
   }
 
   /**
-   * Creates a demo organization for testing purposes.
+   * Creates a new demo organization.
    *
-   * @param name the organization name
-   * @param slug the organization slug
-   * @param description the organization description
-   * @return the created organization info
+   * @param name the name of the organization
+   * @param slug a URL-friendly slug for the organization
+   * @param description a description for the organization
+   * @return an {@link OrganizationInfo} DTO representing the newly created organization
    */
   public OrganizationInfo createDemoOrganization(String name, String slug, String description) {
     // Create settings map with description
@@ -52,14 +68,18 @@ public class DemoUserManagementService {
   }
 
   /**
-   * Creates a demo user for testing purposes.
+   * Creates a new demo user.
    *
-   * @param email the user email
-   * @param name the user name
-   * @param organizationId the organization ID
-   * @param passwordHash the encoded password hash
-   * @param authMethods the authentication methods
-   * @return the created user info
+   * <p><b>Note:</b> This method is currently not implemented and will throw an {@link
+   * UnsupportedOperationException}.
+   *
+   * @param email the email address of the user
+   * @param name the name of the user
+   * @param organizationId the ID of the organization the user belongs to
+   * @param passwordHash the encoded password hash for the user
+   * @param authMethods the authentication methods for the user
+   * @return a {@link UserInfo} DTO representing the newly created user
+   * @throws UnsupportedOperationException as this method is not yet implemented
    */
   public UserInfo createDemoUser(
       String email,
@@ -73,6 +93,12 @@ public class DemoUserManagementService {
     throw new UnsupportedOperationException("Demo user creation needs to be implemented");
   }
 
+  /**
+   * Converts a {@link User} entity to a {@link UserInfo} DTO.
+   *
+   * @param user the user entity to convert
+   * @return the corresponding user info DTO
+   */
   private UserInfo toUserInfo(com.platform.user.internal.User user) {
     return new UserInfo(
         user.getId(),
@@ -81,18 +107,33 @@ public class DemoUserManagementService {
         user.getOrganization() != null ? user.getOrganization().getId() : null);
   }
 
+  /**
+   * Converts an {@link Organization} entity to an {@link OrganizationInfo} DTO.
+   *
+   * @param org the organization entity to convert
+   * @return the corresponding organization info DTO
+   */
   private OrganizationInfo toOrganizationInfo(com.platform.user.internal.Organization org) {
     return new OrganizationInfo(org.getId(), org.getName(), org.getSlug());
   }
 
   /**
-   * DTO for user information to avoid exposing internal entities.
+   * DTO for user information, used to avoid exposing internal entities.
+   *
+   * @param id the unique identifier of the user
+   * @param email the email address of the user
+   * @param name the name of the user
+   * @param organizationId the ID of the organization the user belongs to
    */
   public record UserInfo(
       java.util.UUID id, String email, String name, java.util.UUID organizationId) {}
 
   /**
-   * DTO for organization information to avoid exposing internal entities.
+   * DTO for organization information, used to avoid exposing internal entities.
+   *
+   * @param id the unique identifier of the organization
+   * @param name the name of the organization
+   * @param slug a URL-friendly slug for the organization
    */
   public record OrganizationInfo(java.util.UUID id, String name, String slug) {}
 }

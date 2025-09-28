@@ -1,37 +1,45 @@
 package com.platform.payment.api;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-
 import com.platform.payment.api.PaymentDto.BillingAddress;
 import com.platform.payment.api.PaymentDto.BillingDetails;
 import com.platform.payment.api.PaymentDto.CardDetails;
 import com.platform.payment.api.PaymentDto.ConfirmPaymentIntentRequest;
 import com.platform.payment.api.PaymentDto.CreatePaymentIntentRequest;
+import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
 import com.platform.payment.api.PaymentDto.PaymentMethodResponse;
 import com.platform.payment.api.PaymentDto.PaymentResponse;
 import com.platform.payment.api.PaymentDto.PaymentStatisticsResponse;
 import com.platform.payment.api.PaymentDto.PaymentStatus;
-import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
 import com.platform.payment.internal.Payment;
-import com.platform.payment.internal.PaymentService;
-import com.platform.payment.internal.PaymentView;
 import com.platform.payment.internal.PaymentMethod;
 import com.platform.payment.internal.PaymentMethodView;
+import com.platform.payment.internal.PaymentService;
+import com.platform.payment.internal.PaymentView;
 import com.stripe.exception.StripeException;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 /**
- * Implementation of PaymentManagementService that bridges the API and internal layers.
- * This service converts between internal entities and API DTOs.
+ * Implements the {@link PaymentManagementService} interface, acting as a bridge between the API
+ * layer and the internal payment service.
+ *
+ * <p>This service is responsible for translating API-level Data Transfer Objects (DTOs) into
+ * internal domain objects and vice versa. It orchestrates calls to the {@link PaymentService} to
+ * perform the core business logic.
+ * </p>
  */
 @Service
 public class PaymentManagementServiceImpl implements PaymentManagementService {
 
   private final PaymentService paymentService;
 
+  /**
+   * Constructs the service with the internal {@link PaymentService}.
+   *
+   * @param paymentService The core service for handling payment logic.
+   */
   public PaymentManagementServiceImpl(PaymentService paymentService) {
     this.paymentService = paymentService;
   }
@@ -43,10 +51,11 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
       String currency,
       String paymentMethodId,
       String description,
-      boolean confirm) throws StripeException {
+      boolean confirm)
+      throws StripeException {
     var money = new com.platform.shared.types.Money(amount, currency);
-    var paymentIntent = paymentService.createPaymentIntent(
-        organizationId, money, currency, description, null);
+    var paymentIntent =
+        paymentService.createPaymentIntent(organizationId, money, currency, description, null);
 
     if (confirm) {
       if (paymentMethodId == null || paymentMethodId.isBlank()) {
@@ -64,14 +73,15 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
   }
 
   @Override
-  public PaymentResponse confirmPayment(UUID organizationId, String paymentIntentId) throws StripeException {
+  public PaymentResponse confirmPayment(UUID organizationId, String paymentIntentId)
+      throws StripeException {
     var defaultMethod =
         paymentService.getOrganizationPaymentMethods(organizationId).stream()
             .filter(PaymentMethodView::isDefault)
             .findFirst()
             .orElseThrow(
-                () -> new IllegalStateException(
-                    "No default payment method configured for organization"));
+                () ->
+                    new IllegalStateException("No default payment method configured for organization"));
 
     paymentService.confirmPaymentIntent(paymentIntentId, defaultMethod.stripePaymentMethodId());
 
@@ -83,7 +93,8 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
   }
 
   @Override
-  public PaymentResponse cancelPayment(UUID organizationId, String paymentIntentId) throws StripeException {
+  public PaymentResponse cancelPayment(UUID organizationId, String paymentIntentId)
+      throws StripeException {
     paymentService.cancelPaymentIntent(paymentIntentId);
     return paymentService
         .findByStripePaymentIntentId(paymentIntentId)
@@ -94,33 +105,37 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
 
   @Override
   public List<PaymentResponse> getOrganizationPayments(UUID organizationId) {
-    return paymentService.getOrganizationPayments(organizationId)
-        .stream()
+    return paymentService.getOrganizationPayments(organizationId).stream()
         .map(this::mapToPaymentResponse)
         .toList();
   }
 
   @Override
-  public List<PaymentResponse> getOrganizationPaymentsByStatus(UUID organizationId, String status) {
+  public List<PaymentResponse> getOrganizationPaymentsByStatus(
+      UUID organizationId, String status) {
     return paymentService.getOrganizationPaymentsByStatus(organizationId, status).stream()
         .map(this::mapToPaymentResponse)
         .toList();
   }
 
   @Override
-  public PaymentMethodResponse attachPaymentMethod(UUID organizationId, String stripePaymentMethodId) throws StripeException {
-    PaymentMethod paymentMethod = paymentService.attachPaymentMethod(organizationId, stripePaymentMethodId);
+  public PaymentMethodResponse attachPaymentMethod(
+      UUID organizationId, String stripePaymentMethodId) throws StripeException {
+    PaymentMethod paymentMethod =
+        paymentService.attachPaymentMethod(organizationId, stripePaymentMethodId);
     return mapToPaymentMethodResponse(paymentMethod);
   }
 
   @Override
   public PaymentMethodResponse setDefaultPaymentMethod(UUID organizationId, UUID paymentMethodId) {
-    PaymentMethod paymentMethod = paymentService.setDefaultPaymentMethod(organizationId, paymentMethodId);
+    PaymentMethod paymentMethod =
+        paymentService.setDefaultPaymentMethod(organizationId, paymentMethodId);
     return mapToPaymentMethodResponse(paymentMethod);
   }
 
   @Override
-  public void detachPaymentMethod(UUID organizationId, UUID paymentMethodId) throws StripeException {
+  public void detachPaymentMethod(UUID organizationId, UUID paymentMethodId)
+      throws StripeException {
     paymentService.detachPaymentMethod(organizationId, paymentMethodId);
   }
 
@@ -147,8 +162,7 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
 
   @Override
   public List<PaymentMethodResponse> getOrganizationPaymentMethods(UUID organizationId) {
-    return paymentService.getOrganizationPaymentMethods(organizationId)
-        .stream()
+    return paymentService.getOrganizationPaymentMethods(organizationId).stream()
         .map(this::mapToPaymentMethodViewResponse)
         .toList();
   }
@@ -159,8 +173,7 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
     return new PaymentStatisticsResponse(
         stats.totalSuccessfulPayments(),
         stats.totalAmount().getAmount(),
-        stats.recentAmount().getAmount()
-    );
+        stats.recentAmount().getAmount());
   }
 
   @Override
@@ -196,7 +209,10 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
   }
 
   /**
-   * Maps internal PaymentView to API PaymentResponse DTO.
+   * Maps an internal {@link PaymentView} to an API-level {@link PaymentResponse} DTO.
+   *
+   * @param payment The internal payment view object.
+   * @return The corresponding payment response DTO.
    */
   private PaymentResponse mapToPaymentResponse(PaymentView payment) {
     return new PaymentResponse(
@@ -208,50 +224,55 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
         mapToApiPaymentStatus(payment.status()),
         null, // PaymentView doesn't have paymentMethodId field
         payment.description(),
-        payment.createdAt()
-    );
+        payment.createdAt());
   }
 
   /**
-   * Maps internal PaymentMethod entity to API PaymentMethodResponse DTO.
+   * Maps an internal {@link PaymentMethod} entity to an API-level {@link PaymentMethodResponse}
+   * DTO.
+   *
+   * @param paymentMethod The internal payment method entity.
+   * @return The corresponding payment method response DTO.
    */
   private PaymentMethodResponse mapToPaymentMethodResponse(PaymentMethod paymentMethod) {
     return mapToPaymentMethodViewResponse(PaymentMethodView.fromEntity(paymentMethod));
   }
 
   /**
-   * Maps internal PaymentMethodView to API PaymentMethodResponse DTO.
+   * Maps an internal {@link PaymentMethodView} to an API-level {@link PaymentMethodResponse} DTO.
+   *
+   * @param paymentMethod The internal payment method view object.
+   * @return The corresponding payment method response DTO.
    */
   private PaymentMethodResponse mapToPaymentMethodViewResponse(PaymentMethodView paymentMethod) {
     CardDetails cardDetails = null;
     if (paymentMethod.type() == PaymentMethod.Type.CARD) {
-      cardDetails = new CardDetails(
-          paymentMethod.lastFour(),
-          paymentMethod.brand(),
-          paymentMethod.expMonth(),
-          paymentMethod.expYear()
-      );
+      cardDetails =
+          new CardDetails(
+              paymentMethod.lastFour(),
+              paymentMethod.brand(),
+              paymentMethod.expMonth(),
+              paymentMethod.expYear());
     }
 
     BillingDetails billingDetails = null;
-    if (paymentMethod.billingName() != null || paymentMethod.billingEmail() != null || paymentMethod.billingAddress() != null) {
+    if (paymentMethod.billingName() != null
+        || paymentMethod.billingEmail() != null
+        || paymentMethod.billingAddress() != null) {
       BillingAddress address = null;
       if (paymentMethod.billingAddress() != null) {
         var addr = paymentMethod.billingAddress();
-        address = new BillingAddress(
-            addr.getAddressLine1(),
-            addr.getAddressLine2(),
-            addr.getCity(),
-            addr.getState(),
-            addr.getPostalCode(),
-            addr.getCountry()
-        );
+        address =
+            new BillingAddress(
+                addr.getAddressLine1(),
+                addr.getAddressLine2(),
+                addr.getCity(),
+                addr.getState(),
+                addr.getPostalCode(),
+                addr.getCountry());
       }
-      billingDetails = new BillingDetails(
-          paymentMethod.billingName(),
-          paymentMethod.billingEmail(),
-          address
-      );
+      billingDetails =
+          new BillingDetails(paymentMethod.billingName(), paymentMethod.billingEmail(), address);
     }
 
     return new PaymentMethodResponse(
@@ -263,30 +284,30 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
         paymentMethod.displayName(),
         cardDetails,
         billingDetails,
-        paymentMethod.createdAt()
-    );
+        paymentMethod.createdAt());
   }
 
   /**
-   * Maps API BillingDetails to internal BillingAddress.
+   * Maps an API-level {@link BillingDetails} DTO to an internal {@link
+   * PaymentMethod.BillingAddress} object.
+   *
+   * @param billingDetails The API DTO for billing details.
+   * @return The internal billing address object, or null if the input address is null.
    */
   private PaymentMethod.BillingAddress mapToBillingAddress(BillingDetails billingDetails) {
     if (billingDetails.address() == null) {
       return null;
     }
-
     var addr = billingDetails.address();
     return new PaymentMethod.BillingAddress(
-        addr.addressLine1(),
-        addr.city(),
-        addr.state(),
-        addr.postalCode(),
-        addr.country()
-    );
+        addr.addressLine1(), addr.city(), addr.state(), addr.postalCode(), addr.country());
   }
 
   /**
-   * Maps internal Payment status string to API PaymentStatus.
+   * Maps an internal payment status string to the public API {@link PaymentStatus} enum.
+   *
+   * @param internalStatus The status string from the internal domain.
+   * @return The corresponding public API {@link PaymentStatus}.
    */
   private PaymentStatus mapToApiPaymentStatus(String internalStatus) {
     try {
@@ -297,15 +318,15 @@ public class PaymentManagementServiceImpl implements PaymentManagementService {
         case CANCELED -> PaymentStatus.CANCELED;
         case PROCESSING, REQUIRES_CAPTURE -> PaymentStatus.PROCESSING;
         case PENDING -> PaymentStatus.PENDING;
-        case REQUIRES_PAYMENT_METHOD,
-            REQUIRES_CONFIRMATION,
-            REQUIRES_ACTION -> PaymentStatus.REQUIRES_ACTION;
+        case REQUIRES_PAYMENT_METHOD, REQUIRES_CONFIRMATION, REQUIRES_ACTION ->
+            PaymentStatus.REQUIRES_ACTION;
       };
     } catch (IllegalArgumentException e) {
       return PaymentStatus.PENDING;
     }
   }
 
+  /** A private static helper class for mapping Payment entities to views. */
   private static final class PaymentDtoMapper {
 
     private PaymentDtoMapper() {}

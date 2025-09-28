@@ -18,7 +18,18 @@ import com.platform.shared.security.TenantContext;
 import com.platform.user.events.InvitationCreatedEvent;
 import com.platform.user.events.OrganizationCreatedEvent;
 
-/** Service for managing organization operations and team collaboration. */
+/**
+ * Service for managing organizations, memberships, and invitations.
+ *
+ * <p>This service encapsulates the core business logic for organization-related operations,
+ * including creating and managing organizations, handling user invitations, and managing member
+ * roles. It coordinates with repositories and other services to ensure data consistency and
+ * security.
+ *
+ * @see Organization
+ * @see OrganizationMember
+ * @see Invitation
+ */
 @Service
 @Transactional
 public class OrganizationService {
@@ -33,6 +44,17 @@ public class OrganizationService {
   private final ApplicationEventPublisher eventPublisher;
   private final AuditService auditService;
 
+  /**
+   * Constructs a new OrganizationService.
+   *
+   * @param organizationRepository the repository for managing organizations
+   * @param memberRepository the repository for managing organization members
+   * @param invitationRepository the repository for managing invitations
+   * @param userRepository the repository for managing users
+   * @param userService the service for managing users
+   * @param eventPublisher the event publisher for application events
+   * @param auditService the service for logging audit events
+   */
   public OrganizationService(
       OrganizationRepository organizationRepository,
       OrganizationMemberRepository memberRepository,
@@ -50,7 +72,16 @@ public class OrganizationService {
     this.auditService = auditService;
   }
 
-  /** Create a new organization */
+  /**
+   * Creates a new organization and assigns the current user as its owner.
+   *
+   * @param name the name of the organization
+   * @param slug a unique, URL-friendly slug for the organization
+   * @param settings a map of custom settings for the organization
+   * @return the newly created {@link Organization} entity
+   * @throws SecurityException if no user is authenticated
+   * @throws IllegalArgumentException if the slug already exists
+   */
   public Organization createOrganization(String name, String slug, Map<String, Object> settings) {
     UUID currentUserId = TenantContext.getCurrentUserId();
     if (currentUserId == null) {
@@ -152,36 +183,71 @@ public class OrganizationService {
     return savedOrganization;
   }
 
-  /** Create a new organization and return a view */
+  /**
+   * Creates a new organization and returns a read-only view of it.
+   *
+   * @param name the name of the organization
+   * @param slug a unique, URL-friendly slug for the organization
+   * @param settings a map of custom settings for the organization
+   * @return an {@link OrganizationView} of the newly created organization
+   */
   public OrganizationView createOrganizationView(String name, String slug, Map<String, Object> settings) {
     return OrganizationView.fromEntity(createOrganization(name, slug, settings));
   }
 
-  /** Get organization by ID */
+  /**
+   * Finds an organization by its ID, excluding soft-deleted ones.
+   *
+   * @param organizationId the ID of the organization
+   * @return an {@link Optional} containing the organization if found, otherwise an empty {@link
+   *     Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<Organization> findById(UUID organizationId) {
     return organizationRepository.findById(organizationId).filter(org -> !org.isDeleted());
   }
 
-  /** Get organization view by ID */
+  /**
+   * Finds an organization by its ID and returns a read-only view.
+   *
+   * @param organizationId the ID of the organization
+   * @return an {@link Optional} containing the organization view if found, otherwise an empty
+   *     {@link Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<OrganizationView> findViewById(UUID organizationId) {
     return findById(organizationId).map(OrganizationView::fromEntity);
   }
 
-  /** Get organization by slug */
+  /**
+   * Finds an organization by its slug, excluding soft-deleted ones.
+   *
+   * @param slug the slug of the organization
+   * @return an {@link Optional} containing the organization if found, otherwise an empty {@link
+   *     Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<Organization> findBySlug(String slug) {
     return organizationRepository.findBySlugAndDeletedAtIsNull(slug);
   }
 
-  /** Get organization view by slug */
+  /**
+   * Finds an organization by its slug and returns a read-only view.
+   *
+   * @param slug the slug of the organization
+   * @return an {@link Optional} containing the organization view if found, otherwise an empty
+   *     {@link Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<OrganizationView> findViewBySlug(String slug) {
     return findBySlug(slug).map(OrganizationView::fromEntity);
   }
 
-  /** Get organizations for current user */
+  /**
+   * Retrieves all organizations the current user is a member of.
+   *
+   * @return a list of organizations the current user belongs to
+   */
   @Transactional(readOnly = true)
   public List<Organization> getUserOrganizations() {
     UUID currentUserId = TenantContext.getCurrentUserId();
@@ -196,13 +262,23 @@ public class OrganizationService {
         .collect(java.util.stream.Collectors.toList());
   }
 
-  /** Get organization views for current user */
+  /**
+   * Retrieves read-only views of all organizations the current user is a member of.
+   *
+   * @return a list of organization views the current user belongs to
+   */
   @Transactional(readOnly = true)
   public List<OrganizationView> getUserOrganizationViews() {
     return getUserOrganizations().stream().map(OrganizationView::fromEntity).toList();
   }
 
-  /** Get all non-deleted organizations as views (admin/test utilities). */
+  /**
+   * Retrieves read-only views of all non-deleted organizations.
+   *
+   * <p>This method is intended for administrative or testing purposes.
+   *
+   * @return a list of all active organization views
+   */
   @Transactional(readOnly = true)
   public List<OrganizationView> getAllOrganizationViews() {
     return organizationRepository.findAll().stream()
@@ -211,7 +287,16 @@ public class OrganizationService {
         .toList();
   }
 
-  /** Update organization details */
+  /**
+   * Updates the details of an organization.
+   *
+   * @param organizationId the ID of the organization to update
+   * @param name the new name for the organization
+   * @param settings a map of new settings for the organization
+   * @return the updated {@link Organization} entity
+   * @throws IllegalArgumentException if the organization is not found
+   * @throws SecurityException if the current user is not an administrator of the organization
+   */
   public Organization updateOrganization(
       UUID organizationId, String name, Map<String, Object> settings) {
     Organization organization =
@@ -273,11 +358,27 @@ public class OrganizationService {
     return savedOrganization;
   }
 
+  /**
+   * Updates the details of an organization and returns a read-only view.
+   *
+   * @param organizationId the ID of the organization to update
+   * @param name the new name for the organization
+   * @param settings a map of new settings for the organization
+   * @return an {@link OrganizationView} of the updated organization
+   */
   public OrganizationView updateOrganizationView(UUID organizationId, String name, Map<String, Object> settings) {
     return OrganizationView.fromEntity(updateOrganization(organizationId, name, settings));
   }
 
-  /** Update organization settings only */
+  /**
+   * Updates the settings of an organization.
+   *
+   * @param organizationId the ID of the organization to update
+   * @param settings a map of new settings for the organization
+   * @return the updated {@link Organization} entity
+   * @throws IllegalArgumentException if the organization is not found
+   * @throws SecurityException if the current user is not an administrator of the organization
+   */
   public Organization updateSettings(UUID organizationId, Map<String, Object> settings) {
     Organization organization =
         findById(organizationId)
@@ -293,11 +394,24 @@ public class OrganizationService {
     return savedOrganization;
   }
 
+  /**
+   * Updates the settings of an organization and returns a read-only view.
+   *
+   * @param organizationId the ID of the organization to update
+   * @param settings a map of new settings for the organization
+   * @return an {@link OrganizationView} of the updated organization
+   */
   public OrganizationView updateSettingsView(UUID organizationId, Map<String, Object> settings) {
     return OrganizationView.fromEntity(updateSettings(organizationId, settings));
   }
 
-  /** Delete organization (soft delete) */
+  /**
+   * Soft-deletes an organization.
+   *
+   * @param organizationId the ID of the organization to delete
+   * @throws IllegalArgumentException if the organization is not found
+   * @throws SecurityException if the current user is not an owner of the organization
+   */
   public void deleteOrganization(UUID organizationId) {
     Organization organization =
         findById(organizationId)
@@ -368,7 +482,13 @@ public class OrganizationService {
     logger.info("Soft deleted organization: {}", organizationId);
   }
 
-  /** Get organization members */
+  /**
+   * Retrieves a list of members for a specific organization.
+   *
+   * @param organizationId the ID of the organization
+   * @return a list of {@link OrganizationMemberInfo} DTOs representing the members
+   * @throws SecurityException if the current user is not a member of the organization
+   */
   @Transactional(readOnly = true)
   public List<OrganizationMemberInfo> getOrganizationMembers(UUID organizationId) {
     validateOrganizationAccess(organizationId, OrganizationMember.Role.MEMBER);
@@ -390,7 +510,16 @@ public class OrganizationService {
         .collect(java.util.stream.Collectors.toList());
   }
 
-  /** Invite user to organization */
+  /**
+   * Creates and sends an invitation for a user to join an organization.
+   *
+   * @param organizationId the ID of the organization to invite the user to
+   * @param email the email address of the user to invite
+   * @param role the role to assign to the user upon joining
+   * @return the created {@link Invitation} entity
+   * @throws SecurityException if the current user is not an administrator of the organization
+   * @throws IllegalArgumentException if the user is already a member or has a pending invitation
+   */
   public Invitation inviteUser(UUID organizationId, String email, OrganizationMember.Role role) {
     validateOrganizationAccess(organizationId, OrganizationMember.Role.ADMIN);
 
@@ -517,12 +646,27 @@ public class OrganizationService {
     return savedInvitation;
   }
 
-  /** Invite user and return view */
+  /**
+   * Invites a user to an organization and returns a read-only view of the invitation.
+   *
+   * @param organizationId the ID of the organization
+   * @param email the email address of the user to invite
+   * @param role the role to assign to the user
+   * @return an {@link InvitationView} of the created invitation
+   */
   public InvitationView inviteUserView(UUID organizationId, String email, OrganizationMember.Role role) {
     return InvitationView.fromEntity(inviteUser(organizationId, email, role));
   }
 
-  /** Accept invitation */
+  /**
+   * Accepts an invitation to join an organization.
+   *
+   * @param token the invitation token
+   * @return the newly created {@link OrganizationMember} record
+   * @throws SecurityException if no user is authenticated
+   * @throws IllegalArgumentException if the token is invalid, expired, or the user is already a
+   *     member
+   */
   public OrganizationMember acceptInvitation(String token) {
     UUID currentUserId = TenantContext.getCurrentUserId();
     if (currentUserId == null) {
@@ -684,12 +828,22 @@ public class OrganizationService {
     return savedMember;
   }
 
-  /** Accept invitation and return member view */
+  /**
+   * Accepts an invitation and returns a read-only view of the new membership.
+   *
+   * @param token the invitation token
+   * @return an {@link OrganizationMemberView} of the new membership
+   */
   public OrganizationMemberView acceptInvitationView(String token) {
     return OrganizationMemberView.fromEntity(acceptInvitation(token));
   }
 
-  /** Decline invitation */
+  /**
+   * Declines an invitation to join an organization.
+   *
+   * @param token the invitation token
+   * @throws IllegalArgumentException if the invitation is not found or is not pending
+   */
   public void declineInvitation(String token) {
     Invitation invitation =
         invitationRepository
@@ -705,7 +859,14 @@ public class OrganizationService {
         invitation.getOrganizationId());
   }
 
-  /** Remove member from organization */
+  /**
+   * Removes a member from an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user to remove
+   * @throws SecurityException if the current user is not an administrator of the organization
+   * @throws IllegalArgumentException if the member is not found or is the last owner
+   */
   public void removeMember(UUID organizationId, UUID userId) {
     validateOrganizationAccess(organizationId, OrganizationMember.Role.ADMIN);
 
@@ -788,7 +949,16 @@ public class OrganizationService {
     logger.info("Removed user {} from organization: {}", userId, organizationId);
   }
 
-  /** Update member role */
+  /**
+   * Updates the role of a member in an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user whose role is to be updated
+   * @param newRole the new role to assign
+   * @return the updated {@link OrganizationMember} entity
+   * @throws SecurityException if the current user is not an administrator of the organization
+   * @throws IllegalArgumentException if the member is not found or is the last owner
+   */
   public OrganizationMember updateMemberRole(
       UUID organizationId, UUID userId, OrganizationMember.Role newRole) {
     validateOrganizationAccess(organizationId, OrganizationMember.Role.ADMIN);
@@ -874,26 +1044,50 @@ public class OrganizationService {
     return savedMember;
   }
 
-  /** Update member role and return view */
+  /**
+   * Updates the role of a member and returns a read-only view.
+   *
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user
+   * @param newRole the new role to assign
+   * @return an {@link OrganizationMemberView} of the updated membership
+   */
   public OrganizationMemberView updateMemberRoleView(
       UUID organizationId, UUID userId, OrganizationMember.Role newRole) {
     return OrganizationMemberView.fromEntity(updateMemberRole(organizationId, userId, newRole));
   }
 
-  /** Get pending invitations for organization */
+  /**
+   * Retrieves a list of pending invitations for an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @return a list of pending {@link Invitation} entities
+   * @throws SecurityException if the current user is not an administrator of the organization
+   */
   @Transactional(readOnly = true)
   public List<Invitation> getPendingInvitations(UUID organizationId) {
     validateOrganizationAccess(organizationId, OrganizationMember.Role.ADMIN);
     return invitationRepository.findPendingInvitationsForOrganization(organizationId);
   }
 
-  /** Get pending invitation views */
+  /**
+   * Retrieves read-only views of pending invitations for an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @return a list of {@link InvitationView} DTOs
+   */
   @Transactional(readOnly = true)
   public List<InvitationView> getPendingInvitationViews(UUID organizationId) {
     return getPendingInvitations(organizationId).stream().map(InvitationView::fromEntity).toList();
   }
 
-  /** Revoke invitation */
+  /**
+   * Revokes a pending invitation.
+   *
+   * @param invitationId the ID of the invitation to revoke
+   * @throws IllegalArgumentException if the invitation is not found
+   * @throws SecurityException if the current user is not an administrator of the organization
+   */
   public void revokeInvitation(UUID invitationId) {
     Invitation invitation =
         invitationRepository
@@ -972,7 +1166,15 @@ public class OrganizationService {
     logger.debug("Published invitation created event for: {}", invitation.getEmail());
   }
 
-  /** Organization member information DTO */
+  /**
+   * DTO for representing organization member information.
+   *
+   * @param userId the ID of the user
+   * @param userEmail the email address of the user
+   * @param userName the name of the user
+   * @param role the role of the member in the organization
+   * @param joinedAt the timestamp when the member joined
+   */
   public record OrganizationMemberInfo(
       UUID userId,
       String userEmail,

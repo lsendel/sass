@@ -13,64 +13,135 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
- * Repository interface for User entity operations. Supports both OAuth2 and password authentication
- * with multi-tenant organization isolation.
+ * Spring Data JPA repository for {@link User} entities.
+ *
+ * <p>This interface provides methods for querying and managing user records in the database,
+ * including support for multi-tenancy, soft deletion, and advanced analytics.
+ *
+ * @see User
  */
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
   /**
-   * Find user by email and organization (excluding soft-deleted users) Multi-tenant aware - same
-   * email can exist in different organizations
+   * Finds a user by their email address and organization ID, excluding soft-deleted users.
+   *
+   * <p>This query is multi-tenant aware, allowing the same email to exist in different
+   * organizations.
+   *
+   * @param email the email address of the user
+   * @param organizationId the ID of the organization
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
    */
   @Query(
       "SELECT u FROM User u WHERE u.email.value = :email AND u.organization.id = :organizationId AND u.deletedAt IS NULL")
   Optional<User> findByEmailAndOrganizationIdAndDeletedAtIsNull(
       @Param("email") String email, @Param("organizationId") UUID organizationId);
 
-  /** Find users by email across all organizations (for admin purposes) */
+  /**
+   * Finds all non-deleted users with a specific email address across all organizations.
+   *
+   * <p>This method is intended for administrative purposes.
+   *
+   * @param email the email address to search for
+   * @return a list of users matching the email
+   */
   @Query("SELECT u FROM User u WHERE u.email.value = :email AND u.deletedAt IS NULL")
   List<User> findByEmailAcrossOrganizations(@Param("email") String email);
 
-  /** Find user by OAuth provider and provider ID */
+  /**
+   * Finds a user by their OAuth2 provider and provider-specific ID.
+   *
+   * @param provider the name of the OAuth2 provider (e.g., "google")
+   * @param providerId the user's ID from the provider
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
+   */
   Optional<User> findByProviderAndProviderId(String provider, String providerId);
 
-  /** Find user by email (including soft-deleted for admin purposes) */
+  /**
+   * Finds all users with a specific email address, including soft-deleted ones.
+   *
+   * <p>This method is intended for administrative purposes.
+   *
+   * @param email the email address to search for
+   * @return a list of all users with the given email
+   */
   @Query("SELECT u FROM User u WHERE u.email.value = :email")
   List<User> findByEmail(@Param("email") String email);
 
-  /** Find user by email and organization (including soft-deleted) */
+  /**
+   * Finds a user by their email address and organization ID, including soft-deleted ones.
+   *
+   * @param email the email address of the user
+   * @param organizationId the ID of the organization
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
+   */
   @Query(
       "SELECT u FROM User u WHERE u.email.value = :email AND u.organization.id = :organizationId")
   Optional<User> findByEmailAndOrganizationId(
       @Param("email") String email, @Param("organizationId") UUID organizationId);
 
-  /** Find all active users (not soft-deleted) */
+  /**
+   * Finds all active (not soft-deleted) users, ordered by creation date.
+   *
+   * @return a list of all active users
+   */
   @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL ORDER BY u.createdAt DESC")
   List<User> findAllActive();
 
-  /** Find all active users with pagination */
+  /**
+   * Finds all active users with pagination.
+   *
+   * @param pageable the pagination information
+   * @return a {@link Page} of active users
+   */
   @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL")
   Page<User> findByDeletedAtIsNull(Pageable pageable);
 
-  /** Find users by provider */
+  /**
+   * Finds all active users who authenticated with a specific provider.
+   *
+   * @param provider the name of the provider
+   * @return a list of users from the specified provider
+   */
   List<User> findByProviderAndDeletedAtIsNull(String provider);
 
-  /** Find users created within a date range */
+  /**
+   * Finds all active users created within a specific date range.
+   *
+   * @param startDate the start of the date range
+   * @param endDate the end of the date range
+   * @return a list of users created within the date range
+   */
   @Query(
       "SELECT u FROM User u WHERE u.createdAt BETWEEN :startDate AND :endDate AND u.deletedAt IS NULL")
   List<User> findUsersCreatedBetween(
       @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 
-  /** Count active users */
+  /**
+   * Counts the total number of active users.
+   *
+   * @return the count of active users
+   */
   @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL")
   long countActiveUsers();
 
-  /** Count users by provider */
+  /**
+   * Counts the number of active users for a specific provider.
+   *
+   * @param provider the name of the provider
+   * @return the count of users for the provider
+   */
   @Query("SELECT COUNT(u) FROM User u WHERE u.provider = :provider AND u.deletedAt IS NULL")
   long countUsersByProvider(@Param("provider") String provider);
 
-  /** Find users with specific preference */
+  /**
+   * Finds all active users with a specific preference key-value pair in their preferences JSON.
+   *
+   * @param preferenceKey the key of the preference to search for
+   * @param value the value of the preference to match
+   * @return a list of users with the specified preference
+   */
   @Query(
       value =
           "SELECT * FROM users u WHERE (u.preferences::jsonb) ->> :preferenceKey = :value AND u.deleted_at IS NULL",
@@ -78,62 +149,129 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   List<User> findByPreference(
       @Param("preferenceKey") String preferenceKey, @Param("value") String value);
 
-  /** Check if email exists in organization (excluding soft-deleted) */
+  /**
+   * Checks if an email address exists for a user in a specific organization, excluding soft-deleted
+   * users.
+   *
+   * @param email the email address to check
+   * @param organizationId the ID of the organization
+   * @return {@code true} if the email exists in the organization, {@code false} otherwise
+   */
   @Query(
       "SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email.value = :email AND u.organization.id = :organizationId AND u.deletedAt IS NULL")
   boolean existsByEmailAndOrganizationIdAndDeletedAtIsNull(
       @Param("email") String email, @Param("organizationId") UUID organizationId);
 
-  /** Find users by display name pattern (case-insensitive) */
+  /**
+   * Finds all active users whose names contain a specific pattern, ignoring case.
+   *
+   * @param namePattern the pattern to search for in user names
+   * @return a list of users matching the name pattern
+   */
   @Query(
       "SELECT u FROM User u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :namePattern, '%')) AND u.deletedAt IS NULL")
   List<User> findByNameContainingIgnoreCase(@Param("namePattern") String namePattern);
 
-  /** Soft delete user by setting deletedAt timestamp */
+  /**
+   * Soft-deletes a user by setting their {@code deletedAt} timestamp.
+   *
+   * @param userId the ID of the user to delete
+   * @param deletedAt the timestamp to set as the deletion time
+   */
   @Query("UPDATE User u SET u.deletedAt = :deletedAt WHERE u.id = :userId")
   void softDeleteUser(@Param("userId") UUID userId, @Param("deletedAt") Instant deletedAt);
 
-  /** Restore soft-deleted user */
+  /**
+   * Restores a soft-deleted user by clearing their {@code deletedAt} timestamp.
+   *
+   * @param userId the ID of the user to restore
+   */
   @Query("UPDATE User u SET u.deletedAt = NULL WHERE u.id = :userId")
   void restoreUser(@Param("userId") UUID userId);
 
-  /** Find users by multiple providers */
+  /**
+   * Finds all active users who authenticated with any of the specified providers.
+   *
+   * @param providers a list of provider names
+   * @return a list of users from the specified providers
+   */
   @Query("SELECT u FROM User u WHERE u.provider IN :providers AND u.deletedAt IS NULL")
   List<User> findByProviderIn(@Param("providers") List<String> providers);
 
-  /** Find recently active users (based on updatedAt) */
+  /**
+   * Finds all users who have been recently active, based on their {@code updatedAt} timestamp.
+   *
+   * @param since the timestamp from which to consider users as recently active
+   * @return a list of recently active users
+   */
   @Query(
       "SELECT u FROM User u WHERE u.updatedAt >= :since AND u.deletedAt IS NULL ORDER BY u.updatedAt DESC")
   List<User> findRecentlyActive(@Param("since") Instant since);
 
-  /** Custom method to find users for GDPR data export */
+  /**
+   * Finds all users with a specific email address, including soft-deleted ones, for GDPR data
+   * export purposes.
+   *
+   * @param email the email address to search for
+   * @return a list of all users with the given email
+   */
   @Query("SELECT u FROM User u WHERE u.email.value = :email")
   List<User> findAllByEmailForDataExport(@Param("email") String email);
 
   // Password authentication specific queries
 
-  /** Find user by password reset token */
+  /**
+   * Finds a user by their password reset token, excluding soft-deleted users.
+   *
+   * @param token the password reset token
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
+   */
   @Query("SELECT u FROM User u WHERE u.passwordResetToken = :token AND u.deletedAt IS NULL")
   Optional<User> findByPasswordResetToken(@Param("token") String token);
 
-  /** Find user by email verification token */
+  /**
+   * Finds a user by their email verification token, excluding soft-deleted users.
+   *
+   * @param token the email verification token
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
+   */
   @Query("SELECT u FROM User u WHERE u.emailVerificationToken = :token AND u.deletedAt IS NULL")
   Optional<User> findByEmailVerificationToken(@Param("token") String token);
 
-  /** Find users with password authentication method */
+  /**
+   * Finds all active users who have password authentication enabled.
+   *
+   * @return a list of users with password authentication
+   */
   @Query(
       "SELECT u FROM User u JOIN u.authenticationMethods am WHERE am = 'PASSWORD' AND u.deletedAt IS NULL")
   List<User> findUsersWithPasswordAuth();
 
-  /** Count users with email verification pending */
+  /**
+   * Counts the number of active users whose email addresses have not been verified.
+   *
+   * @return the count of unverified users
+   */
   @Query("SELECT COUNT(u) FROM User u WHERE u.emailVerified = false AND u.deletedAt IS NULL")
   long countUnverifiedUsers();
 
-  /** Find locked users (account lockout) */
+  /**
+   * Finds all active users whose accounts are currently locked.
+   *
+   * @param currentTime the current time, used to check if the lockout is still active
+   * @return a list of locked users
+   */
   @Query("SELECT u FROM User u WHERE u.lockoutExpiresAt > :currentTime AND u.deletedAt IS NULL")
   List<User> findLockedUsers(@Param("currentTime") Instant currentTime);
 
-  /** Search users by name or email within organization */
+  /**
+   * Searches for active users within an organization by name or email, with pagination.
+   *
+   * @param organizationId the ID of the organization to search within
+   * @param searchTerm the term to search for in names and emails
+   * @param pageable the pagination information
+   * @return a list of users matching the search criteria
+   */
   @Query(
       value =
           "SELECT u FROM User u WHERE u.organization.id = :organizationId "
@@ -146,34 +284,66 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       @Param("searchTerm") String searchTerm,
       Pageable pageable);
 
-  /** Find users by organization */
+  /**
+   * Finds all active users in a specific organization.
+   *
+   * @param organizationId the ID of the organization
+   * @return a list of users in the organization
+   */
   @Query(
       "SELECT u FROM User u WHERE u.organization.id = :organizationId AND u.deletedAt IS NULL ORDER BY u.createdAt DESC")
   List<User> findByOrganizationId(@Param("organizationId") UUID organizationId);
 
   /**
-   * Find user by email (single result, excluding soft-deleted) Legacy method compatibility - used
-   * by SessionService and UserService
+   * Finds a single active user by their email address.
+   *
+   * <p>This method is provided for legacy compatibility.
+   *
+   * @param email the email address to search for
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
    */
   @Query("SELECT u FROM User u WHERE u.email.value = :email AND u.deletedAt IS NULL")
   Optional<User> findByEmailAndDeletedAtIsNull(@Param("email") String email);
 
-  /** Check if email exists (excluding soft-deleted) - legacy compatibility */
+  /**
+   * Checks if an email address exists for any active user.
+   *
+   * <p>This method is provided for legacy compatibility.
+   *
+   * @param email the email address to check
+   * @return {@code true} if the email exists, {@code false} otherwise
+   */
   @Query(
       "SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email.value = :email AND u.deletedAt IS NULL")
   boolean existsByEmailAndDeletedAtIsNull(@Param("email") String email);
 
-  /** Count users with activity after a specific date */
+  /**
+   * Counts the number of users who have been active since a specific date.
+   *
+   * @param sinceDate the date from which to count active users
+   * @return the number of recently active users
+   */
   @Query("SELECT COUNT(u) FROM User u WHERE u.updatedAt >= :sinceDate AND u.deletedAt IS NULL")
   long countUsersActiveAfter(@Param("sinceDate") Instant sinceDate);
 
-  /** Find users with activity after a specific date */
+  /**
+   * Finds all users who have been active since a specific date.
+   *
+   * @param sinceDate the date from which to find active users
+   * @return a list of recently active users
+   */
   @Query("SELECT u FROM User u WHERE u.updatedAt >= :sinceDate AND u.deletedAt IS NULL ORDER BY u.updatedAt DESC")
   List<User> findUsersActiveAfter(@Param("sinceDate") Instant sinceDate);
 
   // ===== ADVANCED ANALYTICS QUERIES =====
 
-  /** User growth analytics - count users created by month */
+  /**
+   * Provides user growth analytics by counting new users per month within a date range.
+   *
+   * @param startDate the start of the date range
+   * @param endDate the end of the date range
+   * @return a list of object arrays, where each array contains the month and the user count
+   */
   @Query(value = """
       SELECT
           DATE_TRUNC('month', created_at) as month,
@@ -187,7 +357,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getUserGrowthByMonth(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 
-  /** User retention analytics - find users active in both periods */
+  /**
+   * Provides user retention analytics by comparing active users between two periods.
+   *
+   * @param currentPeriodStart the start of the current period
+   * @param currentPeriodEnd the end of the current period
+   * @param previousPeriodStart the start of the previous period
+   * @param previousPeriodEnd the end of the previous period
+   * @return a list containing a single object array with the count of retained users, total
+   *     previous users, and the retention rate
+   */
   @Query(value = """
       SELECT
           COUNT(DISTINCT u1.id) as retained_users,
@@ -207,7 +386,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       @Param("previousPeriodStart") Instant previousPeriodStart,
       @Param("previousPeriodEnd") Instant previousPeriodEnd);
 
-  /** Authentication method distribution analytics */
+  /**
+   * Provides analytics on the distribution of authentication methods among users.
+   *
+   * @return a list of object arrays, where each array contains the provider name, user count, and
+   *     percentage of total users
+   */
   @Query(value = """
       SELECT
           u.provider,
@@ -220,7 +404,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getAuthenticationMethodDistribution();
 
-  /** Organization size analytics */
+  /**
+   * Provides analytics on organization size and average user age.
+   *
+   * @param minUsers the minimum number of users an organization must have to be included
+   * @return a list of object arrays, where each array contains the organization name, user count,
+   *     and average user age in days
+   */
   @Query(value = """
       SELECT
           o.name as organization_name,
@@ -235,7 +425,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getOrganizationUserAnalytics(@Param("minUsers") int minUsers);
 
-  /** User activity patterns - daily, weekly, monthly */
+  /**
+   * Provides analytics on user activity patterns by day of the week and hour of the day.
+   *
+   * @param startDate the start of the date range
+   * @param endDate the end of the date range
+   * @return a list of object arrays, where each array contains the day of the week, hour of the
+   *     day, and activity count
+   */
   @Query(value = """
       SELECT
           EXTRACT(DOW FROM updated_at) as day_of_week,
@@ -250,7 +447,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getUserActivityPatterns(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 
-  /** Find users with suspicious email patterns */
+  /**
+   * Finds email domains with a high number of users, which may indicate suspicious activity.
+   *
+   * @param threshold the minimum number of users a domain must have to be considered suspicious
+   * @return a list of object arrays, where each array contains the domain, user count, and a sample
+   *     of emails
+   */
   @Query(value = """
       SELECT
           SUBSTRING(email FROM '@(.*)$') as domain,
@@ -264,7 +467,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> findSuspiciousEmailDomains(@Param("threshold") int threshold);
 
-  /** User lifecycle funnel analytics */
+  /**
+   * Provides analytics on the user lifecycle funnel, categorizing users by their current status.
+   *
+   * @param inactiveThreshold the timestamp before which users are considered inactive
+   * @return a list of object arrays, where each array contains the user status and the count of
+   *     users in that status
+   */
   @Query(value = """
       SELECT
           CASE
@@ -287,7 +496,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getUserLifecycleFunnel(@Param("inactiveThreshold") Instant inactiveThreshold);
 
-  /** Geographic distribution by organization */
+  /**
+   * Provides analytics on the geographic distribution of users, based on their timezone preference.
+   *
+   * @return a list of object arrays, where each array contains the organization name, timezone, and
+   *     user count
+   */
   @Query(value = """
       SELECT
           o.name as organization,
@@ -302,7 +516,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getUserGeographicDistribution();
 
-  /** Churn risk analysis - users inactive for specified period */
+  /**
+   * Provides churn risk analysis by identifying users who have been inactive for a specified
+   * period.
+   *
+   * @param churnThreshold the timestamp before which users are considered at risk of churning
+   * @param maxResults the maximum number of at-risk users to return
+   * @return a list of object arrays, where each array contains details about an at-risk user
+   */
   @Query(value = """
       SELECT
           u.id,
@@ -320,7 +541,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       """, nativeQuery = true)
   List<Object[]> getChurnRiskUsers(@Param("churnThreshold") Instant churnThreshold, @Param("maxResults") int maxResults);
 
-  /** User engagement scoring */
+  /**
+   * Provides user engagement scoring by categorizing users into activity levels.
+   *
+   * @param organizationId the ID of the organization
+   * @param highlyActiveThreshold the timestamp threshold for 'highly active' users
+   * @param moderatelyActiveThreshold the timestamp threshold for 'moderately active' users
+   * @param lowActiveThreshold the timestamp threshold for 'low active' users
+   * @return a list of object arrays, where each array contains user details and their engagement
+   *     level
+   */
   @Query(value = """
       SELECT
           u.id,
@@ -343,7 +573,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       @Param("moderatelyActiveThreshold") Instant moderatelyActiveThreshold,
       @Param("lowActiveThreshold") Instant lowActiveThreshold);
 
-  /** Advanced search with filters */
+  /**
+   * Provides an advanced search for users with multiple filter criteria and pagination.
+   *
+   * @param searchTerm a term to search for in user names and emails
+   * @param organizationId the ID of the organization to filter by
+   * @param provider the name of the authentication provider to filter by
+   * @param emailVerified the email verification status to filter by
+   * @param createdAfter the start date of the creation period to filter by
+   * @param createdBefore the end date of the creation period to filter by
+   * @param pageable the pagination information
+   * @return a list of users matching the search criteria
+   */
   @Query(value = """
       SELECT u.* FROM users u
       JOIN organizations o ON u.organization_id = o.id

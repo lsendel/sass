@@ -1,21 +1,31 @@
 package com.platform.payment.api;
 
-import java.util.Map;
-
+import com.platform.payment.internal.PaymentService;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Event;
+import com.stripe.net.Webhook;
 import jakarta.servlet.http.HttpServletRequest;
-
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.platform.payment.internal.PaymentService;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
-import com.stripe.net.Webhook;
-
+/**
+ * REST controller for handling incoming webhooks from Stripe.
+ *
+ * <p>This controller provides a public endpoint to receive real-time event notifications from
+ * Stripe. It is responsible for verifying the authenticity of webhook requests using the Stripe
+ * signature and delegating the event processing to the internal {@link PaymentService}.
+ * </p>
+ */
 @RestController
 @RequestMapping("/api/v1/webhooks/stripe")
 public class StripeWebhookController {
@@ -25,21 +35,33 @@ public class StripeWebhookController {
   private final PaymentService paymentService;
   private final String webhookSecret;
 
+  /**
+   * Constructs the controller with the payment service and webhook secret.
+   *
+   * @param paymentService The service responsible for processing payment events.
+   * @param webhookSecret The secret key used to verify the signature of incoming webhooks.
+   */
   public StripeWebhookController(
       PaymentService paymentService, @Value("${stripe.webhook.secret}") String webhookSecret) {
     this.paymentService = paymentService;
     this.webhookSecret = webhookSecret;
   }
 
+  /**
+   * Handles incoming webhook events from Stripe.
+   *
+   * @param payload The raw JSON payload of the webhook request.
+   * @param sigHeader The value of the "Stripe-Signature" header for verification.
+   * @param request The incoming HTTP request.
+   * @return A {@link ResponseEntity} indicating the result of the webhook processing.
+   */
   @PostMapping
   public ResponseEntity<String> handleWebhook(
       @RequestBody String payload,
       @RequestHeader("Stripe-Signature") String sigHeader,
       HttpServletRequest request) {
     Event event;
-
     try {
-      // Verify webhook signature
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
     } catch (SignatureVerificationException e) {
       logger.warn("Failed to verify Stripe webhook signature: {}", e.getMessage());
@@ -50,12 +72,10 @@ public class StripeWebhookController {
     }
 
     try {
-      // Process the event
       processStripeEvent(event);
       logger.info(
           "Successfully processed Stripe webhook: {} of type: {}", event.getId(), event.getType());
       return ResponseEntity.ok("Webhook processed successfully");
-
     } catch (Exception e) {
       logger.error(
           "Error processing Stripe webhook: {} of type: {}", event.getId(), event.getType(), e);
@@ -64,13 +84,16 @@ public class StripeWebhookController {
     }
   }
 
+  /**
+   * Processes a verified Stripe event by routing it to the appropriate handler based on its type.
+   *
+   * @param event The verified {@link Event} object from Stripe.
+   */
   private void processStripeEvent(Event event) {
     String eventType = event.getType();
     Map<String, Object> eventData = new java.util.HashMap<>();
     try {
-      // Get the event data directly from raw JSON if available
       if (event.getData() != null && event.getData().getObject() != null) {
-        // Store basic information we need
         eventData.put("type", eventType);
         eventData.put("id", event.getId());
       }
@@ -114,67 +137,33 @@ public class StripeWebhookController {
       }
 
         // Customer events
-      case "customer.created" -> {
-        logger.info("Customer created: {}", getCustomerId(eventData));
-      }
-      case "customer.updated" -> {
-        logger.info("Customer updated: {}", getCustomerId(eventData));
-      }
-      case "customer.deleted" -> {
-        logger.warn("Customer deleted: {}", getCustomerId(eventData));
-      }
+      case "customer.created" -> logger.info("Customer created: {}", getCustomerId(eventData));
+      case "customer.updated" -> logger.info("Customer updated: {}", getCustomerId(eventData));
+      case "customer.deleted" -> logger.warn("Customer deleted: {}", getCustomerId(eventData));
 
         // Invoice events (for subscription billing)
-      case "invoice.created" -> {
-        logger.info("Invoice created: {}", getInvoiceId(eventData));
-      }
-      case "invoice.payment_succeeded" -> {
-        logger.info("Invoice payment succeeded: {}", getInvoiceId(eventData));
-      }
-      case "invoice.payment_failed" -> {
-        logger.warn("Invoice payment failed: {}", getInvoiceId(eventData));
-      }
-      case "invoice.finalized" -> {
-        logger.info("Invoice finalized: {}", getInvoiceId(eventData));
-      }
+      case "invoice.created" -> logger.info("Invoice created: {}", getInvoiceId(eventData));
+      case "invoice.payment_succeeded" -> logger.info("Invoice payment succeeded: {}", getInvoiceId(eventData));
+      case "invoice.payment_failed" -> logger.warn("Invoice payment failed: {}", getInvoiceId(eventData));
+      case "invoice.finalized" -> logger.info("Invoice finalized: {}", getInvoiceId(eventData));
 
         // Subscription events
-      case "customer.subscription.created" -> {
-        logger.info("Subscription created: {}", getSubscriptionId(eventData));
-      }
-      case "customer.subscription.updated" -> {
-        logger.info("Subscription updated: {}", getSubscriptionId(eventData));
-      }
-      case "customer.subscription.deleted" -> {
-        logger.warn("Subscription deleted: {}", getSubscriptionId(eventData));
-      }
+      case "customer.subscription.created" -> logger.info("Subscription created: {}", getSubscriptionId(eventData));
+      case "customer.subscription.updated" -> logger.info("Subscription updated: {}", getSubscriptionId(eventData));
+      case "customer.subscription.deleted" -> logger.warn("Subscription deleted: {}", getSubscriptionId(eventData));
 
         // Charge events (for disputes and refunds)
-      case "charge.succeeded" -> {
-        logger.info("Charge succeeded: {}", getChargeId(eventData));
-      }
-      case "charge.failed" -> {
-        logger.warn("Charge failed: {}", getChargeId(eventData));
-      }
-      case "charge.dispute.created" -> {
-        logger.warn("Charge dispute created: {}", getChargeId(eventData));
-      }
+      case "charge.succeeded" -> logger.info("Charge succeeded: {}", getChargeId(eventData));
+      case "charge.failed" -> logger.warn("Charge failed: {}", getChargeId(eventData));
+      case "charge.dispute.created" -> logger.warn("Charge dispute created: {}", getChargeId(eventData));
 
         // Setup Intent events (for saving payment methods)
-      case "setup_intent.succeeded" -> {
-        logger.info("Setup intent succeeded: {}", getSetupIntentId(eventData));
-      }
-      case "setup_intent.setup_failed" -> {
-        logger.warn("Setup intent failed: {}", getSetupIntentId(eventData));
-      }
-
-      default -> {
-        logger.debug("Received unhandled Stripe webhook event type: {}", eventType);
-      }
+      case "setup_intent.succeeded" -> logger.info("Setup intent succeeded: {}", getSetupIntentId(eventData));
+      case "setup_intent.setup_failed" -> logger.warn("Setup intent failed: {}", getSetupIntentId(eventData));
+      default -> logger.debug("Received unhandled Stripe webhook event type: {}", eventType);
     }
   }
 
-  // Helper methods to extract IDs from event data
   private String getPaymentIntentId(Map<String, Object> eventData) {
     return getIdFromEventData(eventData, "payment_intent");
   }
@@ -216,6 +205,11 @@ public class StripeWebhookController {
     return "unknown";
   }
 
+  /**
+   * A simple health check endpoint for the webhook controller.
+   *
+   * @return A {@link ResponseEntity} with a success message.
+   */
   @GetMapping("/health")
   public ResponseEntity<String> health() {
     return ResponseEntity.ok("Webhook endpoint is healthy");

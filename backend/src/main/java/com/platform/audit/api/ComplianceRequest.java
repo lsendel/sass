@@ -3,7 +3,12 @@ package com.platform.audit.api;
 import java.time.Instant;
 
 /**
- * Request object for generating compliance reports
+ * Represents a request to generate a compliance report.
+ *
+ * <p>This class encapsulates the parameters needed to generate a compliance report,
+ * such as the specific regulation, the time frame, and the scope of the report.
+ * It is designed to be used as a Data Transfer Object (DTO) for API endpoints.
+ * </p>
  */
 public class ComplianceRequest {
 
@@ -14,6 +19,9 @@ public class ComplianceRequest {
     private String organizationId;
     private ComplianceScope scope;
 
+    /**
+     * Default constructor for frameworks like Jackson.
+     */
     public ComplianceRequest() {}
 
     private ComplianceRequest(Builder builder) {
@@ -25,6 +33,11 @@ public class ComplianceRequest {
         this.scope = builder.scope;
     }
 
+    /**
+     * Creates a new {@link Builder} for constructing a {@code ComplianceRequest}.
+     *
+     * @return A new {@link Builder} instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -45,6 +58,9 @@ public class ComplianceRequest {
     public void setOrganizationId(String organizationId) { this.organizationId = organizationId; }
     public void setScope(ComplianceScope scope) { this.scope = scope; }
 
+    /**
+     * Builder for creating instances of {@link ComplianceRequest}.
+     */
     public static class Builder {
         private ComplianceRegulation regulation;
         private Instant fromDate;
@@ -83,25 +99,46 @@ public class ComplianceRequest {
             return this;
         }
 
+        /**
+         * Builds the {@link ComplianceRequest} instance.
+         * @return A new {@link ComplianceRequest}.
+         */
         public ComplianceRequest build() {
             return new ComplianceRequest(this);
         }
     }
 
+    /**
+     * Enumerates common compliance regulations that can be reported on.
+     */
     public enum ComplianceRegulation {
-        GDPR,       // General Data Protection Regulation
-        PCI_DSS,    // Payment Card Industry Data Security Standard
-        SOX,        // Sarbanes-Oxley Act
-        HIPAA,      // Health Insurance Portability and Accountability Act
-        ISO_27001,  // ISO/IEC 27001 Information Security Management
-        NIST,       // NIST Cybersecurity Framework
-        CCPA        // California Consumer Privacy Act
+        /** General Data Protection Regulation */
+        GDPR,
+        /** Payment Card Industry Data Security Standard */
+        PCI_DSS,
+        /** Sarbanes-Oxley Act */
+        SOX,
+        /** Health Insurance Portability and Accountability Act */
+        HIPAA,
+        /** ISO/IEC 27001 Information Security Management */
+        ISO_27001,
+        /** NIST Cybersecurity Framework */
+        NIST,
+        /** California Consumer Privacy Act */
+        CCPA
     }
 
+    /**
+     * Defines the scope and level of detail for a compliance report.
+     */
     public enum ComplianceScope {
-        BASIC,      // Basic compliance metrics
-        STANDARD,   // Standard compliance report
-        DETAILED,   // Detailed compliance analysis
-        AUDIT_READY // Full audit-ready compliance report
+        /** Basic compliance metrics only. */
+        BASIC,
+        /** A standard, well-rounded compliance report. */
+        STANDARD,
+        /** A detailed compliance analysis with extensive evidence. */
+        DETAILED,
+        /** A comprehensive, audit-ready compliance report. */
+        AUDIT_READY
     }
 }
