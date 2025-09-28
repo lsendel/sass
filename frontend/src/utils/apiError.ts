@@ -30,13 +30,18 @@ export function parseApiError(err: unknown): ParsedApiError {
         : status === 403
           ? 'Forbidden'
           : 'Request failed')
-    return { status, message }
+    
+    if (status !== undefined) {
+      return { status, message }
+    } else {
+      return { message }
+    }
   }
 
   // SerializedError or generic
   const se = err as SerializedError
   if (se && typeof se === 'object' && ('message' in se || 'name' in se)) {
-    return { message: (se.message!) ?? 'Unexpected error' }
+    return { message: (se.message!) ?? 'Unexpected error' } as ParsedApiError
   }
 
   return { message: 'Unexpected error' }

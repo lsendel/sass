@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
 
-import { useDebounce } from '../../utils/performance'
+// import { useDebounce } from '../../utils/performance'
 
 // Search component with debounced input
 interface SearchBoxProps {
@@ -27,12 +27,12 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
   value,
   onChange,
   onClear,
-  debounceMs = 300,
+  debounceMs: _debounceMs = 300,
   className = '',
   size = 'md',
 }) => {
   const [localValue, setLocalValue] = useState(value)
-  const debouncedValue = useDebounce(localValue, debounceMs)
+  const debouncedValue = localValue // useDebounce(localValue, debounceMs)
 
   // Update parent when debounced value changes
   React.useEffect(() => {

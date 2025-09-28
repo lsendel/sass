@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CalendarIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/20/solid';
+import React, { useState } from 'react'
+import { CalendarIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import type { AuditLogFilter } from '../../store/api/auditApi';
 
 interface AuditLogFiltersProps {
@@ -15,7 +15,7 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const updateFilter = (key: keyof AuditLogFilter, value: any) => {
+  const updateFilter = (key: keyof AuditLogFilter, value: AuditLogFilter[keyof AuditLogFilter]) => {
     onFiltersChange({
       ...filters,
       [key]: value,
@@ -23,11 +23,11 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
   };
 
   const hasActiveFilters = Boolean(
-    filters.search ||
-    filters.dateFrom ||
-    filters.dateTo ||
-    filters.actionTypes?.length ||
-    filters.resourceTypes?.length ||
+    filters.search ??
+    filters.dateFrom ??
+    filters.dateTo ??
+    filters.actionTypes?.length ??
+    filters.resourceTypes?.length ??
     filters.outcomes?.length
   );
 
@@ -49,7 +49,7 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
     try {
       const date = new Date(value);
       updateFilter(key, date.toISOString());
-    } catch (error) {
+    } catch {
       console.warn('Invalid date format:', value);
     }
   };
@@ -88,7 +88,7 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
     value: string,
     checked: boolean
   ) => {
-    const currentValues = filters[key] || [];
+    const currentValues = filters[key] ?? [];
     const newValues = checked
       ? [...currentValues, value]
       : currentValues.filter(v => v !== value);
@@ -168,7 +168,7 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
                     filters.actionTypes?.length,
                     filters.resourceTypes?.length,
                     filters.outcomes?.length,
-                  ].filter(Boolean).reduce((a, b) => (a || 0) + (b || 0), 0)}
+                    ].filter(Boolean).reduce((a, b) => (a ?? 0) + (b ?? 0), 0)}
                 </span>
               )}
             </button>
@@ -181,64 +181,76 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
         <div className="px-6 pb-4 border-t border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             {/* Action Types */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">
                 Action Types
-              </label>
+              </legend>
               <div className="space-y-2 max-h-40 overflow-y-auto">
-                {actionTypeOptions.map((option) => (
-                  <label key={option} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.actionTypes?.includes(option) || false}
-                      onChange={(e) => handleMultiSelectChange('actionTypes', option, e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{option}</span>
-                  </label>
-                ))}
+                {actionTypeOptions.map((option) => {
+                  const id = `action-type-${option.toLowerCase()}`;
+                  return (
+                    <label key={option} htmlFor={id} className="flex items-center">
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={filters.actionTypes?.includes(option) ?? false}
+                        onChange={(e) => handleMultiSelectChange('actionTypes', option, e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{option}</span>
+                    </label>
+                  );
+                })}
               </div>
-            </div>
+            </fieldset>
 
             {/* Resource Types */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">
                 Resource Types
-              </label>
+              </legend>
               <div className="space-y-2 max-h-40 overflow-y-auto">
-                {resourceTypeOptions.map((option) => (
-                  <label key={option} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.resourceTypes?.includes(option) || false}
-                      onChange={(e) => handleMultiSelectChange('resourceTypes', option, e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{option}</span>
-                  </label>
-                ))}
+                {resourceTypeOptions.map((option) => {
+                  const id = `resource-type-${option.toLowerCase()}`;
+                  return (
+                    <label key={option} htmlFor={id} className="flex items-center">
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={filters.resourceTypes?.includes(option) ?? false}
+                        onChange={(e) => handleMultiSelectChange('resourceTypes', option, e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{option}</span>
+                    </label>
+                  );
+                })}
               </div>
-            </div>
+            </fieldset>
 
             {/* Outcomes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">
                 Outcomes
-              </label>
+              </legend>
               <div className="space-y-2">
-                {outcomeOptions.map((option) => (
-                  <label key={option} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.outcomes?.includes(option) || false}
-                      onChange={(e) => handleMultiSelectChange('outcomes', option, e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{option}</span>
-                  </label>
-                ))}
+                {outcomeOptions.map((option) => {
+                  const id = `outcome-${option.toLowerCase()}`;
+                  return (
+                    <label key={option} htmlFor={id} className="flex items-center">
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={filters.outcomes?.includes(option) ?? false}
+                        onChange={(e) => handleMultiSelectChange('outcomes', option, e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{option}</span>
+                    </label>
+                  );
+                })}
               </div>
-            </div>
+            </fieldset>
           </div>
         </div>
       )}

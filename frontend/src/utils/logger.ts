@@ -9,8 +9,11 @@ const resolveDevFlag = (): boolean => {
     return devOverride
   }
 
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV) {
-    return process.env.NODE_ENV !== 'production'
+  // Check environment variable for development mode
+  try {
+    return import.meta.env?.DEV === true
+  } catch {
+    return false
   }
 
   try {

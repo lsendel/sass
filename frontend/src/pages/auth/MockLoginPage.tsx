@@ -41,8 +41,7 @@ const MockLoginPage: React.FC = () => {
 
       // Update Redux store
       dispatch(setCredentials({
-        user: mockUser,
-        token: mockToken
+        user: mockUser
       }))
 
       // Store in localStorage for persistence

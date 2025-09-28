@@ -15,10 +15,13 @@ public record AuditLogFilter(
     Instant dateTo,
     String search,
     List<String> actionTypes,
+    List<String> resourceTypes,
     List<String> actorEmails,
     Boolean includeSystemActions,
     Integer pageNumber,
-    Integer pageSize
+    Integer pageSize,
+    String sortField,
+    String sortDirection
 ) {
 
     public AuditLogFilter {
@@ -28,6 +31,13 @@ public record AuditLogFilter(
         }
         if (pageSize == null || pageSize <= 0 || pageSize > 1000) {
             pageSize = 50;
+        }
+        // Default values for sorting
+        if (sortField == null || sortField.trim().isEmpty()) {
+            sortField = "timestamp";
+        }
+        if (sortDirection == null || (!sortDirection.equalsIgnoreCase("ASC") && !sortDirection.equalsIgnoreCase("DESC"))) {
+            sortDirection = "DESC";
         }
     }
 
@@ -48,9 +58,12 @@ public record AuditLogFilter(
             search,
             null,
             null,
+            null,
             false,
             page,
-            size
+            size,
+            "timestamp",
+            "DESC"
         );
     }
 
@@ -72,9 +85,12 @@ public record AuditLogFilter(
             search,
             null,
             null,
+            null,
             false,
             page,
-            size
+            size,
+            "timestamp",
+            "DESC"
         );
     }
 
@@ -107,5 +123,13 @@ public record AuditLogFilter(
             return null;
         }
         return search.trim().toLowerCase();
+    }
+
+    // Convenience methods for API compatibility
+    public String searchText() { return search; }
+    public Integer page() { return pageNumber; }
+    public Integer size() { return pageSize; }
+    public boolean hasResourceTypes() {
+        return resourceTypes != null && !resourceTypes.isEmpty();
     }
 }

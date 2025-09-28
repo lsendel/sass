@@ -103,7 +103,7 @@ export const auditApi = createApi({
     // Get detailed audit log entry
     getAuditLogDetail: builder.query<AuditLogDetail, string>({
       query: (id) => `/logs/${id}`,
-      providesTags: (result, error, id) => [{ type: 'AuditLog', id }],
+      providesTags: (_result, _error, id) => [{ type: 'AuditLog', id }],
     }),
 
     // Request audit log export
@@ -119,7 +119,7 @@ export const auditApi = createApi({
     // Get export status
     getExportStatus: builder.query<ExportStatusResponse, string>({
       query: (exportId) => `/export/${exportId}/status`,
-      providesTags: (result, error, exportId) => [{ type: 'Export', id: exportId }],
+      providesTags: (_result, _error, exportId) => [{ type: 'Export', id: exportId }],
     }),
 
     // Download export (returns blob URL)

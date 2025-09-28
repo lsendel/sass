@@ -156,7 +156,7 @@ export const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
 
     // RTK Query error
     if (typeof error === 'object' && 'status' in error) {
-      const rtqError = error as { status: number | string; data?: any }
+      const rtqError = error as { status: number | string; data?: unknown }
 
       switch (rtqError.status) {
         case 404:
@@ -168,7 +168,7 @@ export const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
           return { variant: 'network' as const }
         default:
           return {
-            message: rtqError.data?.message || fallbackMessage,
+            message: typeof rtqError.data === 'object' && rtqError.data !== null && 'message' in rtqError.data ? String(rtqError.data.message) : fallbackMessage,
             variant: 'error' as const
           }
       }

@@ -112,7 +112,7 @@ export const AuditLogDetailModal: React.FC<AuditLogDetailModalProps> = ({
               <h3 className="mt-2 text-sm font-medium text-gray-900">Failed to load details</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object'
-                  ? (error.data as any).message || 'Unable to retrieve audit log details'
+                  ? (error.data as { message?: string }).message ?? 'Unable to retrieve audit log details'
                   : 'Unable to retrieve audit log details'}
               </p>
             </div>

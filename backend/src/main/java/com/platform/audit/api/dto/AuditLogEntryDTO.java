@@ -1,157 +1,64 @@
 package com.platform.audit.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Data Transfer Object for audit log entries visible to end users.
- * This DTO represents the basic audit log information shown in the list view.
- *
- * Fields may be redacted based on user permissions.
+ * DTO representing a single audit log entry for API responses.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public record AuditLogEntryDTO(
-    UUID id,
+    String id,
     Instant timestamp,
-    String correlationId,
-    ActorType actorType,
-    String actorDisplayName,
-    ActionType actionType,
+    String actorName,
+    String actorType,
+    String actionType,
     String actionDescription,
-    ResourceType resourceType,
-    String resourceDisplayName,
-    Outcome outcome,
-    SensitivityLevel sensitivity
+    String resourceType,
+    String resourceName,
+    String outcome,
+    String sensitivity
 ) {
-
-    /**
-     * Actor types for audit events
-     */
-    public enum ActorType {
-        USER, SYSTEM, API_KEY, SERVICE
+    // Action types
+    public static class ActionType {
+        public static final String LOGIN = "LOGIN";
+        public static final String LOGOUT = "LOGOUT";
+        public static final String CREATE = "CREATE";
+        public static final String UPDATE = "UPDATE";
+        public static final String DELETE = "DELETE";
+        public static final String VIEW = "VIEW";
+        public static final String EXPORT = "EXPORT";
+        public static final String PAYMENT_CREATED = "PAYMENT_CREATED";
+        public static final String SUBSCRIPTION_CREATED = "SUBSCRIPTION_CREATED";
+        public static final String SUBSCRIPTION_MODIFIED = "SUBSCRIPTION_MODIFIED";
     }
 
-    /**
-     * Action types for audit events
-     */
-    public enum ActionType {
-        CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT,
-        PAYMENT_CREATED, PAYMENT_CONFIRMED, PAYMENT_FAILED,
-        SUBSCRIPTION_CREATED, SUBSCRIPTION_UPDATED, SUBSCRIPTION_CANCELLED,
-        USER_REGISTERED, USER_INVITED,
-        ORGANIZATION_CREATED, ORGANIZATION_UPDATED,
-        ROLE_ASSIGNED, ROLE_REVOKED,
-        PASSWORD_CHANGED, PASSWORD_RESET,
-        EXPORT_REQUESTED, EXPORT_DOWNLOADED
+    // Actor types
+    public static class ActorType {
+        public static final String USER = "USER";
+        public static final String SYSTEM = "SYSTEM";
+        public static final String SERVICE = "SERVICE";
     }
 
-    /**
-     * Resource types for audit events
-     */
-    public enum ResourceType {
-        USER, ORGANIZATION, PAYMENT, SUBSCRIPTION, AUDIT_LOG,
-        SESSION, API_KEY, ROLE, PERMISSION
+    // Resource types
+    public static class ResourceType {
+        public static final String USER = "USER";
+        public static final String ORGANIZATION = "ORGANIZATION";
+        public static final String PAYMENT = "PAYMENT";
+        public static final String SUBSCRIPTION = "SUBSCRIPTION";
+        public static final String AUDIT_LOG = "AUDIT_LOG";
+        public static final String AUTHENTICATION = "AUTHENTICATION";
     }
 
-    /**
-     * Outcome of the audited action
-     */
-    public enum Outcome {
-        SUCCESS, FAILURE, PARTIAL
+    // Outcomes
+    public static class Outcome {
+        public static final String SUCCESS = "SUCCESS";
+        public static final String FAILURE = "FAILURE";
+        public static final String PARTIAL = "PARTIAL";
     }
 
-    /**
-     * Sensitivity level of the audit data
-     */
-    public enum SensitivityLevel {
-        PUBLIC, INTERNAL, CONFIDENTIAL
-    }
-
-    /**
-     * Creates a builder for this DTO
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Builder class for AuditLogEntryDTO
-     */
-    public static class Builder {
-        private UUID id;
-        private Instant timestamp;
-        private String correlationId;
-        private ActorType actorType;
-        private String actorDisplayName;
-        private ActionType actionType;
-        private String actionDescription;
-        private ResourceType resourceType;
-        private String resourceDisplayName;
-        private Outcome outcome;
-        private SensitivityLevel sensitivity;
-
-        public Builder id(UUID id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder timestamp(Instant timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
-
-        public Builder correlationId(String correlationId) {
-            this.correlationId = correlationId;
-            return this;
-        }
-
-        public Builder actorType(ActorType actorType) {
-            this.actorType = actorType;
-            return this;
-        }
-
-        public Builder actorDisplayName(String actorDisplayName) {
-            this.actorDisplayName = actorDisplayName;
-            return this;
-        }
-
-        public Builder actionType(ActionType actionType) {
-            this.actionType = actionType;
-            return this;
-        }
-
-        public Builder actionDescription(String actionDescription) {
-            this.actionDescription = actionDescription;
-            return this;
-        }
-
-        public Builder resourceType(ResourceType resourceType) {
-            this.resourceType = resourceType;
-            return this;
-        }
-
-        public Builder resourceDisplayName(String resourceDisplayName) {
-            this.resourceDisplayName = resourceDisplayName;
-            return this;
-        }
-
-        public Builder outcome(Outcome outcome) {
-            this.outcome = outcome;
-            return this;
-        }
-
-        public Builder sensitivity(SensitivityLevel sensitivity) {
-            this.sensitivity = sensitivity;
-            return this;
-        }
-
-        public AuditLogEntryDTO build() {
-            return new AuditLogEntryDTO(
-                id, timestamp, correlationId, actorType, actorDisplayName,
-                actionType, actionDescription, resourceType, resourceDisplayName,
-                outcome, sensitivity
-            );
-        }
+    // Sensitivity levels
+    public static class SensitivityLevel {
+        public static final String PUBLIC = "PUBLIC";
+        public static final String INTERNAL = "INTERNAL";
+        public static final String CONFIDENTIAL = "CONFIDENTIAL";
     }
 }

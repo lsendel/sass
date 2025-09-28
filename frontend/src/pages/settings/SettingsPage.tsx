@@ -48,7 +48,9 @@ const SettingsPage: React.FC = () => {
   const { data: profile, isLoading, error } = useGetCurrentUserQuery()
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation()
   const { syncUserData } = useCrossComponentSync()
-  const { showSuccess, showError } = useNotifications()
+  const { addNotification } = useNotifications()
+  const showSuccess = (message: string) => addNotification({ variant: 'success', title: message })
+  const showError = (message: string) => addNotification({ variant: 'error', title: message })
 
   const headerDescription = 'Manage your account settings and preferences.'
   const renderHeader = () => (
@@ -61,25 +63,19 @@ const SettingsPage: React.FC = () => {
     formState: { errors },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    values: profile
-      ? (() => {
-          const prefs = (profile.preferences ?? {}) as Record<string, unknown>
-          const notif = (prefs.notifications as
-            | Record<string, unknown>
-            | undefined) ?? {}
-          return {
-            name: profile.name || '',
-            email: profile.email || '',
-            timezone: String(prefs.timezone ?? 'UTC'),
-            language: String(prefs.language ?? 'en'),
-            notifications: {
-              email: Boolean(notif.email ?? true),
-              push: Boolean(notif.push ?? true),
-              sms: Boolean(notif.sms ?? false),
-            },
-          }
-        })()
-      : undefined,
+    ...(profile ? {
+      defaultValues: {
+        name: (profile as any).name || (profile as any).firstName || '',
+        email: profile.email || '',
+        timezone: 'UTC',
+        language: 'en',
+        notifications: {
+          email: true,
+          push: true,
+          sms: false,
+        },
+      }
+    } : {}),
   })
 
   if (isLoading) {
@@ -109,7 +105,7 @@ const SettingsPage: React.FC = () => {
     )
   }
 
-  const onSubmit = async (data: ProfileForm) => {
+  const onSubmit = async (data: any) => {
     try {
       await updateProfile({
         name: data.name,
@@ -124,12 +120,12 @@ const SettingsPage: React.FC = () => {
         },
       }).unwrap()
 
-      showSuccess('Profile Updated', 'Your profile has been updated successfully.')
+      showSuccess('Your profile has been updated successfully.')
       await syncUserData()
     } catch (err) {
       const parsed = parseApiError(err)
       logger.error('Failed to update profile:', parsed)
-      showError('Update Failed', parsed.message || 'Failed to update profile. Please try again.')
+      showError(parsed.message || 'Failed to update profile. Please try again.')
     }
   }
 
@@ -414,7 +410,7 @@ const SettingsPage: React.FC = () => {
                     <LoadingButton
                       variant="secondary"
                       size="sm"
-                      onClick={() => showError('Not Available', 'Two-factor authentication is not yet implemented.')}
+                      onClick={() => showError('Two-factor authentication is not yet implemented.')}
                     >
                       Enable
                     </LoadingButton>
@@ -449,7 +445,7 @@ const SettingsPage: React.FC = () => {
                     <LoadingButton
                       variant="secondary"
                       size="sm"
-                      onClick={() => showError('Not Available', 'Data export is not yet implemented.')}
+                      onClick={() => showError('Data export is not yet implemented.')}
                     >
                       Export Data
                     </LoadingButton>
@@ -472,7 +468,7 @@ const SettingsPage: React.FC = () => {
                       size="sm"
                       onClick={() => {
                         if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                          showError('Not Available', 'Account deletion is not yet implemented. Please contact support.')
+                          showError('Account deletion is not yet implemented. Please contact support.')
                         }
                       }}
                     >

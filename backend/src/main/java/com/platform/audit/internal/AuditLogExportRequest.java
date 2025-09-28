@@ -145,6 +145,9 @@ public class AuditLogExportRequest {
     public Long getFileSizeBytes() { return fileSizeBytes; }
     public void setFileSizeBytes(Long fileSizeBytes) { this.fileSizeBytes = fileSizeBytes; }
 
+    // Alias for getFileSizeBytes for compatibility
+    public Long getFileSize() { return fileSizeBytes; }
+
     public String getDownloadToken() { return downloadToken; }
     public void setDownloadToken(String downloadToken) { this.downloadToken = downloadToken; }
 

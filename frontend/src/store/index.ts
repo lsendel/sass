@@ -3,15 +3,11 @@ import { configureStore } from '@reduxjs/toolkit'
 import { authApi } from './api/authApi'
 import { userApi } from './api/userApi'
 import { organizationApi } from './api/organizationApi'
-import { paymentApi } from './api/paymentApi'
 import { subscriptionApi } from './api/subscriptionApi'
-import { mfaApi } from './api/mfaApi'
-import { rbacApi } from './api/rbacApi'
-import { tenantApi } from './api/tenantApi'
-import { analyticsApi } from './api/analyticsApi'
+// Deleted APIs: paymentApi, mfaApi, rbacApi, tenantApi, analyticsApi
 import authReducer from './slices/authSlice'
 import uiReducer from './slices/uiSlice'
-import { createCacheEnhancerMiddleware } from './middleware/cacheEnhancer'
+// import { createCacheEnhancerMiddleware } from './middleware/cacheEnhancer' // Temporarily disabled
 
 export const store = configureStore({
   reducer: {
@@ -20,12 +16,7 @@ export const store = configureStore({
     [authApi.reducerPath]: authApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
     [organizationApi.reducerPath]: organizationApi.reducer,
-    [paymentApi.reducerPath]: paymentApi.reducer,
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
-    [mfaApi.reducerPath]: mfaApi.reducer,
-    [rbacApi.reducerPath]: rbacApi.reducer,
-    [tenantApi.reducerPath]: tenantApi.reducer,
-    [analyticsApi.reducerPath]: analyticsApi.reducer,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
@@ -42,13 +33,8 @@ export const store = configureStore({
       .concat(authApi.middleware)
       .concat(userApi.middleware)
       .concat(organizationApi.middleware)
-      .concat(paymentApi.middleware)
-      .concat(subscriptionApi.middleware)
-      .concat(mfaApi.middleware)
-      .concat(rbacApi.middleware)
-      .concat(tenantApi.middleware)
-      .concat(analyticsApi.middleware)
-      .concat(createCacheEnhancerMiddleware()),
+      .concat(subscriptionApi.middleware),
+      // .concat(createCacheEnhancerMiddleware()), // Temporarily disabled
   devTools: import.meta.env.DEV,
 })
 

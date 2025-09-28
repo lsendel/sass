@@ -1,70 +1,25 @@
 package com.platform.audit.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
+import java.util.List;
 
 /**
- * Data Transfer Object for audit log export requests.
- * Specifies the format and filtering criteria for exporting audit logs.
+ * DTO for audit log export request.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public record AuditLogExportRequestDTO(
-    @NotNull(message = "Export format is required")
-    ExportFormat format,
-    AuditLogFilterDTO filters
+    String format,
+    Instant dateFrom,
+    Instant dateTo,
+    String search,
+    List<String> actionTypes,
+    List<String> resourceTypes,
+    List<String> outcomes,
+    boolean includeMetadata
 ) {
-
-    /**
-     * Available export formats
-     */
-    public enum ExportFormat {
-        CSV("text/csv", ".csv"),
-        JSON("application/json", ".json"),
-        PDF("application/pdf", ".pdf");
-
-        private final String contentType;
-        private final String fileExtension;
-
-        ExportFormat(String contentType, String fileExtension) {
-            this.contentType = contentType;
-            this.fileExtension = fileExtension;
-        }
-
-        public String getContentType() {
-            return contentType;
-        }
-
-        public String getFileExtension() {
-            return fileExtension;
-        }
-    }
-
-    /**
-     * Creates a builder for this DTO
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Builder class for AuditLogExportRequestDTO
-     */
-    public static class Builder {
-        private ExportFormat format;
-        private AuditLogFilterDTO filters;
-
-        public Builder format(ExportFormat format) {
-            this.format = format;
-            return this;
-        }
-
-        public Builder filters(AuditLogFilterDTO filters) {
-            this.filters = filters;
-            return this;
-        }
-
-        public AuditLogExportRequestDTO build() {
-            return new AuditLogExportRequestDTO(format, filters);
-        }
+    // Export formats
+    public static class Format {
+        public static final String CSV = "CSV";
+        public static final String JSON = "JSON";
+        public static final String PDF = "PDF";
     }
 }

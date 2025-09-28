@@ -165,7 +165,7 @@ export const useKeyboardNavigation = <T extends HTMLElement = HTMLElement>(
  */
 export const useScreenReader = () => {
   const [announcement, setAnnouncement] = useState('')
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
 
   const announce = useCallback((message: string, _priority: 'polite' | 'assertive' = 'polite') => {
     if (timeoutRef.current) {
@@ -325,7 +325,7 @@ export const useAriaAttributes = () => {
  */
 export const useLiveRegion = (type: 'status' | 'alert' = 'status') => {
   const [message, setMessage] = useState('')
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
 
   const updateLiveRegion = useCallback((newMessage: string, clearAfter = 5000) => {
     if (timeoutRef.current) {

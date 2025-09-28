@@ -3,9 +3,13 @@ package com.platform.audit.api;
 import com.platform.audit.api.dto.*;
 import com.platform.audit.internal.AuditLogFilter;
 import com.platform.audit.internal.AuditLogViewService;
+import com.platform.audit.internal.AuditLogExportService;
+import com.platform.audit.internal.AuditLogExportRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -30,9 +34,12 @@ public class AuditLogViewController {
     private static final Logger log = LoggerFactory.getLogger(AuditLogViewController.class);
 
     private final AuditLogViewService auditLogViewService;
+    private final AuditLogExportService auditLogExportService;
 
-    public AuditLogViewController(AuditLogViewService auditLogViewService) {
+    public AuditLogViewController(AuditLogViewService auditLogViewService,
+                                 AuditLogExportService auditLogExportService) {
         this.auditLogViewService = auditLogViewService;
+        this.auditLogExportService = auditLogExportService;
     }
 
     /**
@@ -102,10 +109,13 @@ public class AuditLogViewController {
                 instantTo,
                 search,
                 actionTypes,
+                resourceTypes,
                 null, // Actor emails not supported in this endpoint
                 null, // Include system actions determined by permissions
                 page,
-                size
+                size,
+                sortField,
+                sortDirection
             );
 
             // Get audit logs through service
@@ -191,9 +201,71 @@ public class AuditLogViewController {
      * Initiate audit log export.
      */
     @PostMapping("/export")
-    public ResponseEntity<?> exportAuditLogs(@RequestBody Object request) {
-        // Intentionally not implemented - TDD RED phase
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<?> exportAuditLogs(@RequestBody AuditLogExportRequestDTO exportRequest) {
+        log.debug("Processing export request: {}", exportRequest);
+
+        try {
+            UUID userId = getCurrentUserId();
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("USER_NOT_AUTHENTICATED", "User authentication required"));
+            }
+
+            // Validate format
+            AuditLogExportRequest.ExportFormat format;
+            try {
+                format = AuditLogExportRequest.ExportFormat.valueOf(exportRequest.format());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                    .body(createErrorResponse("INVALID_FORMAT", "Invalid export format: " + exportRequest.format()));
+            }
+
+            // Extract filter criteria
+            Instant dateFrom = exportRequest.dateFrom();
+            Instant dateTo = exportRequest.dateTo();
+            String search = exportRequest.search();
+
+            if (dateFrom != null && dateTo != null && dateFrom.isAfter(dateTo)) {
+                return ResponseEntity.badRequest()
+                    .body(createErrorResponse("INVALID_DATE_RANGE", "dateFrom must be before dateTo"));
+            }
+
+            // Create filter
+            AuditLogFilter filter = new AuditLogFilter(
+                null, // Will be set by permission service
+                null, // Will be set by permission service
+                dateFrom,
+                dateTo,
+                search,
+                null, // actionTypes - would need conversion from DTO enum to String list
+                null, // resourceTypes - not supported in export
+                null, // Actor emails not supported
+                null, // Include system actions determined by permissions
+                0,
+                50, // Page size not relevant for export
+                "timestamp",
+                "DESC"
+            );
+
+            // Request export
+            var exportResponse = auditLogExportService.requestExport(userId, format, filter);
+
+            log.info("Created export request: {} for user: {}", exportResponse.getExportId(), userId);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(exportResponse);
+
+        } catch (IllegalStateException e) {
+            log.warn("Export request rejected: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(createErrorResponse("RATE_LIMIT_EXCEEDED", e.getMessage()));
+        } catch (SecurityException e) {
+            log.warn("Security violation in export request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(createErrorResponse("ACCESS_DENIED", "Access denied for export"));
+        } catch (Exception e) {
+            log.error("Error processing export request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(createErrorResponse("INTERNAL_ERROR", "Unable to process export request"));
+        }
     }
 
     /**
@@ -201,8 +273,47 @@ public class AuditLogViewController {
      */
     @GetMapping("/export/{exportId}/status")
     public ResponseEntity<?> getExportStatus(@PathVariable UUID exportId) {
-        // Intentionally not implemented - TDD RED phase
-        return ResponseEntity.notFound().build();
+        log.debug("Getting export status for ID: {}", exportId);
+
+        try {
+            UUID userId = getCurrentUserId();
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("USER_NOT_AUTHENTICATED", "User authentication required"));
+            }
+
+            var statusOpt = auditLogExportService.getExportStatus(userId, exportId);
+
+            if (statusOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            var status = statusOpt.get();
+
+            // Convert to DTO
+            ExportStatusResponseDTO response = new ExportStatusResponseDTO(
+                status.exportId().toString(),
+                status.status().toString(),
+                status.progressPercentage(),
+                status.createdAt(),
+                status.completedAt(),
+                status.downloadToken(),
+                status.totalRecords() != null ? status.totalRecords() : 0L,
+                status.errorMessage()
+            );
+
+            log.debug("Retrieved export status for ID: {} and user: {}", exportId, userId);
+            return ResponseEntity.ok(response);
+
+        } catch (SecurityException e) {
+            log.warn("Security violation accessing export status {}: {}", exportId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(createErrorResponse("ACCESS_DENIED", "Access denied to this export"));
+        } catch (Exception e) {
+            log.error("Error retrieving export status for ID: {}", exportId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(createErrorResponse("INTERNAL_ERROR", "Unable to retrieve export status"));
+        }
     }
 
     /**
@@ -210,8 +321,37 @@ public class AuditLogViewController {
      */
     @GetMapping("/export/{token}/download")
     public ResponseEntity<?> downloadExport(@PathVariable String token) {
-        // Intentionally not implemented - TDD RED phase
-        return ResponseEntity.notFound().build();
+        log.debug("Processing download request for token: {}", token);
+
+        try {
+            var downloadOpt = auditLogExportService.getExportDownload(token);
+
+            if (downloadOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse("DOWNLOAD_NOT_FOUND", "Download not found or expired"));
+            }
+
+            var download = downloadOpt.get();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(download.mimeType()));
+            headers.setContentDispositionFormData("attachment", download.filename());
+
+            if (download.fileSize() != null) {
+                headers.setContentLength(download.fileSize());
+            }
+
+            log.info("Serving download: {} (size: {} bytes)", download.filename(), download.fileSize());
+
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(download.resource());
+
+        } catch (Exception e) {
+            log.error("Error processing download for token: {}", token, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(createErrorResponse("DOWNLOAD_ERROR", "Unable to process download"));
+        }
     }
 
     /**

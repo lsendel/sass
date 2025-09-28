@@ -16,14 +16,14 @@ import CallbackPage from './pages/auth/CallbackPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import OrganizationsPage from './pages/organizations/OrganizationsPage'
 import OrganizationPage from './pages/organizations/OrganizationPage'
-import PaymentsPage from './pages/payments/PaymentsPage'
+// import PaymentsPage from './pages/payments/PaymentsPage' // Temporarily disabled
 import SubscriptionPage from './pages/subscription/SubscriptionPage'
 import SettingsPage from './pages/settings/SettingsPage'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { NotificationProvider } from './components/ui/FeedbackSystem'
-import PerformanceDashboard from './components/performance/PerformanceDashboard'
-import { useNavigationTracking } from './utils/preloadingStrategy'
+// import PerformanceDashboard from './components/performance/PerformanceDashboard'
+// import { useNavigationTracking } from './utils/preloadingStrategy' // Temporarily disabled
 
 const AppContent: FC = () => {
   const dispatch = useAppDispatch()
@@ -31,7 +31,7 @@ const AppContent: FC = () => {
   const authLoading = useAppSelector(selectAuthLoading)
 
   // Initialize navigation tracking for intelligent preloading
-  useNavigationTracking()
+  // useNavigationTracking() // Temporarily disabled
 
   // Try to restore session on app load
   const { data: sessionData } = useGetSessionQuery(undefined, {
@@ -73,7 +73,7 @@ const AppContent: FC = () => {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="organizations/:slug" element={<OrganizationPage />} />
-          <Route path="payments" element={<PaymentsPage />} />
+          {/* <Route path="payments" element={<PaymentsPage />} /> */}
           <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
@@ -102,7 +102,7 @@ const App: FC = () => {
         <div className="App">
           <AppContent />
           {/* Performance monitoring dashboard - only in development */}
-          {import.meta.env.DEV && <PerformanceDashboard />}
+          {/* {import.meta.env.DEV && <PerformanceDashboard />} */}
           <Toaster
             position="top-right"
             toastOptions={{

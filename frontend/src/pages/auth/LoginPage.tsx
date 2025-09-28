@@ -11,7 +11,10 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
   const isAuthenticated = useAppSelector(selectIsAuthenticated)
-  const { data: authMethods, isLoading, error: apiError } = useGetAuthMethodsQuery()
+  const authMethodsQuery = useGetAuthMethodsQuery()
+  const authMethods = authMethodsQuery.data
+  const isLoading = authMethodsQuery.isLoading
+  const apiError = authMethodsQuery.error
 
   // Redirect if already authenticated
   if (isAuthenticated) {

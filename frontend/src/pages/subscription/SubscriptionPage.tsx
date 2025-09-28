@@ -18,8 +18,8 @@ import {
 import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay, EmptyState } from '../../components/ui/ErrorStates'
 import UpgradePlanModal from '../../components/subscription/UpgradePlanModal'
-import { useCrossComponentSync } from '../../hooks/useDataSync'
-import { useNotifications } from '../../components/ui/FeedbackSystem'
+
+
 import PageHeader from '../../components/ui/PageHeader'
 import StatsCard from '../../components/ui/StatsCard'
 
@@ -28,7 +28,6 @@ const SubscriptionPage: React.FC = () => {
   const { data: organizations, isLoading: orgsLoading, error: orgsError } =
     useGetUserOrganizationsQuery()
   const { data: availablePlans } = useGetAvailablePlansQuery()
-  const { syncSubscriptionData, syncPaymentData } = useCrossComponentSync()
 
   const primaryOrg = organizations?.[0]
 
@@ -134,7 +133,6 @@ const SubscriptionPage: React.FC = () => {
           error={subError}
           onRetry={() => {
             void refetchSubscription()
-            void syncSubscriptionData()
           }}
           fallbackMessage="Failed to load subscription data. Please try again."
         />
@@ -177,9 +175,8 @@ const SubscriptionPage: React.FC = () => {
         immediate: false,
       }).unwrap()
 
-      showSuccess('Subscription Canceled', 'Your subscription has been scheduled for cancellation at the end of the current billing period.')
+      // showSuccess('Subscription Canceled', 'Your subscription has been scheduled for cancellation at the end of the current billing period.')
       await refetchSubscription()
-      await syncSubscriptionData()
     } catch (error) {
       console.error('Failed to cancel subscription:', error)
       // showError('Failed to Cancel', 'Unable to cancel your subscription. Please try again.')
@@ -195,10 +192,8 @@ const SubscriptionPage: React.FC = () => {
         organizationId: primaryOrg.id,
       }).unwrap()
 
-      showSuccess('Subscription Reactivated', 'Your subscription has been successfully reactivated.')
+      // showSuccess('Subscription Reactivated', 'Your subscription has been successfully reactivated.')
       await refetchSubscription()
-      await syncSubscriptionData()
-      await syncPaymentData()
     } catch (error) {
       console.error('Failed to reactivate subscription:', error)
       // showError('Reactivation Failed', 'Unable to reactivate your subscription. Please try again.')
@@ -266,7 +261,7 @@ const SubscriptionPage: React.FC = () => {
               {subscription.cancelAt && (
                 <LoadingButton
                   onClick={() => void handleReactivateSubscription()}
-                  variant="success"
+                  variant="primary"
                   size="md"
                 >
                   Reactivate Subscription

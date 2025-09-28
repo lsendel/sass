@@ -33,8 +33,8 @@ export const useRealTimeUpdates = (
   const [isPaused, setIsPaused] = useState(false)
   const [updateCount, setUpdateCount] = useState(0)
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<number | NodeJS.Timeout | null>(null)
+  const inactivityTimerRef = useRef<number | NodeJS.Timeout | null>(null)
   const lastActivityRef = useRef<Date>(new Date())
 
   const clearIntervals = useCallback(() => {

@@ -20,7 +20,7 @@ export interface OptimisticUpdate<T> {
 
 export const useOptimisticUpdates = <T>() => {
   const [optimisticUpdates, setOptimisticUpdates] = useState<Array<OptimisticUpdate<T>>>([])
-  const timeoutRefs = useRef<Record<string, NodeJS.Timeout>>({})
+  const timeoutRefs = useRef<Record<string, number | NodeJS.Timeout>>({})
 
   const addOptimisticUpdate = useCallback(
     async <R>(

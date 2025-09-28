@@ -37,8 +37,8 @@ export const useDataSync = (options: DataSyncOptions) => {
   const { dependencies, onSync, interval, enabled = true, debounceMs = 300 } = options
   // const _dispatch = useAppDispatch()
   const lastSyncRef = useRef<Record<string, any>>({})
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<number | NodeJS.Timeout | null>(null)
 
   const debouncedSync = useCallback((data: Record<string, any>) => {
     if (timeoutRef.current) {

@@ -2,6 +2,7 @@ package com.platform.audit.internal;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -774,4 +775,147 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
       "UPDATE AuditEvent ae SET ae.compressed = true "
           + "WHERE ae.createdAt < :threshold AND ae.compressed = false")
   long compressEventsOlderThan(@Param("threshold") Instant threshold);
+
+  // === NEW METHODS FOR AUDIT LOG VIEWER ===
+
+  /**
+   * Find audit events by organization and timestamp range with pagination.
+   * Used by AuditLogViewService for basic filtered queries.
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate ORDER BY ae.timestamp DESC")
+  Page<AuditEvent> findByOrganizationIdAndTimestampBetween(
+      @Param("organizationId") UUID organizationId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate,
+      Pageable pageable);
+
+  /**
+   * Find audit events by organization, actor, and timestamp range with pagination.
+   * Used by AuditLogViewService for user-specific queries.
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId " +
+         "AND ae.actorId = :actorId AND ae.timestamp BETWEEN :fromDate AND :toDate " +
+         "ORDER BY ae.timestamp DESC")
+  Page<AuditEvent> findByOrganizationIdAndActorIdAndTimestampBetween(
+      @Param("organizationId") UUID organizationId,
+      @Param("actorId") UUID actorId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate,
+      Pageable pageable);
+
+  /**
+   * Search audit events by organization and search term with pagination.
+   * Used by AuditLogSearchService for full-text search.
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId " +
+         "AND (LOWER(ae.action) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+         "OR LOWER(ae.resourceType) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+         "OR LOWER(ae.actorName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate ORDER BY ae.timestamp DESC")
+  Page<AuditEvent> searchByOrganization(
+      @Param("organizationId") UUID organizationId,
+      @Param("searchTerm") String searchTerm,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate,
+      Pageable pageable);
+
+  /**
+   * Search audit events by organization, user, and search term with pagination.
+   * Used by AuditLogSearchService for user-scoped search.
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId " +
+         "AND ae.actorId = :actorId " +
+         "AND (LOWER(ae.action) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+         "OR LOWER(ae.resourceType) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate ORDER BY ae.timestamp DESC")
+  Page<AuditEvent> searchByOrganizationAndUser(
+      @Param("organizationId") UUID organizationId,
+      @Param("actorId") UUID actorId,
+      @Param("searchTerm") String searchTerm,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate,
+      Pageable pageable);
+
+  /**
+   * Count audit events by organization and timestamp range.
+   * Used by AuditLogViewService for statistics.
+   */
+  @Query("SELECT COUNT(ae) FROM AuditEvent ae WHERE ae.organizationId = :organizationId " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate")
+  long countByOrganizationIdAndTimestampBetween(
+      @Param("organizationId") UUID organizationId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate);
+
+  /**
+   * Find the most recent audit event for statistics.
+   * Used by AuditLogViewService for last activity tracking.
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate " +
+         "ORDER BY ae.timestamp DESC")
+  Optional<AuditEvent> findFirstByOrganizationIdAndTimestampBetweenOrderByTimestampDesc(
+      @Param("organizationId") UUID organizationId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate);
+
+  /**
+   * Find distinct action types containing search term for suggestions.
+   * Used by AuditLogSearchService for search suggestions.
+   */
+  List<String> findDistinctActionTypesContaining(
+      @Param("organizationId") UUID organizationId,
+      @Param("searchTerm") String searchTerm,
+      @Param("maxResults") int maxResults);
+
+  /**
+   * Find distinct actor names containing search term for suggestions.
+   * Used by AuditLogSearchService for search suggestions.
+   */
+  List<String> findDistinctActorNamesContaining(
+      @Param("organizationId") UUID organizationId,
+      @Param("searchTerm") String searchTerm,
+      @Param("maxResults") int maxResults);
+
+  /**
+   * Get action type facets for advanced search.
+   * Used by AuditLogSearchService for faceted search.
+   */
+  @Query("SELECT ae.action as value, COUNT(ae) as count FROM AuditEvent ae " +
+         "WHERE ae.organizationId = :organizationId " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate " +
+         "GROUP BY ae.action ORDER BY COUNT(ae) DESC")
+  List<FacetResult> getActionTypeFacets(
+      @Param("organizationId") UUID organizationId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate);
+
+  /**
+   * Get outcome facets for advanced search.
+   * Used by AuditLogSearchService for faceted search.
+   */
+  @Query("SELECT ae.outcome as value, COUNT(ae) as count FROM AuditEvent ae " +
+         "WHERE ae.organizationId = :organizationId " +
+         "AND ae.timestamp BETWEEN :fromDate AND :toDate " +
+         "GROUP BY ae.outcome ORDER BY COUNT(ae) DESC")
+  List<FacetResult> getOutcomeFacets(
+      @Param("organizationId") UUID organizationId,
+      @Param("fromDate") Instant fromDate,
+      @Param("toDate") Instant toDate);
+
+  /**
+   * Find recent events for threat correlation.
+   * Used by security services for threat analysis.
+   */
+  @Query("SELECT ae FROM AuditEvent ae WHERE ae.timestamp >= :since ORDER BY ae.timestamp DESC")
+  Page<AuditEvent> findRecentEvents(@Param("since") Instant since, Pageable pageable);
+
+  /**
+   * Projection interface for facet results.
+   */
+  interface FacetResult {
+    String getValue();
+    Long getCount();
+  }
 }

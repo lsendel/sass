@@ -15,21 +15,21 @@ import clsx from 'clsx'
 import { useAppSelector } from '../../store/hooks'
 import { selectCurrentUser } from '../../store/slices/authSlice'
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
-import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
+// import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
 import { useGetSubscriptionStatisticsQuery } from '../../store/api/subscriptionApi'
 import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
 import { LoadingCard, InlineLoading } from '../../components/ui/LoadingStates'
 import StatsCard from '../../components/ui/StatsCard'
 import { getCardClasses } from '../../lib/theme'
-import { usePagePerformance, usePerformanceTracking } from '../../utils/performance'
+// import { usePagePerformance, usePerformanceTracking } from '../../utils/performance'
 
 
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
 
   // Performance tracking for dashboard
-  usePagePerformance('Dashboard')
-  usePerformanceTracking()
+  // usePagePerformance('Dashboard')
+  // usePerformanceTracking()
   const {
     data: organizations,
     isLoading: orgsLoading
@@ -37,13 +37,9 @@ const DashboardPage: React.FC = () => {
 
   // Get statistics for the first organization (primary org)
   const primaryOrg = organizations?.[0]
-  const {
-    data: paymentStats,
-    isLoading: paymentStatsLoading,
-    refetch: refetchPaymentStats
-  } = useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
-      skip: !primaryOrg?.id,
-    })
+  // Payment stats temporarily disabled
+  const paymentStats = { totalSuccessfulPayments: 0, totalAmount: 0 }
+  const paymentStatsLoading = false
 
   const {
     data: subscriptionStats,
@@ -57,12 +53,9 @@ const DashboardPage: React.FC = () => {
   const realTimeUpdates = useRealTimeUpdates(
     async () => {
       // Measure refresh performance
-      // Refresh all statistics without performance tracking for now
-      const [paymentData, subscriptionData] = await Promise.all([
-        refetchPaymentStats(),
-        refetchSubscriptionStats(),
-      ])
-      return { paymentData, subscriptionData }
+      // Refresh subscription statistics
+      const subscriptionData = await refetchSubscriptionStats()
+      return { subscriptionData }
     },
     {
       interval: 30000, // Update every 30 seconds

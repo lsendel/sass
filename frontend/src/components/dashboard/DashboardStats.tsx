@@ -1,4 +1,5 @@
 import React from 'react';
+
 import clsx from 'clsx';
 import StatsCard from '../ui/StatsCard';
 import { InlineLoading } from '../ui/LoadingStates';
@@ -67,19 +68,34 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
 };
 
 /**
+ * Data structure for payment statistics.
+ */
+export interface PaymentStats {
+  totalSuccessfulPayments?: number;
+  totalAmount?: number;
+}
+
+/**
+ * Data structure for subscription statistics.
+ */
+export interface SubscriptionStats {
+  status?: string;
+}
+
+/**
  * Hook to transform raw statistics data into display format.
  */
 export const useStatsData = (
-  organizations: any[],
-  paymentStats: any,
-  subscriptionStats: any,
+  organizations: unknown[],
+  paymentStats: PaymentStats | null | undefined,
+  subscriptionStats: SubscriptionStats | null | undefined,
   paymentStatsLoading: boolean,
   subscriptionStatsLoading: boolean
 ): StatData[] => {
   return React.useMemo(() => [
     {
       name: DASHBOARD_CONSTANTS.STATS.ORGANIZATIONS,
-      value: organizations?.length || 0,
+      value: organizations?.length ?? 0,
       icon: ({ className }) => (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4m-4 0v-4a1 1 0 011-1h2a1 1 0 011 1v4m-4 0V9a1 1 0 011-1h2a1 1 0 011 1v10M9 21h4" />

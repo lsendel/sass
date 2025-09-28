@@ -27,10 +27,10 @@ export class EvidenceCollector {
   /**
    * Set up evidence collectors
    */
-  private async setupCollectors() {
+  private setupCollectors(): void {
     // Network request/response logging
     this.page.on('request', (request) => {
-      this.networkLogs.push({
+      void this.networkLogs.push({
         timestamp: Date.now() - this.startTime,
         type: 'request',
         url: request.url(),
@@ -42,7 +42,7 @@ export class EvidenceCollector {
     })
 
     this.page.on('response', (response) => {
-      this.networkLogs.push({
+      void this.networkLogs.push({
         timestamp: Date.now() - this.startTime,
         type: 'response',
         url: response.url(),
@@ -56,7 +56,7 @@ export class EvidenceCollector {
 
     // Console logging
     this.page.on('console', (msg) => {
-      this.consoleLogs.push({
+      void this.consoleLogs.push({
         timestamp: Date.now() - this.startTime,
         type: msg.type(),
         text: msg.text(),
@@ -66,13 +66,13 @@ export class EvidenceCollector {
     })
 
     // Error logging
-    this.page.on('pageerror', (error) => {
-      this.consoleLogs.push({
+    this.page.on('pageerror', (error: Error) => {
+      void this.consoleLogs.push({
         timestamp: Date.now() - this.startTime,
         type: 'error',
         text: error.message,
         location: { url: this.page.url(), lineNumber: 0, columnNumber: 0 },
-        args: [error.stack || ''],
+        args: [error.stack ?? ''],
       })
     })
   }
@@ -93,7 +93,7 @@ export class EvidenceCollector {
       for (const selector of options.highlight) {
         try {
           await this.page.locator(selector).highlight()
-        } catch (e) {
+        } catch {
           console.warn(`Could not highlight element: ${selector}`)
         }
       }
@@ -158,14 +158,14 @@ export class EvidenceCollector {
         navigation: {
           loadComplete: perfEntries.loadEventEnd - perfEntries.loadEventStart,
           domContentLoaded: perfEntries.domContentLoadedEventEnd - perfEntries.domContentLoadedEventStart,
-          firstPaint: paintEntries.find(entry => entry.name === 'first-paint')?.startTime || 0,
-          firstContentfulPaint: paintEntries.find(entry => entry.name === 'first-contentful-paint')?.startTime || 0,
+          firstPaint: paintEntries.find(entry => entry.name === 'first-paint')?.startTime ?? 0,
+          firstContentfulPaint: paintEntries.find(entry => entry.name === 'first-contentful-paint')?.startTime ?? 0,
         },
         resources: resourceEntries.length,
-        memory: (performance as any).memory ? {
-          used: (performance as any).memory.usedJSHeapSize,
-          total: (performance as any).memory.totalJSHeapSize,
-          limit: (performance as any).memory.jsHeapSizeLimit,
+        memory: (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory ? {
+          used: (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory.usedJSHeapSize,
+          total: (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory.totalJSHeapSize,
+          limit: (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory.jsHeapSizeLimit,
         } : null,
       }
     })
@@ -343,7 +343,20 @@ interface ConsoleLog {
 interface PerformanceMetric {
   timestamp: number
   step: string
-  metrics: any
+  metrics: {
+    navigation: {
+      loadComplete: number
+      domContentLoaded: number
+      firstPaint: number
+      firstContentfulPaint: number
+    }
+    resources: number
+    memory: {
+      used: number
+      total: number
+      limit: number
+    } | null
+  }
 }
 
 interface EvidenceReport {
@@ -374,7 +387,7 @@ export async function withEvidenceCollection(page: Page, testInfo: TestInfo) {
   const collector = new EvidenceCollector(page, testInfo)
 
   // Add evidence collection methods to page
-  ;(page as any).evidence = collector
+  ;(page as Page & { evidence: EvidenceCollector }).evidence = collector
 
   return collector
 }
