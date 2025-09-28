@@ -300,7 +300,7 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         ...(permissionContext.organizationId ? { organizationId: permissionContext.organizationId } : {}),
         reason: permissionResult.reason,
         matchedPermissions: permissionResult.matchedPermissions,
-        conditions: permissionResult.conditions,
+        ...(permissionResult.conditions ? { conditions: permissionResult.conditions } : {}),
         ttl: performanceOptions.cacheTimeout || 300000, // 5 minutes default
       }
     )
@@ -469,8 +469,8 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         userId: user?.id || 'anonymous',
         resource,
         action,
-        resourceId: resourceId || undefined,
-        organizationId,
+        ...(resourceId ? { resourceId } : {}),
+        ...(organizationId ? { organizationId } : {}),
         context: { error: error?.toString() },
         timestamp: new Date().toISOString(),
         result: 'error',
@@ -478,7 +478,7 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         securityContext: {
           userAgent: navigator.userAgent,
           ipAddress: 'client-side',
-          sessionId: user?.sessionId,
+          sessionId: (user as any)?.sessionId || 'unknown',
         },
       })
     }
@@ -522,8 +522,8 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         userId: 'anonymous',
         resource,
         action,
-        resourceId: resourceId || undefined,
-        organizationId,
+        ...(resourceId ? { resourceId } : {}),
+        ...(organizationId ? { organizationId } : {}),
         context: { reason: 'no_authenticated_user' },
         timestamp: new Date().toISOString(),
         result: 'denied',
@@ -531,7 +531,6 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         securityContext: {
           userAgent: navigator.userAgent,
           ipAddress: 'client-side',
-          sessionId: undefined,
         },
       })
     }
@@ -577,8 +576,8 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         userId: user.id,
         resource,
         action,
-        resourceId: resourceId || undefined,
-        organizationId,
+        ...(resourceId ? { resourceId } : {}),
+        ...(organizationId ? { organizationId } : {}),
         context: {
           reason: permissionResult?.reason,
           deniedBy: permissionResult?.deniedBy,
@@ -637,15 +636,15 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
       userId: user.id,
       resource,
       action,
-      resourceId: resourceId || undefined,
-      organizationId,
+      ...(resourceId ? { resourceId } : {}),
+      ...(organizationId ? { organizationId } : {}),
       context: {
-        matchedPermissions: permissionResult.matchedPermissions,
-        conditions: permissionResult.conditions,
+        matchedPermissions: permissionResult?.matchedPermissions,
+        conditions: permissionResult?.conditions,
       },
       timestamp: new Date().toISOString(),
       result: 'granted',
-      reason: permissionResult.reason || 'Permission granted',
+      reason: permissionResult?.reason || 'Permission granted',
       securityContext: {
         userAgent: navigator.userAgent,
         ipAddress: 'client-side',
@@ -835,7 +834,7 @@ export const withPermissionCheck = <P extends object>(
       <PermissionChecker
         resource={requiredPermissions[0].resource}
         action={requiredPermissions[0].action}
-        resourceId={requiredPermissions[0].resourceId}
+        resourceId={requiredPermissions[0].resourceId ? requiredPermissions[0].resourceId as ResourceId : undefined}
         fallback={
           <div className="text-center py-8" data-testid="permission-denied">
             <div className="text-gray-400 mb-2">
@@ -916,7 +915,7 @@ export const PermissionButton: React.FC<PermissionButtonProps> = ({
     <PermissionChecker
       resource={resource}
       action={action}
-      resourceId={resourceId}
+      resourceId={resourceId ? resourceId as ResourceId : undefined}
       organizationId={organizationId}
       fallback={
         hideWhenNoPermission ? null : (
