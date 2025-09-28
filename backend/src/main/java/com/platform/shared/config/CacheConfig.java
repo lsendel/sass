@@ -79,7 +79,7 @@ public class CacheConfig {
 
             // Add tenant context if available
             try {
-                var tenantId = com.platform.shared.security.TenantContext.getCurrentTenantId();
+                var tenantId = com.platform.shared.security.TenantContext.getCurrentOrganizationId();
                 if (tenantId != null) {
                     key.append(":tenant:").append(tenantId);
                 }

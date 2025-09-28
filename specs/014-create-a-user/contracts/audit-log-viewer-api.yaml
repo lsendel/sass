@@ -1,0 +1,604 @@
+openapi: 3.0.3
+info:
+  title: Audit Log Viewer API
+  description: API for user-facing audit log viewing, searching, filtering, and exporting
+  version: 1.0.0
+  contact:
+    name: Platform Team
+    email: platform@company.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+  - url: https://api.platform.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+paths:
+  /audit/logs:
+    get:
+      summary: Get paginated audit logs
+      description: Retrieve audit logs with filtering, searching, and pagination. Results are filtered based on user permissions.
+      operationId: getAuditLogs
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of entries per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: search
+          in: query
+          description: Free-text search across audit log fields
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+        - name: dateFrom
+          in: query
+          description: Start date for filtering (ISO-8601 date)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          description: End date for filtering (ISO-8601 date)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: actionTypes
+          in: query
+          description: Comma-separated list of action types to filter by
+          required: false
+          schema:
+            type: string
+          example: "CREATE,UPDATE,DELETE"
+        - name: resourceTypes
+          in: query
+          description: Comma-separated list of resource types to filter by
+          required: false
+          schema:
+            type: string
+          example: "USER,PAYMENT,SUBSCRIPTION"
+        - name: outcomes
+          in: query
+          description: Comma-separated list of outcomes to filter by
+          required: false
+          schema:
+            type: string
+          example: "SUCCESS,FAILURE"
+        - name: severity
+          in: query
+          description: Minimum severity level to include
+          required: false
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          required: false
+          schema:
+            type: string
+            enum: [timestamp, actorEmail, actionType, resourceType]
+            default: timestamp
+        - name: sortDirection
+          in: query
+          description: Sort direction
+          required: false
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        '200':
+          description: Successful response with paginated audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogSearchResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - user not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user lacks permission to view audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Audit Log Viewer
+
+  /audit/logs/{id}:
+    get:
+      summary: Get detailed audit log entry
+      description: Retrieve detailed information for a specific audit log entry
+      operationId: getAuditLogDetail
+      parameters:
+        - name: id
+          in: path
+          description: Audit log entry ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detailed audit log entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogDetailDTO'
+        '404':
+          description: Audit log entry not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Audit Log Viewer
+
+  /audit/export:
+    post:
+      summary: Request audit log export
+      description: Create an export request for audit logs with specified format and filters
+      operationId: requestAuditLogExport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditLogExportRequest'
+      responses:
+        '202':
+          description: Export request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogExportResponse'
+        '400':
+          description: Invalid export request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user lacks export permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded for exports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Audit Log Export
+
+  /audit/export/{exportId}/status:
+    get:
+      summary: Get export status
+      description: Check the status of an audit log export request
+      operationId: getExportStatus
+      parameters:
+        - name: exportId
+          in: path
+          description: Export request ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Export status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogExportStatus'
+        '404':
+          description: Export request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Audit Log Export
+
+  /audit/export/{token}/download:
+    get:
+      summary: Download exported audit logs
+      description: Download the exported audit log file using a secure token
+      operationId: downloadAuditLogExport
+      parameters:
+        - name: token
+          in: path
+          description: Secure download token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Export file download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Download token not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: Download link has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Audit Log Export
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: Session-based authentication using HTTP-only cookies
+
+  schemas:
+    AuditLogEntryDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the audit log entry
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO-8601 timestamp when the event occurred
+        actorName:
+          type: string
+          description: Name of the actor (may be redacted)
+          nullable: true
+        actorEmail:
+          type: string
+          format: email
+          description: Email of the actor (may be redacted)
+          nullable: true
+        actionType:
+          type: string
+          description: Type of action performed
+          enum: [CREATE, UPDATE, DELETE, LOGIN, LOGOUT, VIEW, EXPORT, APPROVE, REJECT]
+        resourceType:
+          type: string
+          description: Type of resource affected
+          enum: [USER, ORGANIZATION, PAYMENT, SUBSCRIPTION, AUDIT, SYSTEM]
+        resourceName:
+          type: string
+          description: Human-readable name of the resource
+          nullable: true
+        description:
+          type: string
+          description: Human-readable description of the action
+          maxLength: 500
+        outcome:
+          type: string
+          description: Result of the action
+          enum: [SUCCESS, FAILURE, PARTIAL]
+        severity:
+          type: string
+          description: Severity level of the event
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        hasDetails:
+          type: boolean
+          description: Whether detailed view is available for this entry
+      required:
+        - id
+        - timestamp
+        - actionType
+        - resourceType
+        - description
+        - outcome
+        - severity
+        - hasDetails
+
+    AuditLogDetailDTO:
+      allOf:
+        - $ref: '#/components/schemas/AuditLogEntryDTO'
+        - type: object
+          properties:
+            correlationId:
+              type: string
+              description: Correlation ID for tracking related events
+              nullable: true
+            ipAddress:
+              type: string
+              description: Hashed IP address of the actor
+              nullable: true
+            userAgent:
+              type: string
+              description: Truncated user agent string
+              nullable: true
+            metadata:
+              type: object
+              additionalProperties: true
+              description: Additional context information (filtered for permissions)
+            errorDetails:
+              type: string
+              description: Error information if action failed
+              nullable: true
+            relatedEntries:
+              type: array
+              items:
+                $ref: '#/components/schemas/AuditLogEntryDTO'
+              description: Related audit log entries
+              maxItems: 10
+
+    AuditLogSearchResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogEntryDTO'
+          description: List of audit log entries for current page
+        totalElements:
+          type: integer
+          format: int64
+          description: Total number of matching entries across all pages
+          minimum: 0
+        totalPages:
+          type: integer
+          description: Total number of pages
+          minimum: 0
+        currentPage:
+          type: integer
+          description: Current page number (0-based)
+          minimum: 0
+        pageSize:
+          type: integer
+          description: Number of entries per page
+          minimum: 1
+          maximum: 100
+        hasNext:
+          type: boolean
+          description: Whether there are more pages available
+        hasPrevious:
+          type: boolean
+          description: Whether there are previous pages available
+      required:
+        - entries
+        - totalElements
+        - totalPages
+        - currentPage
+        - pageSize
+        - hasNext
+        - hasPrevious
+
+    AuditLogExportRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [CSV, JSON, PDF]
+          description: Export format
+        filter:
+          type: object
+          description: Filter criteria to apply to export
+          properties:
+            dateFrom:
+              type: string
+              format: date
+              description: Start date for export range
+            dateTo:
+              type: string
+              format: date
+              description: End date for export range
+            search:
+              type: string
+              maxLength: 255
+              description: Free-text search term
+            actionTypes:
+              type: array
+              items:
+                type: string
+              description: Action types to include
+            resourceTypes:
+              type: array
+              items:
+                type: string
+              description: Resource types to include
+            outcomes:
+              type: array
+              items:
+                type: string
+                enum: [SUCCESS, FAILURE, PARTIAL]
+              description: Outcomes to include
+            severity:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              description: Minimum severity level
+      required:
+        - format
+
+    AuditLogExportResponse:
+      type: object
+      properties:
+        exportId:
+          type: string
+          format: uuid
+          description: Unique identifier for the export request
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+          description: Current status of the export
+        requestedAt:
+          type: string
+          format: date-time
+          description: When the export was requested
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+          description: Estimated completion time
+          nullable: true
+      required:
+        - exportId
+        - status
+        - requestedAt
+
+    AuditLogExportStatus:
+      type: object
+      properties:
+        exportId:
+          type: string
+          format: uuid
+          description: Export request ID
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+          description: Current status of the export
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Export progress percentage
+        requestedAt:
+          type: string
+          format: date-time
+          description: When the export was requested
+        completedAt:
+          type: string
+          format: date-time
+          description: When the export was completed
+          nullable: true
+        downloadToken:
+          type: string
+          description: Secure token for downloading (only when completed)
+          nullable: true
+        entryCount:
+          type: integer
+          description: Number of entries in the export
+          minimum: 0
+          nullable: true
+        fileSize:
+          type: integer
+          format: int64
+          description: Size of the exported file in bytes
+          minimum: 0
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the download link expires
+          nullable: true
+        errorMessage:
+          type: string
+          description: Error message if export failed
+          nullable: true
+      required:
+        - exportId
+        - status
+        - progress
+        - requestedAt
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code for programmatic handling
+        message:
+          type: string
+          description: Human-readable error message
+        correlationId:
+          type: string
+          description: Correlation ID for tracking the request
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+          nullable: true
+      required:
+        - code
+        - message
+        - correlationId
+        - timestamp
+
+tags:
+  - name: Audit Log Viewer
+    description: Operations for viewing and searching audit logs
+  - name: Audit Log Export
+    description: Operations for exporting audit logs in various formats

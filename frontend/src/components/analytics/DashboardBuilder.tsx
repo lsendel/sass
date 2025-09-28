@@ -13,12 +13,13 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   PlusIcon,
   TrashIcon,
   EyeIcon,
   DocumentDuplicateIcon,
-  SaveIcon,
+  BookmarkIcon,
   XMarkIcon,
   ArrowsPointingOutIcon,
   Squares2X2Icon,
@@ -42,7 +43,7 @@ import type {
   DataSource,
   CreateDashboardRequest,
 } from '@/types/analytics'
-import { DashboardSchema } from '@/types/analytics'
+import { DashboardSchema, createDashboardId, createMetricId } from '@/types/analytics'
 
 // Icons
 
@@ -51,8 +52,8 @@ import { DashboardSchema } from '@/types/analytics'
 interface Position {
   x: number
   y: number
-  width: number
-  height: number
+  w: number
+  h: number
 }
 
 interface DashboardBuilderProps {
@@ -84,6 +85,7 @@ const ChartTypes: Record<ChartType, { name: string; icon: string }> = {
 }
 
 const createDashboardSchema = DashboardSchema.omit({ id: true })
+type CreateDashboardFormData = z.infer<typeof createDashboardSchema>
 
 const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
   dashboardId,
@@ -126,7 +128,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
 
   const metrics = metricsResponse?.metrics ?? []
 
-  const dashboardForm = useForm<CreateDashboardRequest>({
+  const dashboardForm = useForm<CreateDashboardFormData>({
     resolver: zodResolver(createDashboardSchema),
     defaultValues: {
       name: dashboard.name ?? 'New Dashboard',
@@ -141,7 +143,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
 
   const generateWidgetId = () => `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-  const addWidget = useCallback((type: keyof typeof WidgetTypeConfig, position?: Position) => {
+  const addWidget = useCallback((type: DashboardWidget['type'], position?: Position) => {
     const widgetConfig = WidgetTypeConfig[type]
     const newWidget: DashboardWidget = {
       id: generateWidgetId(),
@@ -150,8 +152,8 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
       position: position ?? {
         x: 0,
         y: 0,
-        width: widgetConfig.minWidth,
-        height: widgetConfig.minHeight,
+        w: widgetConfig.minWidth,
+        h: widgetConfig.minHeight,
       },
       config: {},
       dataSources: [],
@@ -195,7 +197,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
         title: `${widget.title} (Copy)`,
         position: {
           ...widget.position,
-          x: Math.min(widget.position.x + 1, gridSize.width - widget.position.width),
+          x: Math.min(widget.position.x + 1, gridSize.width - widget.position.w),
           y: widget.position.y + 1,
         },
       }
@@ -218,7 +220,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
       let savedDashboard: Dashboard
       if (dashboardId) {
         savedDashboard = await updateDashboard({
-          dashboardId,
+          dashboardId: createDashboardId(dashboardId),
           updates: dashboardData,
         }).unwrap()
       } else {
@@ -269,7 +271,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                 className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
                 title="Save Dashboard"
               >
-                <SaveIcon className="h-5 w-5" />
+                <BookmarkIcon className="h-5 w-5" />
               </button>
               {onCancel && (
                 <button
@@ -398,7 +400,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
             {Object.entries(WidgetTypeConfig).map(([type, config]) => (
               <button
                 key={type}
-                onClick={() => addWidget(type as keyof typeof WidgetTypeConfig)}
+                onClick={() => addWidget(type as DashboardWidget['type'])}
                 className="w-full p-3 text-left border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
                 disabled={previewMode}
               >
@@ -452,7 +454,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     </label>
                     <select
                       id={`chart-type-${selectedWidgetData.id}`}
-                      value={selectedWidgetData.config?.chartType ?? 'line'}
+                      value={(selectedWidgetData.config as any)?.chartType || 'line'}
                       onChange={(e) => updateWidget(selectedWidgetData.id, {
                         config: { ...selectedWidgetData.config, chartType: e.target.value as ChartType }
                       })}
@@ -482,7 +484,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                         const dataSource: DataSource = {
                           id: 'primary',
                           type: 'metric',
-                          metricId: e.target.value || undefined,
+                          ...(e.target.value ? { metricId: createMetricId(e.target.value) } : {}),
                         }
                         updateWidget(selectedWidgetData.id, {
                           dataSources: [dataSource]
@@ -563,8 +565,8 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                 style={{
                   left: `${(widget.position.x / gridSize.width) * 100}%`,
                   top: `${(widget.position.y / gridSize.height) * 100}%`,
-                  width: `${(widget.position.width / gridSize.width) * 100}%`,
-                  height: `${(widget.position.height / gridSize.height) * 100}%`,
+                  width: `${(widget.position.w / gridSize.width) * 100}%`,
+                  height: `${(widget.position.h / gridSize.height) * 100}%`,
                   minWidth: '120px',
                   minHeight: '80px',
                 }}
@@ -626,7 +628,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     <div className="text-center text-gray-500">
                       <ChartBarIcon className="h-12 w-12 mx-auto mb-2" />
                       <p className="text-sm">
-                        {ChartTypes[widget.config?.chartType ?? 'line']?.name ?? 'Chart'}
+                        {ChartTypes[(widget.config as any)?.chartType as ChartType || 'line']?.name ?? 'Chart'}
                       </p>
                     </div>
                   )}

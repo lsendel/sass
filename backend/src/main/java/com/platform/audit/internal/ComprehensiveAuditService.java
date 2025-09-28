@@ -22,6 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 import com.platform.shared.security.SecurityEventLogger;
+import com.platform.audit.internal.AuditEvent;
+import com.platform.audit.internal.AuditEventRepository;
+import com.platform.audit.api.AuditQueryRequest;
+import com.platform.audit.api.ComplianceReport;
+import com.platform.audit.api.ComplianceRequest;
+import com.platform.audit.api.ForensicReport;
+import com.platform.audit.api.ForensicRequest;
 
 /**
  * Comprehensive audit trail service providing complete audit logging,
@@ -68,13 +75,13 @@ public class ComprehensiveAuditService {
             eventPublisher.publishEvent(new AuditEventRecorded(enrichedEvent));
 
             logger.debug("Audit event recorded: {} for user: {}",
-                enrichedEvent.getEventType(), enrichedEvent.getUserId());
+                enrichedEvent.getAction(), enrichedEvent.getActorId());
 
         } catch (Exception e) {
-            logger.error("Failed to record audit event: {}", auditEvent.getEventType(), e);
+            logger.error("Failed to record audit event: {}", auditEvent.getAction(), e);
             // Fallback logging to ensure audit trail integrity
             securityEventLogger.logSuspiciousActivity(
-                auditEvent.getUserId(),
+                auditEvent.getActorId().toString(),
                 "AUDIT_LOGGING_FAILURE",
                 auditEvent.getIpAddress(),
                 "Failed to record audit event: " + e.getMessage()
@@ -87,17 +94,10 @@ public class ComprehensiveAuditService {
      */
     public AuditEvent createAuditEvent(String eventType, String userId, String description) {
         return AuditEvent.builder()
-            .id(UUID.randomUUID())
-            .eventType(eventType)
-            .severity(determineSeverity(eventType))
-            .userId(userId)
+            .action(eventType)
+            .actorId(UUID.fromString(userId))
             .ipAddress(getCurrentIpAddress())
-            .userAgent(getCurrentUserAgent())
-            .sessionId(getCurrentSessionId())
-            .description(description)
-            .timestamp(Instant.now())
-            .correlationId(getOrCreateCorrelationId())
-            .details(gatherContextualDetails())
+            .correlationId(UUID.randomUUID().toString())
             .build();
     }
 
@@ -304,10 +304,16 @@ public class ComprehensiveAuditService {
 
     // Private helper methods
     private AuditEvent enrichAuditEvent(AuditEvent event) {
-        return event.toBuilder()
+        return AuditEvent.builder()
+            .actorId(event.getActorId())
+            .action(event.getAction())
+            .organizationId(event.getOrganizationId())
+            .resourceType(event.getResourceType())
+            .resourceId(event.getResourceId())
+            .details(event.getDetails())
+            .correlationId(event.getCorrelationId())
             .ipAddress(event.getIpAddress() != null ? event.getIpAddress() : getCurrentIpAddress())
-            .userAgent(event.getUserAgent() != null ? event.getUserAgent() : getCurrentUserAgent())
-            .sessionId(event.getSessionId() != null ? event.getSessionId() : getCurrentSessionId())
+            .ipAddress(event.getIpAddress() != null ? event.getIpAddress() : getCurrentIpAddress())
             .correlationId(event.getCorrelationId() != null ? event.getCorrelationId() : getOrCreateCorrelationId())
             .build();
     }
@@ -353,9 +359,9 @@ public class ComprehensiveAuditService {
 
     private void cacheRecentEvent(AuditEvent event) {
         try {
-            String key = "audit:recent:" + event.getUserId();
-            redisTemplate.opsForList().lpush(key, event);
-            redisTemplate.opsForList().ltrim(key, 0, 99); // Keep last 100 events
+            String key = "audit:recent:" + event.getActorId();
+            redisTemplate.opsForList().leftPush(key, event);
+            redisTemplate.opsForList().trim(key, 0, 99); // Keep last 100 events
             redisTemplate.expire(key, java.time.Duration.ofDays(7));
         } catch (Exception e) {
             logger.warn("Failed to cache audit event in Redis", e);
@@ -364,14 +370,14 @@ public class ComprehensiveAuditService {
 
     private void updateAuditMetrics(AuditEvent event) {
         metricsCollector.incrementSecurityCounter("audit_events_total",
-            "event_type", event.getEventType(),
-            "severity", event.getSeverity());
+            "event_type", event.getAction(),
+            "severity", "INFO");
     }
 
     private Map<String, Long> analyzeEventTypes(List<AuditEvent> events) {
         return events.stream()
             .collect(java.util.stream.Collectors.groupingBy(
-                AuditEvent::getEventType,
+                AuditEvent::getAction,
                 java.util.stream.Collectors.counting()
             ));
     }

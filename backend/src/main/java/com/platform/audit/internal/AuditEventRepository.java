@@ -20,6 +20,8 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
   Page<AuditEvent> findByOrganizationIdAndActorIdOrderByCreatedAtDesc(
       UUID organizationId, UUID actorId, Pageable pageable);
 
+  List<AuditEvent> findByActorIdOrderByCreatedAtDesc(UUID actorId);
+
   Page<AuditEvent> findByOrganizationIdAndActionOrderByCreatedAtDesc(
       UUID organizationId, String action, Pageable pageable);
 
@@ -44,6 +46,12 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
       "SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId AND ae.resourceType = :resourceType AND ae.resourceId = :resourceId ORDER BY ae.createdAt DESC")
   List<AuditEvent> findByOrganizationIdAndResourceTypeAndResourceId(
       @Param("organizationId") UUID organizationId,
+      @Param("resourceType") String resourceType,
+      @Param("resourceId") String resourceId);
+
+  @Query(
+      "SELECT ae FROM AuditEvent ae WHERE ae.resourceType = :resourceType AND ae.resourceId = :resourceId ORDER BY ae.createdAt DESC")
+  List<AuditEvent> findByResourceTypeAndResourceId(
       @Param("resourceType") String resourceType,
       @Param("resourceId") String resourceId);
 

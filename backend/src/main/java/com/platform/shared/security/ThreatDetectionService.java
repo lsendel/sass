@@ -313,7 +313,15 @@ public class ThreatDetectionService {
     }
 
     private void analyzeMaliciousPayload(AuditEvent event, ThreatAnalysisResult.Builder result) {
-        String details = event.getDetails();
+        Object detailsObj = event.getDetails();
+        String details = null;
+        
+        if (detailsObj instanceof String) {
+            details = (String) detailsObj;
+        } else if (detailsObj instanceof Map) {
+            details = detailsObj.toString();
+        }
+        
         if (details != null) {
             // Check for SQL injection patterns
             if (containsSQLInjection(details)) {
@@ -497,8 +505,138 @@ public class ThreatDetectionService {
     public static class ThreatIntelligence {
         // Implementation details
     }
-}
 
-enum ThreatLevel {
-    NONE, LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN
+    /**
+     * Assess threat level for a specific IP address and context
+     */
+    public ThreatAssessment assessThreat(String ipAddress, String userAgent, String context) {
+        logger.debug("Assessing threat for IP: {}, UserAgent: {}, Context: {}", ipAddress, userAgent, context);
+        
+        ThreatAssessment.Builder assessment = ThreatAssessment.builder()
+            .ipAddress(ipAddress)
+            .userAgent(userAgent)
+            .context(context)
+            .timestamp(Instant.now());
+
+        double threatScore = 0.0;
+        ThreatLevel threatLevel = ThreatLevel.LOW;
+
+        // Check IP reputation (placeholder logic)
+        if (isKnownMaliciousIP(ipAddress)) {
+            threatScore += 5.0;
+            threatLevel = ThreatLevel.HIGH;
+        }
+
+        // Check for suspicious user agents
+        if (isSuspiciousUserAgent(userAgent)) {
+            threatScore += 2.0;
+        }
+
+        // Determine final threat level
+        if (threatScore >= 5.0) {
+            threatLevel = ThreatLevel.HIGH;
+        } else if (threatScore >= 2.0) {
+            threatLevel = ThreatLevel.MEDIUM;
+        }
+
+        return assessment
+            .threatLevel(threatLevel)
+            .threatScore(threatScore)
+            .build();
+    }
+
+    private boolean isKnownMaliciousIP(String ipAddress) {
+        // Placeholder for IP reputation check
+        return false;
+    }
+
+    private boolean isSuspiciousUserAgent(String userAgent) {
+        // Placeholder for user agent analysis
+        return userAgent != null && (
+            userAgent.contains("bot") || 
+            userAgent.contains("crawler") ||
+            userAgent.length() < 10
+        );
+    }
+
+    /**
+     * Inner class representing a threat assessment result
+     */
+    public static class ThreatAssessment {
+        private String ipAddress;
+        private String userAgent;
+        private String context;
+        private Instant timestamp;
+        private ThreatLevel threatLevel;
+        private double threatScore;
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public ThreatLevel getThreatLevel() {
+            return threatLevel;
+        }
+
+        public double getThreatScore() {
+            return threatScore;
+        }
+
+        public String getIpAddress() {
+            return ipAddress;
+        }
+
+        public String getReason() {
+            // Return a descriptive reason for the threat assessment
+            if (threatLevel == ThreatLevel.HIGH) {
+                return "High threat detected: " + context;
+            } else if (threatLevel == ThreatLevel.MEDIUM) {
+                return "Medium threat detected: " + context;
+            }
+            return "No significant threat detected";
+        }
+
+        public static class Builder {
+            private ThreatAssessment assessment = new ThreatAssessment();
+
+            public Builder ipAddress(String ipAddress) {
+                assessment.ipAddress = ipAddress;
+                return this;
+            }
+
+            public Builder userAgent(String userAgent) {
+                assessment.userAgent = userAgent;
+                return this;
+            }
+
+            public Builder context(String context) {
+                assessment.context = context;
+                return this;
+            }
+
+            public Builder timestamp(Instant timestamp) {
+                assessment.timestamp = timestamp;
+                return this;
+            }
+
+            public Builder threatLevel(ThreatLevel threatLevel) {
+                assessment.threatLevel = threatLevel;
+                return this;
+            }
+
+            public Builder threatScore(double threatScore) {
+                assessment.threatScore = threatScore;
+                return this;
+            }
+
+            public ThreatAssessment build() {
+                return assessment;
+            }
+        }
+    }
+
+    // Nested enum for package access
+    public enum ThreatLevel {
+        NONE, LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN
+    }
 }

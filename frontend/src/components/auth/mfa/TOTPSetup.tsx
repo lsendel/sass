@@ -156,6 +156,7 @@ const TOTPSetup: React.FC<TOTPSetupProps> = ({ onComplete, onCancel, className }
       }, 500)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [verificationCode, errors.verificationCode, handleSubmit])
 
   const renderStepIndicator = () => {
@@ -307,7 +308,7 @@ const TOTPSetup: React.FC<TOTPSetupProps> = ({ onComplete, onCancel, className }
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard(setupData.setupData.secretKey!, 'Secret key')}
+                  onClick={() => setupData.setupData?.secretKey && copyToClipboard(setupData.setupData.secretKey, 'Secret key')}
                 >
                   <ClipboardDocumentIcon className="w-4 h-4" />
                 </Button>
@@ -378,9 +379,11 @@ const TOTPSetup: React.FC<TOTPSetupProps> = ({ onComplete, onCancel, className }
             }}
           />
           {errors.verificationCode && (
-            <p className="mt-1 text-xs text-red-600">{errors.verificationCode.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {String((errors.verificationCode as any)?.message || 'Invalid verification code')}
+            </p>
           )}
-          {verifyError && (
+          {Boolean(verifyError) && (
             <p className="mt-1 text-xs text-red-600">Invalid code. Please try again.</p>
           )}
         </div>

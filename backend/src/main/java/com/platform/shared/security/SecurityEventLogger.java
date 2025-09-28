@@ -17,6 +17,15 @@ public class SecurityEventLogger {
     private static final Logger securityLogger = LoggerFactory.getLogger("SECURITY");
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    public enum SecurityEventType {
+        AUTH_SUCCESS, AUTH_FAILURE, ACCESS_DENIED, SUSPICIOUS_ACTIVITY,
+        PASSWORD_CHANGE, ACCOUNT_LOCKOUT, SESSION_CREATED, SESSION_EXPIRED, SESSION_DESTROYED
+    }
+
+    public enum SecuritySeverity {
+        LOW, INFO, MEDIUM, HIGH, CRITICAL
+    }
+
     public void logAuthenticationSuccess(String userId, String method, String ipAddress) {
         logSecurityEvent("AUTH_SUCCESS", userId, method, ipAddress, null);
     }

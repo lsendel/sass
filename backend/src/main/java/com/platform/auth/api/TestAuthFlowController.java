@@ -2,6 +2,7 @@ package com.platform.auth.api;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +29,7 @@ import com.platform.auth.internal.AuthenticationAttemptRepository;
 import com.platform.shared.security.AuthenticationSecurityEnhancer;
 import com.platform.shared.security.ThreatDetectionService;
 import com.platform.shared.security.ZeroTrustArchitecture;
+import com.platform.audit.api.ZeroTrustValidationResult;
 
 /**
  * Test-only controller to align integration tests with a simplified auth flow.
@@ -107,16 +109,21 @@ public class TestAuthFlowController {
   public ResponseEntity<Map<String, Object>> listProviders() {
     List<Map<String, Object>> providers =
         providerRepository.findAll().stream()
-            .map(
-                p ->
-                    Map.of(
-                        "name", p.getName(),
-                        "displayName", p.getDisplayName(),
-                        "supported", true))
+            .map(p -> {
+                Map<String, Object> provider = new HashMap<>();
+                provider.put("name", p.getName());
+                provider.put("displayName", p.getDisplayName());
+                provider.put("supported", true);
+                return provider;
+            })
             .toList();
 
-    return ResponseEntity.ok(
-        Map.of("providers", providers, "count", providers.size(), "timestamp", Instant.now()));
+    Map<String, Object> response = new HashMap<>();
+    response.put("providers", providers);
+    response.put("count", providers.size());
+    response.put("timestamp", Instant.now());
+    
+    return ResponseEntity.ok(response);
   }
 
   /** Initiate authorization: create session with state and redirect to provider authorization URI. */
@@ -195,14 +202,14 @@ public class TestAuthFlowController {
     // Zero-trust validation for callback request
     ZeroTrustArchitecture.AccessRequest accessRequest = ZeroTrustArchitecture.AccessRequest.builder()
         .userId("pending-user")
-        .resource("oauth2-callback")
+        .resourceId("oauth2-callback")
         .action("authenticate")
         .sourceIp(getIp(request))
         .userAgent(request.getHeader("User-Agent"))
         .timestamp(Instant.now())
         .build();
 
-    ZeroTrustArchitecture.ZeroTrustValidationResult zeroTrustResult =
+    ZeroTrustValidationResult zeroTrustResult =
         zeroTrustArchitecture.validateAccess(accessRequest);
 
     if (!zeroTrustResult.isAccessGranted()) {
@@ -306,7 +313,7 @@ public class TestAuthFlowController {
               // Zero-trust session validation
               ZeroTrustArchitecture.AccessRequest sessionAccessRequest = ZeroTrustArchitecture.AccessRequest.builder()
                   .userId(s.getUserInfo().getProviderUserId())
-                  .resource("oauth2-session")
+                  .resourceId("oauth2-session")
                   .action("validate")
                   .sourceIp(getIp(request))
                   .userAgent(request.getHeader("User-Agent"))
@@ -314,7 +321,7 @@ public class TestAuthFlowController {
                   .sessionId(s.getSessionId())
                   .build();
 
-              ZeroTrustArchitecture.ZeroTrustValidationResult sessionZeroTrust =
+              ZeroTrustValidationResult sessionZeroTrust =
                   zeroTrustArchitecture.validateAccess(sessionAccessRequest);
 
               if (!sessionZeroTrust.isAccessGranted()) {

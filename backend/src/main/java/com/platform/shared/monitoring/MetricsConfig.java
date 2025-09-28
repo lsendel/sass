@@ -28,9 +28,9 @@ public class MetricsConfig {
                     filterChain.doFilter(request, response);
                 } finally {
                     sample.stop(Timer.builder("http.requests")
-                        .tag("method", request.getMethod())
-                        .tag("status", String.valueOf(response.getStatus()))
-                        .tag("uri", request.getRequestURI())
+                        .tags("method", request.getMethod(),
+                              "status", String.valueOf(response.getStatus()),
+                              "uri", request.getRequestURI())
                         .register(meterRegistry));
                 }
             }

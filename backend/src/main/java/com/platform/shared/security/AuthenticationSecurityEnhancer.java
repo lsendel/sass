@@ -533,6 +533,9 @@ public class AuthenticationSecurityEnhancer {
     }
 
     // Enum definitions
+    public enum AuthenticationMethod { 
+        PASSWORD, OAUTH2, MFA, BIOMETRIC, CERTIFICATE, SESSION_VALIDATION 
+    }
     public enum DeviceTrustLevel { TRUSTED, UNTRUSTED, SUSPICIOUS }
     public enum BehavioralRisk { LOW, MEDIUM, HIGH }
     public enum LocationRisk { LOW, MEDIUM, HIGH }
@@ -567,6 +570,9 @@ public class AuthenticationSecurityEnhancer {
             public Builder ipAddress(String ipAddress) { return this; }
             public Builder userAgent(String userAgent) { return this; }
             public Builder timestamp(Instant timestamp) { return this; }
+            public Builder authenticationMethod(AuthenticationMethod method) { return this; }
+            public Builder provider(String provider) { return this; }
+            public Builder requestTimestamp(Instant timestamp) { return this; }
             public AuthenticationContext build() { return new AuthenticationContext(); }
         }
     }
@@ -577,6 +583,9 @@ public class AuthenticationSecurityEnhancer {
 
     // Additional placeholder classes for comprehensive type safety
     public static class AuthenticationValidationResult {
+        private boolean valid = true;
+        private String failureReason;
+        
         public static Builder builder() { return new Builder(); }
         public String getUserId() { return ""; }
         public String getSessionId() { return ""; }
@@ -586,7 +595,16 @@ public class AuthenticationSecurityEnhancer {
         public SessionIntegrity getSessionIntegrity() { return SessionIntegrity.VALID; }
         public double getTrustScore() { return 1.0; }
         public AuthenticationAction getAction() { return AuthenticationAction.ALLOW; }
+        public boolean isValid() { return valid; }
+        public String getFailureReason() { return failureReason; }
+        
+        // Additional methods needed by TestAuthFlowController
+        public boolean requiresMfa() { return false; }
+        public String[] getRequiredMfaMethods() { return new String[]{}; }
+        
         public static class Builder {
+            private AuthenticationValidationResult result = new AuthenticationValidationResult();
+            
             public Builder userId(String userId) { return this; }
             public Builder sessionId(String sessionId) { return this; }
             public Builder timestamp(Instant timestamp) { return this; }
@@ -598,8 +616,14 @@ public class AuthenticationSecurityEnhancer {
             public Builder adaptiveRequirements(AdaptiveAuthRequirements requirements) { return this; }
             public Builder trustScore(double score) { return this; }
             public Builder action(AuthenticationAction action) { return this; }
-            public Builder error(String error) { return this; }
-            public AuthenticationValidationResult build() { return new AuthenticationValidationResult(); }
+            public Builder error(String error) { 
+                result.failureReason = error;
+                result.valid = false;
+                return this; 
+            }
+            public Builder authenticationMethod(AuthenticationMethod method) { return this; }
+            public Builder resource(String resource) { return this; }
+            public AuthenticationValidationResult build() { return result; }
         }
     }
 

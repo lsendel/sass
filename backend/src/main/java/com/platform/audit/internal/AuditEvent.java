@@ -66,8 +66,8 @@ public class AuditEvent {
   private Instant createdAt;
 
   // Constructors
-  protected AuditEvent() {
-    // JPA constructor
+  public AuditEvent() {
+    // JPA constructor - made public for tests
   }
 
   public AuditEvent(UUID actorId, String action) {
@@ -108,6 +108,10 @@ public class AuditEvent {
   }
 
   // Factory methods for common audit events
+  public static AuditEvent.Builder builder() {
+    return new AuditEvent.Builder();
+  }
+
   public static AuditEvent userLogin(UUID userId, String ipAddress, String correlationId) {
     var event = new AuditEvent(userId, "user.login");
     event.ipAddress = ipAddress;
@@ -346,7 +350,74 @@ public class AuditEvent {
     return createdAt;
   }
 
+  public String getUserAgent() {
+    return (String) details.get("userAgent");
+  }
+
+  public String getRequestData() {
+    return (String) details.get("requestData");
+  }
+
+  public String getResponseData() {
+    return (String) details.get("responseData");
+  }
+
+  public String getMetadata() {
+    return (String) details.get("metadata");
+  }
+
   // Setters for additional data
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
+  public void setOrganizationId(UUID organizationId) {
+    this.organizationId = organizationId;
+  }
+
+  public void setCreatedAt(Instant createdAt) {
+    this.createdAt = createdAt;
+  }
+
+  public void setActorId(UUID actorId) {
+    this.actorId = actorId;
+  }
+
+  public void setAction(String action) {
+    this.action = action;
+  }
+
+  public void setResourceType(String resourceType) {
+    this.resourceType = resourceType;
+  }
+
+  public void setResourceId(String resourceId) {
+    if (resourceId != null && !resourceId.trim().isEmpty()) {
+      try {
+        this.resourceId = UUID.fromString(resourceId);
+      } catch (IllegalArgumentException e) {
+        // If not a valid UUID, store as part of details
+        var detailsMap = new java.util.HashMap<>(this.details);
+        detailsMap.put("resourceId", resourceId);
+        this.details = Map.copyOf(detailsMap);
+      }
+    }
+  }
+
+  public void setIpAddress(String ipAddress) {
+    this.ipAddress = ipAddress;
+  }
+
+  public void setCorrelationId(String correlationId) {
+    this.correlationId = correlationId;
+  }
+
+  public void setDetails(String details) {
+    var detailsMap = new java.util.HashMap<>(this.details);
+    detailsMap.put("details", details);
+    this.details = Map.copyOf(detailsMap);
+  }
+
   public void setRequestData(String requestData) {
     var detailsMap = new java.util.HashMap<>(this.details);
     detailsMap.put("requestData", requestData);
@@ -395,5 +466,75 @@ public class AuditEvent {
         + ", createdAt="
         + createdAt
         + '}';
+  }
+
+  /**
+   * Builder class for AuditEvent
+   */
+  public static class Builder {
+    private UUID actorId;
+    private String action;
+    private UUID organizationId;
+    private String resourceType;
+    private UUID resourceId;
+    private Map<String, Object> details = new java.util.HashMap<>();
+    private String correlationId;
+    private String ipAddress;
+
+    public Builder actorId(UUID actorId) {
+      this.actorId = actorId;
+      return this;
+    }
+
+    public Builder action(String action) {
+      this.action = action;
+      return this;
+    }
+
+    public Builder organizationId(UUID organizationId) {
+      this.organizationId = organizationId;
+      return this;
+    }
+
+    public Builder resourceType(String resourceType) {
+      this.resourceType = resourceType;
+      return this;
+    }
+
+    public Builder resourceId(UUID resourceId) {
+      this.resourceId = resourceId;
+      return this;
+    }
+
+    public Builder details(Map<String, Object> details) {
+      this.details = new java.util.HashMap<>(details);
+      return this;
+    }
+
+    public Builder correlationId(String correlationId) {
+      this.correlationId = correlationId;
+      return this;
+    }
+
+    public Builder ipAddress(String ipAddress) {
+      this.ipAddress = ipAddress;
+      return this;
+    }
+
+    public Builder id(UUID id) {
+      // AuditEvent ID is auto-generated, so this is a no-op for compatibility
+      return this;
+    }
+
+    public AuditEvent build() {
+      var event = new AuditEvent(actorId, action);
+      event.organizationId = organizationId;
+      event.resourceType = resourceType;
+      event.resourceId = resourceId;
+      event.details = sanitizeDetails(details);
+      event.correlationId = correlationId;
+      event.ipAddress = ipAddress;
+      return event;
+    }
   }
 }

@@ -1,5 +1,7 @@
 package com.platform.shared.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +19,8 @@ import org.springframework.vault.core.VaultTemplate;
 @Profile("!test")
 @ConfigurationProperties(prefix = "vault")
 public class VaultConfiguration extends AbstractVaultConfiguration {
+
+    private static final Logger logger = LoggerFactory.getLogger(VaultConfiguration.class);
 
     private String host = "localhost";
     private int port = 8200;
@@ -40,11 +44,8 @@ public class VaultConfiguration extends AbstractVaultConfiguration {
     public VaultTemplate vaultTemplate() {
         VaultTemplate template = new VaultTemplate(vaultEndpoint(), clientAuthentication());
         if (namespace != null && !namespace.isEmpty()) {
-            template.opsForSys().createOrUpdateMount("secret",
-                org.springframework.vault.core.VaultMountTemplate.builder()
-                    .type("kv")
-                    .version(2)
-                    .build());
+            // Initialize KV v2 mount if needed - skip automatic mount creation
+            logger.debug("Vault namespace configured: {}", namespace);
         }
         return template;
     }

@@ -110,6 +110,11 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
       @Param("startDate") Instant startDate,
       @Param("topN") int topN);
 
+  /** Alias for getTopOrganizationsByRevenue for backwards compatibility */
+  default List<Object[]> getTopPerformingOrganizations(Instant startDate, Instant endDate, int limit) {
+      return getTopOrganizationsByRevenue(startDate, limit);
+  }
+
   /** Payment method analysis */
   @Query(value = """
       SELECT

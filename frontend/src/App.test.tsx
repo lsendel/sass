@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 
@@ -73,14 +73,20 @@ vi.mock('./components/ui/ErrorBoundary', () => ({
 
 // Mock API hooks
 interface QueryResult<T> {
-  data?: T
+  data?: T | undefined
   error?: unknown
   isLoading: boolean
   isSuccess: boolean
   isError: boolean
 }
 
-const mockUseGetSessionQuery = vi.fn<[], QueryResult<SessionInfo>>()
+const mockUseGetSessionQuery = vi.fn(() => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+  isSuccess: false,
+  isError: false,
+} as QueryResult<SessionInfo>))
 vi.mock('./store/api/authApi', () => ({
   useGetSessionQuery: mockUseGetSessionQuery,
 }))
@@ -111,9 +117,11 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseGetSessionQuery.mockReturnValue({
-      data: null,
+      data: undefined,
       isLoading: false,
       error: null,
+      isSuccess: false,
+      isError: false,
     })
   })
 
@@ -161,12 +169,19 @@ describe('App', () => {
           id: '123',
           name: 'Test User',
         }),
+        session: {
+          activeTokens: 1,
+          lastActiveAt: '2023-01-01T00:00:00Z',
+          createdAt: '2023-01-01T00:00:00Z',
+        },
       }
 
       mockUseGetSessionQuery.mockReturnValue({
         data: mockSessionData,
         isLoading: false,
         error: null,
+        isSuccess: true,
+        isError: false,
       })
 
       renderWithProviders(<App />, {
@@ -217,9 +232,11 @@ describe('App', () => {
   describe('error handling', () => {
     it('should handle API errors gracefully', () => {
       mockUseGetSessionQuery.mockReturnValue({
-        data: null,
+        data: undefined,
         isLoading: false,
         error: { status: 500, message: 'Server error' },
+        isSuccess: false,
+        isError: true,
       })
 
       renderWithProviders(<App />)
@@ -231,9 +248,11 @@ describe('App', () => {
 
     it('should handle session loading state', () => {
       mockUseGetSessionQuery.mockReturnValue({
-        data: null,
+        data: undefined,
         isLoading: true,
         error: null,
+        isSuccess: false,
+        isError: false,
       })
 
       renderWithProviders(<App />)

@@ -1,0 +1,274 @@
+{{ define "slack.payment.title" }}
+{{- if eq .Status "firing" -}}
+🚨 Payment Platform Alert - {{ .CommonLabels.alertname }}
+{{- else -}}
+✅ Payment Platform Alert Resolved - {{ .CommonLabels.alertname }}
+{{- end -}}
+{{ end }}
+
+{{ define "slack.payment.text" }}
+{{- if eq .Status "firing" -}}
+*Alert Status:* 🔥 FIRING
+{{- else -}}
+*Alert Status:* ✅ RESOLVED
+{{- end }}
+
+*Environment:* {{ .CommonLabels.environment | default "production" }}
+*Component:* {{ .CommonLabels.component }}
+*Severity:* {{ .CommonLabels.severity | upper }}
+
+{{ range .Alerts }}
+---
+*Summary:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Started:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+{{ if .Annotations.runbook_url }}*Runbook:* <{{ .Annotations.runbook_url }}|View Runbook>{{ end }}
+
+*Labels:*
+{{ range .Labels.SortedPairs }}  • {{ .Name }}: {{ .Value }}
+{{ end }}
+{{ end }}
+
+*Actions:*
+• <{{ .ExternalURL }}|View Alert in Alertmanager>
+• <${GRAFANA_URL}/d/performance-overview|Performance Dashboard>
+• <${KIBANA_URL}|Application Logs>
+{{ end }}
+
+{{ define "slack.critical.title" }}
+🚨🚨 CRITICAL ALERT - Payment Platform
+{{ end }}
+
+{{ define "slack.critical.text" }}
+*🔥 CRITICAL ALERT FIRING 🔥*
+
+{{ range .Alerts }}
+*{{ .Annotations.summary }}*
+{{ .Annotations.description }}
+
+*Component:* {{ .Labels.component }}
+*Started:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+*Severity:* CRITICAL
+
+{{ if .Annotations.runbook_url }}
+📋 *Immediate Action Required:* <{{ .Annotations.runbook_url }}|Follow Runbook>
+{{ end }}
+{{ end }}
+
+⚡ *Quick Links:*
+• <${GRAFANA_URL}/d/performance-overview|Performance Dashboard>
+• <${PROMETHEUS_URL}|Prometheus Metrics>
+• <${KIBANA_URL}|Application Logs>
+
+👥 *Escalation:* @channel @oncall-engineer
+{{ end }}
+
+{{ define "slack.security.title" }}
+🔒 SECURITY ALERT - Payment Platform
+{{ end }}
+
+{{ define "slack.security.text" }}
+*🔒 SECURITY ALERT*
+
+{{ range .Alerts }}
+*Event:* {{ .Annotations.summary }}
+*Details:* {{ .Annotations.description }}
+*Component:* {{ .Labels.component }}
+*Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+
+{{ if .Labels.organization_id }}*Organization:* {{ .Labels.organization_id }}{{ end }}
+{{ if .Labels.user_id }}*User:* {{ .Labels.user_id }}{{ end }}
+{{ if .Labels.ip_address }}*IP Address:* {{ .Labels.ip_address }}{{ end }}
+{{ end }}
+
+*🚨 Immediate Actions Required:*
+1. Review security logs in Kibana
+2. Check for additional suspicious activity
+3. Consider blocking suspicious IPs if applicable
+4. Update security team via @security-team
+
+*Links:*
+• <${KIBANA_URL}|Security Logs>
+• <${GRAFANA_URL}/d/security-dashboard|Security Dashboard>
+{{ end }}
+
+{{ define "slack.performance.title" }}
+⚡ Performance Alert - Payment Platform
+{{ end }}
+
+{{ define "slack.performance.text" }}
+*⚡ Performance Issue Detected*
+
+{{ range .Alerts }}
+*Issue:* {{ .Annotations.summary }}
+*Details:* {{ .Annotations.description }}
+*Component:* {{ .Labels.component }}
+*Metric Value:* {{ .Annotations.value | default "N/A" }}
+*Threshold:* {{ .Annotations.threshold | default "N/A" }}
+{{ end }}
+
+*📊 Performance Metrics:*
+• <${GRAFANA_URL}/d/performance-overview|Performance Overview>
+• <${GRAFANA_URL}/d/database-performance|Database Performance>
+• <${GRAFANA_URL}/d/application-metrics|Application Metrics>
+
+*🔧 Common Solutions:*
+{{ range .Alerts }}
+{{ if eq .Labels.component "memory" }}
+• Check for memory leaks
+• Review garbage collection logs
+• Consider heap size adjustment
+{{ else if eq .Labels.component "database" }}
+• Review slow query logs
+• Check database connection pool
+• Analyze query execution plans
+{{ else if eq .Labels.component "api" }}
+• Check for slow endpoints
+• Review application logs
+• Monitor request patterns
+{{ end }}
+{{ end }}
+{{ end }}
+
+{{ define "slack.database.title" }}
+🗄️ Database Alert - Payment Platform
+{{ end }}
+
+{{ define "slack.database.text" }}
+*🗄️ Database Issue*
+
+{{ range .Alerts }}
+*Issue:* {{ .Annotations.summary }}
+*Details:* {{ .Annotations.description }}
+*Database Component:* {{ .Labels.component }}
+{{ if .Labels.query_type }}*Query Type:* {{ .Labels.query_type }}{{ end }}
+{{ if .Annotations.duration_ms }}*Duration:* {{ .Annotations.duration_ms }}ms{{ end }}
+{{ end }}
+
+*🔍 Investigation Steps:*
+1. Check database performance metrics
+2. Review slow query logs
+3. Analyze connection pool status
+4. Check for lock contention
+
+*📊 Database Dashboards:*
+• <${GRAFANA_URL}/d/database-performance|Database Performance>
+• <${GRAFANA_URL}/d/postgres-overview|PostgreSQL Overview>
+• <${KIBANA_URL}|Database Logs>
+{{ end }}
+
+{{ define "slack.payment.title" }}
+💳 Payment System Alert
+{{ end }}
+
+{{ define "slack.payment.text" }}
+*💳 Payment System Issue*
+
+{{ range .Alerts }}
+*Issue:* {{ .Annotations.summary }}
+*Details:* {{ .Annotations.description }}
+*Payment Component:* {{ .Labels.component }}
+{{ if .Labels.organization_id }}*Organization:* {{ .Labels.organization_id }}{{ end }}
+{{ if .Annotations.transaction_id }}*Transaction:* {{ .Annotations.transaction_id }}{{ end }}
+{{ end }}
+
+*💰 Payment Impact Assessment:*
+• Check payment success rates
+• Review Stripe webhook status
+• Monitor transaction volumes
+
+*🔧 Immediate Actions:*
+1. Verify Stripe connectivity
+2. Check webhook endpoint health
+3. Review payment processing logs
+4. Contact Stripe support if needed
+
+*📊 Payment Dashboards:*
+• <${GRAFANA_URL}/d/payment-overview|Payment Overview>
+• <${STRIPE_DASHBOARD_URL}|Stripe Dashboard>
+• <${KIBANA_URL}|Payment Logs>
+
+👥 *Escalation:* @payment-team
+{{ end }}
+
+{{ define "email.subject" }}
+{{ if eq .Status "firing" }}
+🚨 {{ .CommonLabels.severity | upper }} Alert: {{ .CommonLabels.alertname }}
+{{ else }}
+✅ Resolved: {{ .CommonLabels.alertname }}
+{{ end }}
+{{ end }}
+
+{{ define "email.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Platform Alert</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .alert-header { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .critical { border-left: 5px solid #dc3545; }
+        .warning { border-left: 5px solid #ffc107; }
+        .info { border-left: 5px solid #17a2b8; }
+        .alert-details { background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .metric-value { font-weight: bold; color: #dc3545; }
+        .timestamp { color: #6c757d; font-size: 0.9em; }
+        .actions { margin-top: 20px; }
+        .button { background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 3px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="alert-header {{ .CommonLabels.severity }}">
+        <h2>
+            {{ if eq .Status "firing" }}🚨 Alert Firing{{ else }}✅ Alert Resolved{{ end }}
+            - Payment Platform
+        </h2>
+        <p><strong>Alert:</strong> {{ .CommonLabels.alertname }}</p>
+        <p><strong>Component:</strong> {{ .CommonLabels.component }}</p>
+        <p><strong>Severity:</strong> {{ .CommonLabels.severity | upper }}</p>
+        <p class="timestamp"><strong>Time:</strong> {{ .Alerts.First.StartsAt.Format "2006-01-02 15:04:05 UTC" }}</p>
+    </div>
+
+    {{ range .Alerts }}
+    <div class="alert-details">
+        <h3>{{ .Annotations.summary }}</h3>
+        <p>{{ .Annotations.description }}</p>
+
+        {{ if .Annotations.value }}
+        <p><strong>Current Value:</strong> <span class="metric-value">{{ .Annotations.value }}</span></p>
+        {{ end }}
+
+        {{ if .Annotations.threshold }}
+        <p><strong>Threshold:</strong> {{ .Annotations.threshold }}</p>
+        {{ end }}
+
+        <h4>Labels:</h4>
+        <ul>
+        {{ range .Labels.SortedPairs }}
+            <li><strong>{{ .Name }}:</strong> {{ .Value }}</li>
+        {{ end }}
+        </ul>
+
+        {{ if .Annotations.runbook_url }}
+        <p><strong>Runbook:</strong> <a href="{{ .Annotations.runbook_url }}">{{ .Annotations.runbook_url }}</a></p>
+        {{ end }}
+    </div>
+    {{ end }}
+
+    <div class="actions">
+        <h3>Quick Actions:</h3>
+        <a href="${GRAFANA_URL}/d/performance-overview" class="button">Performance Dashboard</a>
+        <a href="${PROMETHEUS_URL}" class="button">Prometheus Metrics</a>
+        <a href="${KIBANA_URL}" class="button">Application Logs</a>
+        <a href="{{ .ExternalURL }}" class="button">View in Alertmanager</a>
+    </div>
+
+    <hr>
+    <p style="color: #6c757d; font-size: 0.9em;">
+        This alert was generated by the Payment Platform monitoring system.
+        If you believe this is a false positive, please check the alert configuration.
+    </p>
+</body>
+</html>
+{{ end }}

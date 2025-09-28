@@ -16,7 +16,6 @@ import jakarta.validation.constraints.PositiveOrZero;
 public class Money {
 
   @NotNull
-  @PositiveOrZero
   @Column(name = "amount", nullable = false, precision = 10, scale = 2)
   private BigDecimal amount;
 
@@ -68,9 +67,7 @@ public class Money {
     if (amount == null) {
       throw new IllegalArgumentException("Amount cannot be null");
     }
-    if (amount.compareTo(BigDecimal.ZERO) < 0) {
-      throw new IllegalArgumentException("Amount cannot be negative");
-    }
+    // Allow negative amounts for refunds and adjustments
     return amount.setScale(2, RoundingMode.HALF_UP);
   }
 
@@ -99,9 +96,6 @@ public class Money {
   public Money subtract(Money other) {
     validateSameCurrency(other);
     BigDecimal result = this.amount.subtract(other.amount);
-    if (result.compareTo(BigDecimal.ZERO) < 0) {
-      throw new IllegalArgumentException("Subtraction would result in negative amount");
-    }
     return new Money(result, this.currency);
   }
 
@@ -135,6 +129,10 @@ public class Money {
         this.amount.divide(BigDecimal.valueOf(divisor), 2, RoundingMode.HALF_UP), this.currency);
   }
 
+  public Money negate() {
+    return new Money(this.amount.negate(), this.currency);
+  }
+
   // Comparison operations
   public boolean isZero() {
     return amount.compareTo(BigDecimal.ZERO) == 0;
@@ -142,6 +140,10 @@ public class Money {
 
   public boolean isPositive() {
     return amount.compareTo(BigDecimal.ZERO) > 0;
+  }
+
+  public boolean isNegative() {
+    return amount.compareTo(BigDecimal.ZERO) < 0;
   }
 
   public boolean isGreaterThan(Money other) {
@@ -157,6 +159,10 @@ public class Money {
   public boolean isEqualTo(Money other) {
     validateSameCurrency(other);
     return this.amount.compareTo(other.amount) == 0;
+  }
+
+  public int compareTo(BigDecimal other) {
+    return this.amount.compareTo(other);
   }
 
   private void validateSameCurrency(Money other) {

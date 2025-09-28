@@ -106,6 +106,11 @@ public class User {
   @Column(name = "deleted_at")
   private Instant deletedAt;
 
+  // Note: Role management now handled through UserRole entity relationships
+
+  @Column(name = "active", nullable = false)
+  private Boolean active = true;
+
   @Version private Long version;
 
   // Constructors
@@ -323,8 +328,26 @@ public class User {
     return deletedAt;
   }
 
+  public Instant getDeactivatedAt() {
+    return deletedAt; // In this system, deactivated is the same as deleted
+  }
+
   public Long getVersion() {
     return version;
+  }
+
+  // Note: Role access is now handled through UserRole service methods
+
+  public Boolean getActive() {
+    return active;
+  }
+
+  public void setActive(Boolean active) {
+    this.active = active;
+  }
+
+  public boolean isActive() {
+    return Boolean.TRUE.equals(active) && !isDeleted() && !isAccountLocked();
   }
 
   @Override

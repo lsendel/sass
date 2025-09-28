@@ -412,7 +412,7 @@ public class AuditService implements com.platform.shared.audit.AuditService {
         return redacted;
     }
 
-    private void validateOrganizationAccess(final UUID organizationId) {
+    protected void validateOrganizationAccess(final UUID organizationId) {
         UUID currentUserId = TenantContext.getCurrentUserId();
         if (currentUserId == null) {
             throw new SecurityException("Authentication required");

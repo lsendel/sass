@@ -121,18 +121,11 @@ public class SessionRegistry {
      * Detect and handle suspicious session activity.
      */
     private void handleExcessiveSessions(String userId, String ipAddress, int sessionCount) {
-        securityEventLogger.logSecurityEvent(
-            SecurityEventLogger.SecurityEventType.SUSPICIOUS_ACTIVITY,
+        securityEventLogger.logSuspiciousActivity(
             userId,
-            SecurityEventLogger.SecuritySeverity.WARNING,
+            "excessive_concurrent_sessions",
             ipAddress,
-            null,
-            Map.of(
-                "activity", "excessive_concurrent_sessions",
-                "session_count", String.valueOf(sessionCount),
-                "limit", String.valueOf(maxConcurrentSessions),
-                "action", "session_limit_exceeded"
-            )
+            "Session count: " + sessionCount + ", Limit: " + maxConcurrentSessions
         );
 
         logger.warn("User {} exceeded concurrent session limit: {} sessions from IP: {}",

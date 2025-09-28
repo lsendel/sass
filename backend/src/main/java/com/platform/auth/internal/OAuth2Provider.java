@@ -279,6 +279,14 @@ public class OAuth2Provider {
     return scopes != null ? String.join(" ", scopes) : "";
   }
 
+  /** 
+   * Gets the authorization URI for OAuth2 authorization code flow.
+   * This is an alias for getAuthorizationUrl() to match Spring Security OAuth2 client conventions.
+   */
+  public String getAuthorizationUri() {
+    return getAuthorizationUrl();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

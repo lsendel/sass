@@ -18,6 +18,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.UUID;
 
@@ -260,7 +263,11 @@ class AuditPerformanceIntegrationTest {
 
         // Force garbage collection
         runtime.gc();
-        Thread.sleep(100);
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         long finalMemory = runtime.totalMemory() - runtime.freeMemory();
         long memoryIncrease = finalMemory - initialMemory;

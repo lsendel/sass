@@ -92,7 +92,9 @@ public class PerformanceMonitoringService implements HealthIndicator {
      */
     public void recordDatabaseQuery(String queryType, String query, Duration duration) {
         Timer.Sample sample = Timer.start(meterRegistry);
-        sample.stop(databaseQueryTimer.tag("query_type", queryType));
+        sample.stop(Timer.builder("database.query.duration")
+            .tags("query_type", queryType)
+            .register(meterRegistry));
 
         long durationMs = duration.toMillis();
 
@@ -115,9 +117,11 @@ public class PerformanceMonitoringService implements HealthIndicator {
      * Record API response performance
      */
     public void recordApiResponse(String endpoint, String method, Duration duration, int statusCode) {
-        apiResponseTimer.tag("endpoint", endpoint)
-                .tag("method", method)
-                .tag("status", String.valueOf(statusCode))
+        Timer.builder("api.response.duration")
+                .tags("endpoint", endpoint,
+                      "method", method,
+                      "status", String.valueOf(statusCode))
+                .register(meterRegistry)
                 .record(duration);
 
         // Track request count
@@ -134,19 +138,31 @@ public class PerformanceMonitoringService implements HealthIndicator {
      * Record cache performance
      */
     public void recordCacheHit(String cacheName) {
-        cacheHitsCounter.tag("cache", cacheName).increment();
+        Counter.builder("cache.hits")
+            .tags("cache", cacheName)
+            .register(meterRegistry)
+            .increment();
     }
 
     public void recordCacheMiss(String cacheName) {
-        cacheMissesCounter.tag("cache", cacheName).increment();
+        Counter.builder("cache.misses")
+            .tags("cache", cacheName)
+            .register(meterRegistry)
+            .increment();
     }
 
     /**
      * Calculate cache hit ratio
      */
     public double getCacheHitRatio(String cacheName) {
-        double hits = cacheHitsCounter.tag("cache", cacheName).count();
-        double misses = cacheMissesCounter.tag("cache", cacheName).count();
+        double hits = Counter.builder("cache.hits")
+            .tags("cache", cacheName)
+            .register(meterRegistry)
+            .count();
+        double misses = Counter.builder("cache.misses")
+            .tags("cache", cacheName)
+            .register(meterRegistry)
+            .count();
         double total = hits + misses;
 
         return total > 0 ? hits / total : 0.0;

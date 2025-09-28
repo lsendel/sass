@@ -2,7 +2,11 @@ package com.platform.audit.internal;
 
 import com.platform.shared.monitoring.PerformanceMonitoringService;
 import com.platform.shared.security.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +31,8 @@ import java.util.concurrent.CompletableFuture;
 @Transactional
 public class EnhancedAuditService extends AuditService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EnhancedAuditService.class);
+
     private final PerformanceMonitoringService performanceMonitoring;
     private final AuditEventRepository auditEventRepository;
 
@@ -38,8 +44,11 @@ public class EnhancedAuditService extends AuditService {
     @Autowired
     public EnhancedAuditService(
             AuditEventRepository auditEventRepository,
-            PerformanceMonitoringService performanceMonitoring) {
-        super(auditEventRepository);
+            PerformanceMonitoringService performanceMonitoring,
+            ObjectMapper objectMapper,
+            @Value("${app.audit.enable-pii-redaction:true}") boolean enablePiiRedaction,
+            @Value("${app.audit.retention-days:2555}") int retentionDays) {
+        super(auditEventRepository, objectMapper, enablePiiRedaction, retentionDays);
         this.auditEventRepository = auditEventRepository;
         this.performanceMonitoring = performanceMonitoring;
     }

@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.platform.shared.security.ThreatDetectionService.ThreatLevel;
+
 /**
  * Result object for threat analysis containing detected threats and risk assessment
  */

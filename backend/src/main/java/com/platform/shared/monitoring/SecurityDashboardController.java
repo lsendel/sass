@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 /**
  * REST controller providing security metrics for monitoring dashboards.
@@ -141,9 +142,8 @@ public class SecurityDashboardController {
     }
 
     private double getTimerMean(String timerName) {
-        return meterRegistry.find(timerName).timer()
-            .map(timer -> timer.mean(java.util.concurrent.TimeUnit.MILLISECONDS))
-            .orElse(0.0);
+        Timer timer = meterRegistry.find(timerName).timer();
+        return timer != null ? timer.mean(java.util.concurrent.TimeUnit.MILLISECONDS) : 0.0;
     }
 
     private Map<String, Double> getAuthFailuresByReason() {

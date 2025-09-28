@@ -46,49 +46,49 @@ public class SecurityMetricsCollector {
         // Initialize counters
         this.authenticationFailuresCounter = Counter.builder("security.authentication.failures")
             .description("Total number of authentication failures")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
 
         this.rateLimitExceededCounter = Counter.builder("security.rate_limit.exceeded")
             .description("Total number of rate limit violations")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
 
         this.xssAttemptsCounter = Counter.builder("security.xss.attempts")
             .description("Total number of XSS attack attempts")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
 
         this.sqlInjectionAttemptsCounter = Counter.builder("security.sql_injection.attempts")
             .description("Total number of SQL injection attempts")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
 
         this.suspiciousActivityCounter = Counter.builder("security.suspicious_activity")
             .description("Total number of suspicious activities detected")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
 
         // Initialize gauges
-        Gauge.builder("security.sessions.active")
+        Gauge.builder("security.sessions.active", this, SecurityMetricsCollector::getActiveSessionsCount)
             .description("Number of currently active sessions")
-            .tag("component", "security")
-            .register(meterRegistry, this, SecurityMetricsCollector::getActiveSessionsCount);
+            .tags("component", "security")
+            .register(meterRegistry);
 
-        Gauge.builder("security.accounts.locked")
+        Gauge.builder("security.accounts.locked", this, SecurityMetricsCollector::getLockedAccountsCount)
             .description("Number of currently locked accounts")
-            .tag("component", "security")
-            .register(meterRegistry, this, SecurityMetricsCollector::getLockedAccountsCount);
+            .tags("component", "security")
+            .register(meterRegistry);
 
         // Initialize timers
         this.authenticationTimer = Timer.builder("security.authentication.duration")
             .description("Time taken for authentication operations")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
 
         this.sessionCreationTimer = Timer.builder("security.session.creation.duration")
             .description("Time taken for session creation")
-            .tag("component", "security")
+            .tags("component", "security")
             .register(meterRegistry);
     }
 
@@ -175,9 +175,9 @@ public class SecurityMetricsCollector {
 
     // Custom metrics for security dashboard
     public void recordSecurityMetric(String metricName, double value, String... tags) {
-        Gauge.builder("security.custom." + metricName)
+        Gauge.builder("security.custom." + metricName, () -> value)
             .tags(tags)
-            .register(meterRegistry, () -> value);
+            .register(meterRegistry);
     }
 
     public void incrementSecurityCounter(String counterName, String... tags) {
@@ -207,5 +207,24 @@ public class SecurityMetricsCollector {
 
     public double getAverageSessionDuration() {
         return sessionCreationTimer.mean(java.util.concurrent.TimeUnit.MINUTES);
+    }
+
+    // Methods for SecurityObservabilityDashboard compatibility
+    public double getGaugeValue(String gaugeName) {
+        return meterRegistry.getMeters().stream()
+            .filter(meter -> meter.getId().getName().equals(gaugeName))
+            .filter(meter -> meter instanceof Gauge)
+            .map(meter -> ((Gauge) meter).value())
+            .findFirst()
+            .orElse(0.0);
+    }
+
+    public double getCounterValue(String counterName) {
+        return meterRegistry.getMeters().stream()
+            .filter(meter -> meter.getId().getName().equals(counterName))
+            .filter(meter -> meter instanceof Counter)
+            .map(meter -> ((Counter) meter).count())
+            .findFirst()
+            .orElse(0.0);
     }
 }

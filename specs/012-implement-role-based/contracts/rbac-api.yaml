@@ -1,0 +1,736 @@
+openapi: 3.0.3
+info:
+  title: RBAC API
+  description: Role-Based Access Control API for Organizations
+  version: 1.1.0
+  contact:
+    name: Platform Team
+    email: platform@company.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+  - url: https://api.platform.com
+    description: Production server
+
+security:
+  - SessionAuth: []
+
+paths:
+  /organizations/{organizationId}/roles:
+    get:
+      summary: List organization roles
+      description: Retrieve all roles for a specific organization
+      operationId: listOrganizationRoles
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: includeInactive
+          in: query
+          description: Include inactive roles in response
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of organization roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+                  total:
+                    type: integer
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+        - SessionAuth: []
+
+    post:
+      summary: Create custom role
+      description: Create a new custom role for the organization
+      operationId: createRole
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Role name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /organizations/{organizationId}/roles/{roleId}:
+    get:
+      summary: Get role details
+      description: Retrieve detailed information about a specific role
+      operationId: getRole
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Role details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleDetails'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update role
+      description: Update an existing custom role
+      operationId: updateRole
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete custom role
+      description: Delete a custom role (cannot delete predefined roles)
+      operationId: deleteRole
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Role deleted successfully
+        '400':
+          description: Cannot delete role with active assignments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{organizationId}/users/{userId}/roles:
+    get:
+      summary: Get user roles
+      description: Retrieve all roles assigned to a user within an organization
+      operationId: getUserRoles
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: User role assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assignments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserRoleAssignment'
+                  effectivePermissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Permission'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      summary: Assign role to user
+      description: Assign a role to a user within an organization
+      operationId: assignUserRole
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+      responses:
+        '201':
+          description: Role assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRoleAssignment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Role already assigned or maximum roles exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /organizations/{organizationId}/users/{userId}/roles/{roleId}:
+    delete:
+      summary: Remove role from user
+      description: Remove a role assignment from a user
+      operationId: removeUserRole
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Role removed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /permissions:
+    get:
+      summary: List available permissions
+      description: Retrieve all available system permissions
+      operationId: listPermissions
+      responses:
+        '200':
+          description: List of system permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Permission'
+                  permissionsByResource:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Permission'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/permissions/check:
+    post:
+      summary: Check permissions
+      description: Check if current user has specific permissions
+      operationId: checkPermissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCheckRequest'
+      responses:
+        '200':
+          description: Permission check results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionCheckResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: SESSION
+
+  schemas:
+    Role:
+      type: object
+      required:
+        - id
+        - name
+        - roleType
+        - isActive
+        - organizationId
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          maxLength: 50
+          example: "payment-manager"
+        description:
+          type: string
+          maxLength: 255
+          example: "Manages payment processing and customer billing"
+        organizationId:
+          type: integer
+          format: int64
+          example: 123
+        roleType:
+          $ref: '#/components/schemas/RoleType'
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-09-27T10:00:00Z"
+        createdBy:
+          type: integer
+          format: int64
+          example: 456
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-09-27T10:00:00Z"
+        updatedBy:
+          type: integer
+          format: int64
+          example: 456
+
+    RoleDetails:
+      allOf:
+        - $ref: '#/components/schemas/Role'
+        - type: object
+          properties:
+            permissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Permission'
+            assignedUserCount:
+              type: integer
+              example: 5
+
+    RoleType:
+      type: string
+      enum:
+        - PREDEFINED
+        - CUSTOM
+      example: CUSTOM
+
+    Permission:
+      type: object
+      required:
+        - id
+        - resource
+        - action
+        - description
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        resource:
+          $ref: '#/components/schemas/Resource'
+        action:
+          $ref: '#/components/schemas/Action'
+        description:
+          type: string
+          example: "Read access to payment records"
+        isActive:
+          type: boolean
+          example: true
+
+    Resource:
+      type: string
+      enum:
+        - PAYMENTS
+        - ORGANIZATIONS
+        - USERS
+        - SUBSCRIPTIONS
+        - AUDIT
+      example: PAYMENTS
+
+    Action:
+      type: string
+      enum:
+        - READ
+        - WRITE
+        - DELETE
+        - ADMIN
+      example: READ
+
+    UserRoleAssignment:
+      type: object
+      required:
+        - id
+        - userId
+        - organizationId
+        - roleId
+        - role
+        - assignedAt
+        - isActive
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        userId:
+          type: integer
+          format: int64
+          example: 123
+        organizationId:
+          type: integer
+          format: int64
+          example: 456
+        roleId:
+          type: integer
+          format: int64
+          example: 789
+        role:
+          $ref: '#/components/schemas/Role'
+        assignedAt:
+          type: string
+          format: date-time
+          example: "2025-09-27T10:00:00Z"
+        assignedBy:
+          type: integer
+          format: int64
+          example: 999
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-31T23:59:59Z"
+        isActive:
+          type: boolean
+          example: true
+
+    CreateRoleRequest:
+      type: object
+      required:
+        - name
+        - description
+        - permissionIds
+      properties:
+        name:
+          type: string
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: "payment-manager"
+        description:
+          type: string
+          maxLength: 255
+          example: "Manages payment processing and customer billing"
+        permissionIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          maxItems: 100
+          example: [1, 2, 3, 4]
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: "payment-manager"
+        description:
+          type: string
+          maxLength: 255
+          example: "Updated description for payment management role"
+        permissionIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          maxItems: 100
+          example: [1, 2, 3, 4, 5]
+
+    AssignRoleRequest:
+      type: object
+      required:
+        - roleId
+      properties:
+        roleId:
+          type: integer
+          format: int64
+          example: 789
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-31T23:59:59Z"
+
+    PermissionCheckRequest:
+      type: object
+      required:
+        - organizationId
+        - checks
+      properties:
+        organizationId:
+          type: integer
+          format: int64
+          example: 123
+        checks:
+          type: array
+          items:
+            type: object
+            required:
+              - resource
+              - action
+            properties:
+              resource:
+                $ref: '#/components/schemas/Resource'
+              action:
+                $ref: '#/components/schemas/Action'
+              resourceId:
+                type: integer
+                format: int64
+                description: Optional specific resource ID for fine-grained checks
+          example:
+            - resource: PAYMENTS
+              action: READ
+            - resource: USERS
+              action: WRITE
+              resourceId: 456
+
+    PermissionCheckResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required:
+              - resource
+              - action
+              - granted
+            properties:
+              resource:
+                $ref: '#/components/schemas/Resource'
+              action:
+                $ref: '#/components/schemas/Action'
+              resourceId:
+                type: integer
+                format: int64
+                nullable: true
+              granted:
+                type: boolean
+              reason:
+                type: string
+                description: Explanation for denial (when granted is false)
+                example: "Insufficient permissions"
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - correlationId
+      properties:
+        code:
+          type: string
+          example: "RBAC_001"
+        message:
+          type: string
+          example: "Insufficient permissions to perform this action"
+        correlationId:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-09-27T10:00:00Z"
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  examples:
+    PredefinedRoles:
+      summary: Example predefined roles
+      value:
+        roles:
+          - id: 1
+            name: "owner"
+            description: "Full organization access including billing"
+            organizationId: 123
+            roleType: "PREDEFINED"
+            isActive: true
+          - id: 2
+            name: "admin"
+            description: "Administrative access excluding billing"
+            organizationId: 123
+            roleType: "PREDEFINED"
+            isActive: true
+          - id: 3
+            name: "member"
+            description: "Standard user access"
+            organizationId: 123
+            roleType: "PREDEFINED"
+            isActive: true
+          - id: 4
+            name: "viewer"
+            description: "Read-only access"
+            organizationId: 123
+            roleType: "PREDEFINED"
+            isActive: true
+
+    CustomRole:
+      summary: Example custom role
+      value:
+        id: 5
+        name: "payment-manager"
+        description: "Manages payment processing and customer billing"
+        organizationId: 123
+        roleType: "CUSTOM"
+        isActive: true
+        createdAt: "2025-09-27T10:00:00Z"
+        createdBy: 456
+
+    PermissionCheck:
+      summary: Example permission check
+      value:
+        organizationId: 123
+        checks:
+          - resource: "PAYMENTS"
+            action: "READ"
+          - resource: "PAYMENTS"
+            action: "WRITE"
+          - resource: "USERS"
+            action: "READ"

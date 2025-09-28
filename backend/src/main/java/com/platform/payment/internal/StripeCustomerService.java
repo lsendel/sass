@@ -10,6 +10,7 @@ import com.stripe.model.Customer;
 import com.stripe.model.CustomerSearchResult;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.CustomerSearchParams;
+import com.stripe.param.CustomerUpdateParams;
 
 /**
  * Service for managing Stripe customer operations.
@@ -93,7 +94,7 @@ public class StripeCustomerService {
         Customer customer = Customer.retrieve(customerId);
 
         Customer updatedCustomer = customer.update(
-                CustomerCreateParams.builder()
+                CustomerUpdateParams.builder()
                         .setName(organization.getName())
                         .setDescription("Customer for organization: " + organization.getName())
                         .build());
