@@ -1,19 +1,31 @@
 package com.platform.audit.internal;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
 /**
- * AuditEvent entity for compliance and security audit logging with GDPR support. Uses table
- * partitioning for performance and retention management.
+ * Represents a single, immutable audit event record in the system.
+ *
+ * <p>This entity is designed for comprehensive compliance and security audit logging. It captures
+ * who did what, when, and to which resource. The class includes features for GDPR compliance, such
+ * as automatic PII (Personally Identifiable Information) redaction from the details map.
+ *
+ * <p>The associated database table {@code audit_events} is indexed for efficient querying on common
+ * fields like actor, organization, and timestamp.
+ *
+ * @see AuditService
+ * @see AuditDetailsConverter
  */
 @Entity
 @Table(
@@ -27,54 +39,87 @@ import org.hibernate.annotations.UuidGenerator;
     })
 public class AuditEvent {
 
+  /** The unique identifier for the audit event. */
   @Id
   @UuidGenerator
   @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
+  /** The ID of the user or system principal that performed the action. */
   @Column(name = "actor_id")
   private UUID actorId;
 
+  /** The ID of the organization this event is associated with. Can be null. */
   @Column(name = "organization_id")
   private UUID organizationId;
 
+  /** A dot-separated string representing the action performed (e.g., "user.login"). */
   @NotBlank
   @Size(max = 100)
   @Column(name = "action", nullable = false, length = 100)
   private String action;
 
+  /** The type of resource that was affected (e.g., "payment", "subscription"). */
   @Size(max = 100)
   @Column(name = "resource_type", length = 100)
   private String resourceType;
 
+  /** The unique ID of the resource that was affected. */
   @Column(name = "resource_id")
   private UUID resourceId;
 
+  /**
+   * A flexible map of additional details about the event, stored as JSON. Sensitive information in
+   * this map is automatically redacted.
+   */
   @Column(name = "details")
   @Convert(converter = AuditDetailsConverter.class)
   private Map<String, Object> details = Map.of();
 
+  /** A unique ID to correlate multiple events within a single request or transaction. */
   @Size(max = 100)
   @Column(name = "correlation_id", length = 100)
   private String correlationId;
 
+  /** The IP address from which the action was initiated. */
   @Column(name = "ip_address", length = 45)
   private String ipAddress;
 
+  /** The timestamp when the event was created. */
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
-  // Constructors
+  /**
+   * Protected no-argument constructor required by JPA.
+   */
   protected AuditEvent() {
     // JPA constructor
   }
 
+  /**
+   * Creates a new audit event with the essential actor and action.
+   *
+   * @param actorId the ID of the principal performing the action
+   * @param action the action being performed
+   */
   public AuditEvent(UUID actorId, String action) {
     this.actorId = actorId;
     this.action = action;
   }
 
+  /**
+   * A comprehensive constructor for creating a detailed audit event.
+   *
+   * @param organizationId the associated organization ID
+   * @param actorId the ID of the actor
+   * @param eventType deprecated, use {@code action}
+   * @param resourceType the type of the affected resource
+   * @param resourceId the ID of the affected resource, which can be a non-UUID string
+   * @param action the action performed
+   * @param ipAddress the source IP address
+   * @param userAgent the user agent of the client
+   */
   public AuditEvent(
       UUID organizationId,
       UUID actorId,
@@ -108,6 +153,15 @@ public class AuditEvent {
   }
 
   // Factory methods for common audit events
+
+  /**
+   * Creates an audit event for a user login.
+   *
+   * @param userId the ID of the user logging in
+   * @param ipAddress the source IP address
+   * @param correlationId the correlation ID for the request
+   * @return a new {@link AuditEvent} for the login action
+   */
   public static AuditEvent userLogin(UUID userId, String ipAddress, String correlationId) {
     var event = new AuditEvent(userId, "user.login");
     event.ipAddress = ipAddress;
@@ -115,12 +169,27 @@ public class AuditEvent {
     return event;
   }
 
+  /**
+   * Creates an audit event for a user logout.
+   *
+   * @param userId the ID of the user logging out
+   * @param correlationId the correlation ID for the request
+   * @return a new {@link AuditEvent} for the logout action
+   */
   public static AuditEvent userLogout(UUID userId, String correlationId) {
     var event = new AuditEvent(userId, "user.logout");
     event.correlationId = correlationId;
     return event;
   }
 
+  /**
+   * Creates an audit event for the creation of a new organization.
+   *
+   * @param actorId the ID of the user creating the organization
+   * @param organizationId the ID of the newly created organization
+   * @param details additional details about the organization
+   * @return a new {@link AuditEvent} for the organization creation
+   */
   public static AuditEvent organizationCreated(
       UUID actorId, UUID organizationId, Map<String, Object> details) {
     var event = new AuditEvent(actorId, "organization.created");
@@ -131,6 +200,15 @@ public class AuditEvent {
     return event;
   }
 
+  /**
+   * Creates an audit event for the creation of a new subscription.
+   *
+   * @param actorId the ID of the user creating the subscription
+   * @param organizationId the ID of the organization the subscription belongs to
+   * @param subscriptionId the ID of the newly created subscription
+   * @param details additional details about the subscription
+   * @return a new {@link AuditEvent} for the subscription creation
+   */
   public static AuditEvent subscriptionCreated(
       UUID actorId, UUID organizationId, UUID subscriptionId, Map<String, Object> details) {
     var event = new AuditEvent(actorId, "subscription.created");
@@ -141,6 +219,15 @@ public class AuditEvent {
     return event;
   }
 
+  /**
+   * Creates an audit event for a processed payment.
+   *
+   * @param actorId the ID of the user associated with the payment
+   * @param organizationId the ID of the organization the payment belongs to
+   * @param paymentId the ID of the payment record
+   * @param details additional details about the payment
+   * @return a new {@link AuditEvent} for the payment processing
+   */
   public static AuditEvent paymentProcessed(
       UUID actorId, UUID organizationId, UUID paymentId, Map<String, Object> details) {
     var event = new AuditEvent(actorId, "payment.processed");
@@ -151,6 +238,15 @@ public class AuditEvent {
     return event;
   }
 
+  /**
+   * Creates an audit event for a data export action.
+   *
+   * @param actorId the ID of the user exporting data
+   * @param organizationId the ID of the organization from which data is exported
+   * @param exportType the type of data being exported (e.g., "csv", "pdf")
+   * @param details additional details about the export
+   * @return a new {@link AuditEvent} for the data export
+   */
   public static AuditEvent dataExported(
       UUID actorId, UUID organizationId, String exportType, Map<String, Object> details) {
     var event = new AuditEvent(actorId, "data.exported");
@@ -161,6 +257,16 @@ public class AuditEvent {
     return event;
   }
 
+  /**
+   * Creates an audit event for a data deletion action.
+   *
+   * @param actorId the ID of the user deleting the data
+   * @param organizationId the ID of the organization the data belongs to
+   * @param resourceType the type of the deleted resource
+   * @param resourceId the ID of the deleted resource
+   * @param details additional details about the deletion
+   * @return a new {@link AuditEvent} for the data deletion
+   */
   public static AuditEvent dataDeleted(
       UUID actorId,
       UUID organizationId,
@@ -176,32 +282,71 @@ public class AuditEvent {
   }
 
   // Builder methods for fluent API
+
+  /**
+   * Sets the organization ID for this event.
+   *
+   * @param organizationId the organization ID
+   * @return this {@link AuditEvent} instance for chaining
+   */
   public AuditEvent withOrganization(UUID organizationId) {
     this.organizationId = organizationId;
     return this;
   }
 
+  /**
+   * Sets the resource context for this event.
+   *
+   * @param resourceType the type of the resource
+   * @param resourceId the ID of the resource
+   * @return this {@link AuditEvent} instance for chaining
+   */
   public AuditEvent withResource(String resourceType, UUID resourceId) {
     this.resourceType = resourceType;
     this.resourceId = resourceId;
     return this;
   }
 
+  /**
+   * Sets the correlation ID for this event.
+   *
+   * @param correlationId the correlation ID
+   * @return this {@link AuditEvent} instance for chaining
+   */
   public AuditEvent withCorrelationId(String correlationId) {
     this.correlationId = correlationId;
     return this;
   }
 
+  /**
+   * Sets the IP address for this event.
+   *
+   * @param ipAddress the source IP address
+   * @return this {@link AuditEvent} instance for chaining
+   */
   public AuditEvent withIpAddress(String ipAddress) {
     this.ipAddress = ipAddress;
     return this;
   }
 
+  /**
+   * Sets the details map for this event, ensuring it is sanitized.
+   *
+   * @param details a map of additional details
+   * @return this {@link AuditEvent} instance for chaining
+   */
   public AuditEvent withDetails(Map<String, Object> details) {
     this.details = sanitizeDetails(details);
     return this;
   }
 
+  /**
+   * Adds a single key-value pair to the details map, ensuring the value is sanitized.
+   *
+   * @param key the key for the detail entry
+   * @param value the value for the detail entry
+   * @return this {@link AuditEvent} instance for chaining
+   */
   public AuditEvent addDetail(String key, Object value) {
     var updatedDetails = new java.util.HashMap<>(this.details);
     updatedDetails.put(key, sanitizeValue(value));
@@ -209,7 +354,12 @@ public class AuditEvent {
     return this;
   }
 
-  // GDPR compliance methods
+  /**
+   * Sanitizes a map of details by redacting or cleaning potential PII from its values.
+   *
+   * @param details the map to sanitize
+   * @return a new map with sanitized values
+   */
   private static Map<String, Object> sanitizeDetails(Map<String, Object> details) {
     if (details == null || details.isEmpty()) {
       return Map.of();
@@ -222,6 +372,12 @@ public class AuditEvent {
     return Map.copyOf(sanitized);
   }
 
+  /**
+   * Sanitizes a single object by checking for and redacting common PII patterns.
+   *
+   * @param value the value to sanitize
+   * @return the sanitized value, or the original value if no PII is detected
+   */
   private static Object sanitizeValue(Object value) {
     if (value == null) {
       return null;
@@ -281,31 +437,63 @@ public class AuditEvent {
   }
 
   // Business methods
+
+  /**
+   * Checks if the event is a user-related action.
+   *
+   * @return {@code true} if the action starts with "user.", {@code false} otherwise
+   */
   public boolean isUserAction() {
     return action.startsWith("user.");
   }
 
+  /**
+   * Checks if the event is an organization-related action.
+   *
+   * @return {@code true} if the action starts with "organization.", {@code false} otherwise
+   */
   public boolean isOrganizationAction() {
     return action.startsWith("organization.");
   }
 
+  /**
+   * Checks if the event is a payment-related action.
+   *
+   * @return {@code true} if the action starts with "payment.", {@code false} otherwise
+   */
   public boolean isPaymentAction() {
     return action.startsWith("payment.");
   }
 
+  /**
+   * Checks if the event is a data-related action.
+   *
+   * @return {@code true} if the action starts with "data.", {@code false} otherwise
+   */
   public boolean isDataAction() {
     return action.startsWith("data.");
   }
 
+  /**
+   * Checks if the event has an associated organization.
+   *
+   * @return {@code true} if {@code organizationId} is not null, {@code false} otherwise
+   */
   public boolean hasOrganizationContext() {
     return organizationId != null;
   }
 
+  /**
+   * Checks if the event has an associated resource.
+   *
+   * @return {@code true} if both {@code resourceType} and {@code resourceId} are not null
+   */
   public boolean hasResourceContext() {
     return resourceType != null && resourceId != null;
   }
 
   // Getters
+
   public UUID getId() {
     return id;
   }
@@ -347,18 +535,34 @@ public class AuditEvent {
   }
 
   // Setters for additional data
+
+  /**
+   * Adds raw request data to the details map.
+   *
+   * @param requestData the request data string
+   */
   public void setRequestData(String requestData) {
     var detailsMap = new java.util.HashMap<>(this.details);
     detailsMap.put("requestData", requestData);
     this.details = Map.copyOf(detailsMap);
   }
 
+  /**
+   * Adds raw response data to the details map.
+   *
+   * @param responseData the response data string
+   */
   public void setResponseData(String responseData) {
     var detailsMap = new java.util.HashMap<>(this.details);
     detailsMap.put("responseData", responseData);
     this.details = Map.copyOf(detailsMap);
   }
 
+  /**
+   * Adds arbitrary metadata to the details map.
+   *
+   * @param metadata the metadata string
+   */
   public void setMetadata(String metadata) {
     var detailsMap = new java.util.HashMap<>(this.details);
     detailsMap.put("metadata", metadata);

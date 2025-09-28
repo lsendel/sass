@@ -11,131 +11,133 @@ import com.platform.user.api.UserDto.UserResponse;
 import com.platform.user.api.UserDto.UserStatistics;
 
 /**
- * Service interface for user management operations.
- * This interface provides the API layer with access to user functionality
- * without depending on internal implementation details.
+ * Defines the contract for managing users.
+ *
+ * <p>This service interface provides a high-level API for all user-related operations, serving as an
+ * abstraction layer between the API controllers and the internal implementation details.
  */
 public interface UserManagementServiceInterface {
 
   /**
-   * Gets the current authenticated user.
+   * Retrieves the currently authenticated user.
    *
-   * @return the current user if authenticated, empty otherwise
+   * @return an {@link Optional} containing the {@link UserResponse} for the current user if
+   *     authenticated, otherwise an empty {@link Optional}
    */
   Optional<UserResponse> getCurrentUser();
 
   /**
-   * Finds a user by ID.
+   * Finds a user by their ID.
    *
-   * @param userId the user ID
-   * @return the user if found, empty otherwise
+   * @param userId the ID of the user
+   * @return an {@link Optional} containing the {@link UserResponse} if found, otherwise an empty
+   *     {@link Optional}
    */
   Optional<UserResponse> findById(UUID userId);
 
   /**
    * Updates a user's profile.
    *
-   * @param userId the user ID
-   * @param name the new name
-   * @param preferences the new preferences
-   * @return the updated user
+   * @param userId the ID of the user to update
+   * @param name the new name for the user
+   * @param preferences a map of new preferences for the user
+   * @return a {@link UserResponse} representing the updated user
    */
   UserResponse updateProfile(UUID userId, String name, Map<String, Object> preferences);
 
   /**
    * Updates a user's preferences.
    *
-   * @param userId the user ID
-   * @param preferences the new preferences
-   * @return the updated user
+   * @param userId the ID of the user to update
+   * @param preferences a map of new preferences for the user
+   * @return a {@link UserResponse} representing the updated user
    */
   UserResponse updatePreferences(UUID userId, Map<String, Object> preferences);
 
   /**
    * Deletes a user (soft delete).
    *
-   * @param userId the user ID
+   * @param userId the ID of the user to delete
    */
   void deleteUser(UUID userId);
 
   /**
-   * Searches users by name.
+   * Searches for users by name.
    *
    * @param name the name to search for
-   * @return list of matching users
+   * @return a list of {@link UserResponse}s matching the search criteria
    */
   List<UserResponse> searchUsersByName(String name);
 
   /**
-   * Finds all users with pagination.
+   * Retrieves a paginated list of all users.
    *
-   * @param page the page number
-   * @param size the page size
+   * @param page the page number to retrieve
+   * @param size the number of users per page
    * @param sortBy the field to sort by
-   * @param sortDirection the sort direction
-   * @return paginated user results
+   * @param sortDirection the sort direction ("asc" or "desc")
+   * @return a {@link PagedUserResponse} containing the paginated results
    */
   PagedUserResponse findAllUsers(int page, int size, String sortBy, String sortDirection);
 
   /**
-   * Gets recently active users.
+   * Retrieves a list of recently active users.
    *
-   * @param since the timestamp to filter from
-   * @return list of recently active users
+   * @param since the timestamp from which to consider users as recently active
+   * @return a list of recently active {@link UserResponse}s
    */
   List<UserResponse> getRecentlyActiveUsers(Instant since);
 
   /**
-   * Gets user statistics.
+   * Retrieves user statistics.
    *
-   * @return user statistics
+   * @return a {@link UserStatistics} object containing the statistics
    */
   UserStatistics getUserStatistics();
 
   /**
-   * Counts active users.
+   * Counts the total number of active users.
    *
-   * @return count of active users
+   * @return the count of active users
    */
   long countActiveUsers();
 
   /**
-   * Finds users by authentication provider.
+   * Finds all users who authenticated with a specific provider.
    *
-   * @param provider the provider name
-   * @return list of users using the provider
+   * @param provider the name of the provider
+   * @return a list of {@link UserResponse}s from the specified provider
    */
   List<UserResponse> findUsersByProvider(String provider);
 
   /**
-   * Restores a deleted user.
+   * Restores a soft-deleted user.
    *
-   * @param userId the user ID
-   * @return the restored user
+   * @param userId the ID of the user to restore
+   * @return a {@link UserResponse} representing the restored user
    */
   UserResponse restoreUser(UUID userId);
 
   /**
-   * Activates a user account.
+   * Activates a user's account.
    *
-   * @param userId the user ID
+   * @param userId the ID of the user to activate
    */
   void activateUser(UUID userId);
 
   /**
-   * Deactivates a user account.
+   * Deactivates a user's account.
    *
-   * @param userId the user ID
+   * @param userId the ID of the user to deactivate
    */
   void deactivateUser(UUID userId);
 
   /**
    * Changes a user's password.
    *
-   * @param userId the user ID
-   * @param currentPassword the current password
-   * @param newPassword the new password
+   * @param userId the ID of the user
+   * @param currentPassword the user's current password
+   * @param newPassword the new password to set
    */
   void changePassword(UUID userId, String currentPassword, String newPassword);
-
 }

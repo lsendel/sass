@@ -26,6 +26,21 @@ import com.stripe.model.SubscriptionItem;
 import com.stripe.param.SubscriptionCreateParams;
 import com.stripe.param.SubscriptionUpdateParams;
 
+/**
+ * Service for managing subscriptions.
+ *
+ * <p>This service handles all business logic related to subscriptions, including creating,
+ * changing, and canceling subscriptions. It also provides methods for querying subscription data and
+ * processing webhooks from Stripe.
+ *
+ * <p>All interactions with Stripe are routed through the {@link StripeClient}, and all significant
+ * events are audited using the {@link AuditService}.
+ *
+ * @see Subscription
+ * @see Plan
+ * @see StripeClient
+ * @see AuditService
+ */
 @Service
 @Transactional
 public class SubscriptionService {
@@ -40,6 +55,17 @@ public class SubscriptionService {
   private final AuditService auditService;
   private final StripeClient stripeClient;
 
+  /**
+   * Constructs a new SubscriptionService.
+   *
+   * @param subscriptionRepository the repository for managing subscriptions
+   * @param planRepository the repository for managing plans
+   * @param invoiceRepository the repository for managing invoices
+   * @param organizationRepository the repository for managing organizations
+   * @param eventPublisher the event publisher for application events
+   * @param auditService the service for logging audit events
+   * @param stripeClient the client for interacting with the Stripe API
+   */
   public SubscriptionService(
       SubscriptionRepository subscriptionRepository,
       PlanRepository planRepository,
@@ -57,6 +83,29 @@ public class SubscriptionService {
     this.stripeClient = stripeClient;
   }
 
+  /**
+   * Creates a new subscription for an organization.
+   *
+   * <p>This method orchestrates the creation of a new subscription, including:
+   *
+   * <ul>
+   *   <li>Validating that the organization does not already have an active subscription.
+   *   <li>Creating or retrieving a Stripe customer for the organization.
+   *   <li>Attaching a payment method to the customer, if provided.
+   *   <li>Creating a new subscription in Stripe.
+   *   <li>Saving the new subscription to the local database.
+   * </ul>
+   *
+   * @param organizationId the ID of the organization to create the subscription for
+   * @param planId the ID of the plan to subscribe to
+   * @param paymentMethodId the ID of the payment method to use for the subscription (can be null)
+   * @param trialEligible whether the subscription is eligible for a trial period
+   * @return the newly created subscription
+   * @throws StripeException if an error occurs while interacting with the Stripe API
+   * @throws IllegalStateException if the organization already has an active subscription
+   * @throws IllegalArgumentException if the organization or plan is not found, or if the plan is
+   *     not active
+   */
   public Subscription createSubscription(
       UUID organizationId, UUID planId, String paymentMethodId, boolean trialEligible)
       throws StripeException {
@@ -237,6 +286,21 @@ public class SubscriptionService {
     return savedSubscription;
   }
 
+  /**
+   * Changes the plan for an existing subscription.
+   *
+   * <p>This method handles changing the plan for an organization's active subscription. It updates
+   * the subscription in Stripe and in the local database.
+   *
+   * @param organizationId the ID of the organization whose subscription is being changed
+   * @param newPlanId the ID of the new plan to switch to
+   * @param prorationBehavior whether to create prorations for the plan change
+   * @return the updated subscription
+   * @throws StripeException if an error occurs while interacting with the Stripe API
+   * @throws IllegalStateException if the subscription is not active
+   * @throws IllegalArgumentException if no active subscription is found for the organization, or if
+   *     the new plan is not found or not active
+   */
   public Subscription changeSubscriptionPlan(
       UUID organizationId, UUID newPlanId, boolean prorationBehavior) throws StripeException {
     validateOrganizationAccess(organizationId);
@@ -387,6 +451,21 @@ public class SubscriptionService {
     return savedSubscription;
   }
 
+  /**
+   * Cancels a subscription.
+   *
+   * <p>This method can cancel a subscription immediately or schedule it for cancellation at a future
+   * date. If a future cancellation date is not provided, it will be scheduled for cancellation at
+   * the end of the current billing period.
+   *
+   * @param organizationId the ID of the organization whose subscription is being canceled
+   * @param immediate whether to cancel the subscription immediately
+   * @param cancelAt the specific time to cancel the subscription (if not immediate)
+   * @return the updated subscription, now in a canceled or scheduled-for-cancellation state
+   * @throws StripeException if an error occurs while interacting with the Stripe API
+   * @throws IllegalStateException if the subscription is already canceled
+   * @throws IllegalArgumentException if no active subscription is found for the organization
+   */
   public Subscription cancelSubscription(UUID organizationId, boolean immediate, Instant cancelAt)
       throws StripeException {
     validateOrganizationAccess(organizationId);
@@ -525,6 +604,18 @@ public class SubscriptionService {
     return savedSubscription;
   }
 
+  /**
+   * Reactivates a canceled or scheduled-for-cancellation subscription.
+   *
+   * <p>This method removes the cancellation flag from a subscription, both in Stripe and in the
+   * local database, effectively reactivating it.
+   *
+   * @param organizationId the ID of the organization whose subscription is being reactivated
+   * @return the updated, reactivated subscription
+   * @throws StripeException if an error occurs while interacting with the Stripe API
+   * @throws IllegalStateException if the subscription is not in a state that can be reactivated
+   * @throws IllegalArgumentException if no subscription is found for the organization
+   */
   public Subscription reactivateSubscription(UUID organizationId) throws StripeException {
     validateOrganizationAccess(organizationId);
 
@@ -639,33 +730,68 @@ public class SubscriptionService {
     return savedSubscription;
   }
 
+  /**
+   * Finds a subscription by organization ID.
+   *
+   * @param organizationId the ID of the organization
+   * @return an Optional containing the subscription if found, or an empty Optional otherwise
+   */
   @Transactional(readOnly = true)
   public Optional<Subscription> findByOrganizationId(UUID organizationId) {
     validateOrganizationAccess(organizationId);
     return subscriptionRepository.findByOrganizationId(organizationId);
   }
 
+  /**
+   * Gets a list of all available, active plans.
+   *
+   * @return a list of active plans, sorted by display order
+   */
   @Transactional(readOnly = true)
   public List<Plan> getAvailablePlans() {
     return planRepository.findByActiveOrderByDisplayOrderAsc(true);
   }
 
+  /**
+   * Gets a list of active plans for a specific billing interval.
+   *
+   * @param interval the billing interval (e.g., MONTHLY, YEARLY)
+   * @return a list of active plans for the given interval
+   */
   @Transactional(readOnly = true)
   public List<Plan> getPlansByInterval(Plan.BillingInterval interval) {
     return planRepository.findActivePlansByInterval(interval);
   }
 
+  /**
+   * Finds an active plan by its slug.
+   *
+   * @param slug the slug of the plan
+   * @return an Optional containing the plan if found, or an empty Optional otherwise
+   */
   @Transactional(readOnly = true)
   public Optional<Plan> findPlanBySlug(String slug) {
     return planRepository.findBySlugAndActive(slug, true);
   }
 
+  /**
+   * Gets a list of all invoices for an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @return a list of invoices, sorted by creation date in descending order
+   */
   @Transactional(readOnly = true)
   public List<Invoice> getOrganizationInvoices(UUID organizationId) {
     validateOrganizationAccess(organizationId);
     return invoiceRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId);
   }
 
+  /**
+   * Gets subscription statistics for an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @return a record containing subscription statistics
+   */
   @Transactional(readOnly = true)
   public SubscriptionStatistics getSubscriptionStatistics(UUID organizationId) {
     validateOrganizationAccess(organizationId);
@@ -696,6 +822,16 @@ public class SubscriptionService {
         subscription.get().getStatus(), totalInvoices, totalAmount, recentAmount);
   }
 
+  /**
+   * Processes a webhook event from Stripe.
+   *
+   * <p>This method serves as the entry point for all subscription-related webhooks from Stripe. It
+   * delegates to the appropriate handler method based on the event type.
+   *
+   * @param stripeEventId the ID of the Stripe event
+   * @param eventType the type of the event (e.g., "customer.subscription.updated")
+   * @param eventData a map containing the event data
+   */
   public void processWebhookEvent(
       String stripeEventId, String eventType, Map<String, Object> eventData) {
     logger.info("Processing Stripe subscription webhook: {} of type: {}", stripeEventId, eventType);
@@ -716,6 +852,12 @@ public class SubscriptionService {
 
   // Customer creation is handled by StripeClient
 
+  /**
+   * Updates a subscription entity from a Stripe subscription object.
+   *
+   * @param subscription the subscription entity to update
+   * @param stripeSubscription the Stripe subscription object to update from
+   */
   private void updateSubscriptionFromStripe(
       Subscription subscription, com.stripe.model.Subscription stripeSubscription) {
     Subscription.Status status = mapStripeSubscriptionStatus(stripeSubscription.getStatus());
@@ -747,6 +889,12 @@ public class SubscriptionService {
             : null);
   }
 
+  /**
+   * Maps a Stripe subscription status string to a local {@link Subscription.Status} enum.
+   *
+   * @param stripeStatus the status string from Stripe
+   * @return the corresponding local status
+   */
   private Subscription.Status mapStripeSubscriptionStatus(String stripeStatus) {
     return switch (stripeStatus) {
       case "active" -> Subscription.Status.ACTIVE;
@@ -760,11 +908,21 @@ public class SubscriptionService {
     };
   }
 
+  /**
+   * Handles the "customer.subscription.created" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleSubscriptionCreated(Map<String, Object> eventData) {
     // Implementation for subscription created webhook
     logger.debug("Subscription created webhook received");
   }
 
+  /**
+   * Handles the "customer.subscription.updated" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleSubscriptionUpdated(Map<String, Object> eventData) {
     String subscriptionId = (String) ((Map<?, ?>) eventData.get("object")).get("id");
     subscriptionRepository
@@ -783,6 +941,11 @@ public class SubscriptionService {
             });
   }
 
+  /**
+   * Handles the "customer.subscription.deleted" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleSubscriptionDeleted(Map<String, Object> eventData) {
     String subscriptionId = (String) ((Map<?, ?>) eventData.get("object")).get("id");
     subscriptionRepository
@@ -795,10 +958,20 @@ public class SubscriptionService {
             });
   }
 
+  /**
+   * Handles the "invoice.created" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleInvoiceCreated(Map<String, Object> eventData) {
     logger.debug("Invoice created webhook received");
   }
 
+  /**
+   * Handles the "invoice.payment_succeeded" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleInvoicePaymentSucceeded(Map<String, Object> eventData) {
     String invoiceId = (String) ((Map<?, ?>) eventData.get("object")).get("id");
     invoiceRepository
@@ -811,6 +984,11 @@ public class SubscriptionService {
             });
   }
 
+  /**
+   * Handles the "invoice.payment_failed" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleInvoicePaymentFailed(Map<String, Object> eventData) {
     String invoiceId = (String) ((Map<?, ?>) eventData.get("object")).get("id");
     invoiceRepository
@@ -823,10 +1001,22 @@ public class SubscriptionService {
             });
   }
 
+  /**
+   * Handles the "invoice.finalized" webhook event.
+   *
+   * @param eventData a map containing the event data
+   */
   private void handleInvoiceFinalized(Map<String, Object> eventData) {
     logger.debug("Invoice finalized webhook received");
   }
 
+  /**
+   * Builds a context map for auditing events related to an organization.
+   *
+   * @param organizationId the ID of the organization
+   * @param extras any extra context to include
+   * @return a map containing the organization context
+   */
   private Map<String, Object> buildOrganizationContext(
       UUID organizationId, Map<String, Object> extras) {
     Map<String, Object> context = new LinkedHashMap<>();
@@ -837,6 +1027,14 @@ public class SubscriptionService {
     return context;
   }
 
+  /**
+   * Builds a context map for auditing events related to a subscription.
+   *
+   * @param organizationId the ID of the organization
+   * @param subscription the subscription
+   * @param extras any extra context to include
+   * @return a map containing the subscription context
+   */
   private Map<String, Object> buildSubscriptionContext(
       UUID organizationId, Subscription subscription, Map<String, Object> extras) {
     Map<String, Object> context = buildOrganizationContext(organizationId, null);
@@ -847,6 +1045,20 @@ public class SubscriptionService {
     return context;
   }
 
+  /**
+   * Logs a pre-subscription audit event.
+   *
+   * <p>This method is used for logging audit events that occur before a subscription has been
+   * created, such as a subscription creation attempt.
+   *
+   * @param eventName the name of the event
+   * @param organizationId the ID of the organization
+   * @param resourceId the ID of the resource being acted upon
+   * @param action the action being performed
+   * @param contextExtras any extra context to include in the audit log
+   * @param eventData any extra data to include in the audit log
+   * @param metadata any extra metadata to include in the audit log
+   */
   private void auditPreSubscriptionEvent(
       String eventName,
       UUID organizationId,
@@ -867,6 +1079,18 @@ public class SubscriptionService {
         metadata);
   }
 
+  /**
+   * Logs a pre-subscription audit event.
+   *
+   * <p>This is a convenience method that calls the more detailed {@link #auditPreSubscriptionEvent}
+   * with null values for eventData and metadata.
+   *
+   * @param eventName the name of the event
+   * @param organizationId the ID of the organization
+   * @param resourceId the ID of the resource being acted upon
+   * @param action the action being performed
+   * @param contextExtras any extra context to include in the audit log
+   */
   private void auditPreSubscriptionEvent(
       String eventName,
       UUID organizationId,
@@ -876,6 +1100,19 @@ public class SubscriptionService {
     auditPreSubscriptionEvent(eventName, organizationId, resourceId, action, contextExtras, null, null);
   }
 
+  /**
+   * Logs a subscription audit event.
+   *
+   * <p>This method is used for logging audit events that are related to an existing subscription.
+   *
+   * @param eventName the name of the event
+   * @param subscription the subscription that is the subject of the event
+   * @param organizationId the ID of the organization that owns the subscription
+   * @param action the action being performed
+   * @param contextExtras any extra context to include in the audit log
+   * @param eventData any extra data to include in the audit log
+   * @param metadata any extra metadata to include in the audit log
+   */
   private void auditSubscriptionEvent(
       String eventName,
       Subscription subscription,
@@ -896,6 +1133,18 @@ public class SubscriptionService {
         metadata);
   }
 
+  /**
+   * Logs a subscription audit event.
+   *
+   * <p>This is a convenience method that calls the more detailed {@link #auditSubscriptionEvent}
+   * with null values for eventData and metadata.
+   *
+   * @param eventName the name of the event
+   * @param subscription the subscription that is the subject of the event
+   * @param organizationId the ID of the organization that owns the subscription
+   * @param action the action being performed
+   * @param contextExtras any extra context to include in the audit log
+   */
   private void auditSubscriptionEvent(
       String eventName,
       Subscription subscription,
@@ -905,6 +1154,13 @@ public class SubscriptionService {
     auditSubscriptionEvent(eventName, subscription, organizationId, action, contextExtras, null, null);
   }
 
+  /**
+   * Validates that the current user has access to the given organization.
+   *
+   * @param organizationId the ID of the organization to validate access to
+   * @throws SecurityException if the user is not authenticated or does not have access to the
+   *     organization
+   */
   private void validateOrganizationAccess(UUID organizationId) {
     UUID currentUserId = TenantContext.getCurrentUserId();
     if (currentUserId == null) {
@@ -915,6 +1171,18 @@ public class SubscriptionService {
     }
   }
 
+  /**
+   * Pauses a subscription.
+   *
+   * <p>This method pauses a subscription in Stripe and updates its status in the local database. A
+   * paused subscription will not generate any new invoices.
+   *
+   * @param organizationId the ID of the organization whose subscription is being paused
+   * @return the updated, paused subscription
+   * @throws StripeException if an error occurs while interacting with the Stripe API
+   * @throws IllegalStateException if the subscription is not active
+   * @throws IllegalArgumentException if no subscription is found for the organization
+   */
   public Subscription pauseSubscription(UUID organizationId) throws StripeException {
     validateOrganizationAccess(organizationId);
 
@@ -952,6 +1220,17 @@ public class SubscriptionService {
     return savedSubscription;
   }
 
+  /**
+   * Resumes a paused subscription.
+   *
+   * <p>This method resumes a paused subscription in Stripe and updates its status in the local
+   * database.
+   *
+   * @param organizationId the ID of the organization whose subscription is being resumed
+   * @return the updated, resumed subscription
+   * @throws StripeException if an error occurs while interacting with the Stripe API
+   * @throws IllegalArgumentException if no subscription is found for the organization
+   */
   public Subscription resumeSubscription(UUID organizationId) throws StripeException {
     validateOrganizationAccess(organizationId);
 
@@ -985,6 +1264,16 @@ public class SubscriptionService {
     return savedSubscription;
   }
 
+  /**
+   * Gets usage metrics for an organization.
+   *
+   * <p>This method returns a map of usage metrics for a given organization over a specified number
+   * of days. This is a mock implementation and does not query any real usage data.
+   *
+   * @param organizationId the ID of the organization
+   * @param days the number of days to get usage metrics for
+   * @return a map of usage metrics
+   */
   @Transactional(readOnly = true)
   public Map<String, Object> getUsageMetrics(UUID organizationId, int days) {
     validateOrganizationAccess(organizationId);
@@ -1004,6 +1293,16 @@ public class SubscriptionService {
     return metrics;
   }
 
+  /**
+   * Records usage for a specific metric.
+   *
+   * <p>This is a mock implementation that logs an audit event for the recorded usage. In a real
+   * system, this would save the usage data to a database.
+   *
+   * @param organizationId the ID of the organization to record usage for
+   * @param metric the name of the metric to record
+   * @param quantity the quantity of usage to record
+   */
   public void recordUsage(UUID organizationId, String metric, Integer quantity) {
     validateOrganizationAccess(organizationId);
 
@@ -1021,6 +1320,13 @@ public class SubscriptionService {
     logger.info("Recorded usage for organization {}: {} = {}", organizationId, metric, quantity);
   }
 
+  /**
+   * Gets the current billing period for an organization's subscription.
+   *
+   * @param organizationId the ID of the organization
+   * @return a map containing details about the current billing period
+   * @throws IllegalArgumentException if no subscription is found for the organization
+   */
   @Transactional(readOnly = true)
   public Map<String, Object> getCurrentBillingPeriod(UUID organizationId) {
     validateOrganizationAccess(organizationId);
@@ -1048,6 +1354,14 @@ public class SubscriptionService {
     return billingPeriod;
   }
 
+  /**
+   * A record to hold subscription statistics.
+   *
+   * @param status the current status of the subscription
+   * @param totalInvoices the total number of paid invoices
+   * @param totalAmount the total amount paid across all invoices
+   * @param recentAmount the amount paid in the last 30 days
+   */
   public record SubscriptionStatistics(
       Subscription.Status status, long totalInvoices, Money totalAmount, Money recentAmount) {}
 }

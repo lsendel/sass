@@ -23,8 +23,11 @@ import com.platform.user.internal.Organization;
 import com.platform.user.internal.OrganizationRepository;
 
 /**
- * Implementation of OrganizationManagementService that bridges the API and internal layers.
- * This service converts between internal entities and API DTOs.
+ * Implementation of the {@link OrganizationManagementService} interface.
+ *
+ * <p>This service acts as a bridge between the API layer and the internal domain layer for
+ * organization management. It translates API requests into calls to the internal {@link
+ * OrganizationService} and maps the resulting internal entities and views to public DTOs.
  */
 @Service
 public class OrganizationManagementServiceImpl implements OrganizationManagementService {
@@ -32,6 +35,12 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   private final OrganizationService organizationService;
   private final OrganizationRepository organizationRepository;
 
+  /**
+   * Constructs a new OrganizationManagementServiceImpl.
+   *
+   * @param organizationService the internal service for managing organizations
+   * @param organizationRepository the repository for accessing organization data
+   */
   public OrganizationManagementServiceImpl(OrganizationService organizationService, OrganizationRepository organizationRepository) {
     this.organizationService = organizationService;
     this.organizationRepository = organizationRepository;
@@ -131,9 +140,6 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
     return mapToOrganizationMemberResponse(member);
   }
 
-  /**
-   * Maps internal OrganizationView to API OrganizationResponse DTO.
-   */
   @Override
   public List<OrganizationResponse> getAllOrganizations() {
     return organizationService.getAllOrganizationViews()
@@ -142,6 +148,12 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
         .toList();
   }
 
+  /**
+   * Maps an {@link OrganizationView} to an {@link OrganizationResponse} DTO.
+   *
+   * @param organization the internal organization view
+   * @return the corresponding API DTO
+   */
   private OrganizationResponse mapToOrganizationResponse(OrganizationView organization) {
     return new OrganizationResponse(
         organization.id(),
@@ -156,7 +168,11 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   // Mapping helpers below
 
   /**
-   * Maps internal OrganizationMemberInfo to API OrganizationMemberInfoResponse DTO.
+   * Maps an {@link OrganizationService.OrganizationMemberInfo} to an {@link
+   * OrganizationMemberInfoResponse} DTO.
+   *
+   * @param info the internal organization member info
+   * @return the corresponding API DTO
    */
   private OrganizationMemberInfoResponse mapToOrganizationMemberInfoResponse(
       OrganizationService.OrganizationMemberInfo info) {
@@ -169,7 +185,10 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   }
 
   /**
-   * Maps internal OrganizationMemberView to API OrganizationMemberResponse DTO.
+   * Maps an {@link OrganizationMemberView} to an {@link OrganizationMemberResponse} DTO.
+   *
+   * @param member the internal organization member view
+   * @return the corresponding API DTO
    */
   private OrganizationMemberResponse mapToOrganizationMemberResponse(OrganizationMemberView member) {
     return new OrganizationMemberResponse(
@@ -181,7 +200,10 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   }
 
   /**
-   * Maps internal InvitationView to API InvitationResponse DTO.
+   * Maps an {@link InvitationView} to an {@link InvitationResponse} DTO.
+   *
+   * @param invitation the internal invitation view
+   * @return the corresponding API DTO
    */
   private InvitationResponse mapToInvitationResponse(InvitationView invitation) {
     return new InvitationResponse(
@@ -197,7 +219,10 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   }
 
   /**
-   * Maps API Role to internal OrganizationMember.Role.
+   * Maps an API {@link Role} to an internal {@link OrganizationMember.Role}.
+   *
+   * @param apiRole the API role
+   * @return the corresponding internal role
    */
   private OrganizationMember.Role mapToInternalRole(Role apiRole) {
     return switch (apiRole) {
@@ -209,7 +234,10 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   }
 
   /**
-   * Maps internal OrganizationMember.Role to API Role.
+   * Maps an internal {@link OrganizationMember.Role} to an API {@link Role}.
+   *
+   * @param internalRole the internal role
+   * @return the corresponding API role
    */
   private Role mapToApiRole(OrganizationMember.Role internalRole) {
     return switch (internalRole) {
@@ -220,7 +248,10 @@ public class OrganizationManagementServiceImpl implements OrganizationManagement
   }
 
   /**
-   * Maps internal Invitation.Status to API InvitationStatus.
+   * Maps an internal {@link Invitation.Status} to an API {@link InvitationStatus}.
+   *
+   * @param internalStatus the internal invitation status
+   * @return the corresponding API status
    */
   private InvitationStatus mapToApiInvitationStatus(Invitation.Status internalStatus) {
     return switch (internalStatus) {

@@ -1,38 +1,41 @@
 package com.platform.subscription.api;
 
+import com.platform.subscription.api.PlanDto.BillingInterval;
+import com.platform.subscription.api.PlanDto.PlanResponse;
 import java.util.List;
 import java.util.Optional;
 
-import com.platform.subscription.api.PlanDto.BillingInterval;
-import com.platform.subscription.api.PlanDto.PlanResponse;
-
 /**
- * Service interface for plan management operations.
- * This interface provides the API layer with access to subscription functionality
- * without depending on internal implementation details.
+ * Defines the contract for managing subscription plans.
+ *
+ * <p>This service interface provides a high-level API for retrieving information about subscription
+ * plans. It acts as an abstraction layer, decoupling the API controllers from the internal
+ * implementation details of plan management.
+ * </p>
  */
 public interface PlanManagementService {
 
   /**
-   * Retrieves all available plans.
+   * Retrieves a list of all currently available (active) subscription plans.
    *
-   * @return list of available plans
+   * @return A list of {@link PlanResponse} objects representing the available plans.
    */
   List<PlanResponse> getAvailablePlans();
 
   /**
-   * Retrieves plans filtered by billing interval.
+   * Retrieves a list of available subscription plans filtered by a specific billing interval.
    *
-   * @param interval the billing interval to filter by
-   * @return list of plans matching the interval
+   * @param interval The {@link BillingInterval} to filter by (e.g., MONTH, YEAR).
+   * @return A list of {@link PlanResponse} objects that match the given billing interval.
    */
   List<PlanResponse> getPlansByInterval(BillingInterval interval);
 
   /**
-   * Finds a plan by its slug.
+   * Finds a specific subscription plan by its unique slug.
    *
-   * @param slug the plan slug
-   * @return the plan if found, empty otherwise
+   * @param slug The URL-friendly, unique identifier for the plan.
+   * @return An {@link Optional} containing the {@link PlanResponse} if a plan with the given slug
+   *     is found, otherwise an empty {@link Optional}.
    */
   Optional<PlanResponse> findPlanBySlug(String slug);
 }

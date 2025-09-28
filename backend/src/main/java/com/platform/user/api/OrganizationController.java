@@ -24,6 +24,13 @@ import com.platform.user.api.UserDto.UpdateMemberRoleRequest;
 import com.platform.user.api.UserDto.UpdateOrganizationRequest;
 import com.platform.user.api.UserDto.UpdateSettingsRequest;
 
+/**
+ * REST controller for managing organizations, memberships, and invitations.
+ *
+ * <p>This controller provides endpoints for creating and managing organizations, inviting users,
+ * handling invitations, and managing member roles. All endpoints require authentication and are
+ * protected by authorization rules.
+ */
 @RestController
 @RequestMapping("/api/v1/organizations")
 @PreAuthorize("isAuthenticated()")
@@ -31,10 +38,22 @@ public class OrganizationController {
 
   private final OrganizationManagementService organizationManagementService;
 
+  /**
+   * Constructs a new OrganizationController.
+   *
+   * @param organizationManagementService the service for managing organizations
+   */
   public OrganizationController(OrganizationManagementService organizationManagementService) {
     this.organizationManagementService = organizationManagementService;
   }
 
+  /**
+   * Creates a new organization.
+   *
+   * @param principal the authenticated user principal
+   * @param request the request body containing the details for the new organization
+   * @return a {@link ResponseEntity} with the created {@link OrganizationResponse}
+   */
   @PostMapping
   public ResponseEntity<OrganizationResponse> createOrganization(
       @AuthenticationPrincipal PlatformUserPrincipal principal,
@@ -49,6 +68,14 @@ public class OrganizationController {
     return ResponseEntity.status(HttpStatus.CREATED).body(organization);
   }
 
+  /**
+   * Retrieves an organization by its ID.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization to retrieve
+   * @return a {@link ResponseEntity} containing the {@link OrganizationResponse} if found, otherwise
+   *     a 404 Not Found response
+   */
   @GetMapping("/{organizationId}")
   @PreAuthorize("@tenantGuard.canAccessOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationResponse> getOrganization(
@@ -61,6 +88,14 @@ public class OrganizationController {
         .orElse(ResponseEntity.notFound().build());
   }
 
+  /**
+   * Retrieves an organization by its slug.
+   *
+   * @param principal the authenticated user principal
+   * @param slug the slug of the organization to retrieve
+   * @return a {@link ResponseEntity} containing the {@link OrganizationResponse} if found, otherwise
+   *     a 404 Not Found response
+   */
   @GetMapping("/slug/{slug}")
   public ResponseEntity<OrganizationResponse> getOrganizationBySlug(
       @AuthenticationPrincipal PlatformUserPrincipal principal, @PathVariable String slug) {
@@ -73,6 +108,12 @@ public class OrganizationController {
     return organization.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
   }
 
+  /**
+   * Retrieves all organizations the current user is a member of.
+   *
+   * @param principal the authenticated user principal
+   * @return a {@link ResponseEntity} containing a list of {@link OrganizationResponse}s
+   */
   @GetMapping
   public ResponseEntity<List<OrganizationResponse>> getUserOrganizations(
       @AuthenticationPrincipal PlatformUserPrincipal principal) {
@@ -87,6 +128,14 @@ public class OrganizationController {
   // REMOVED: Test endpoint that exposed all organizations without proper authorization
   // This endpoint was a security vulnerability that could expose tenant data in production
 
+  /**
+   * Updates an organization's details.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization to update
+   * @param request the request body containing the updated details
+   * @return a {@link ResponseEntity} with the updated {@link OrganizationResponse}
+   */
   @PutMapping("/{organizationId}")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationResponse> updateOrganization(
@@ -100,6 +149,14 @@ public class OrganizationController {
     return ResponseEntity.ok(organization);
   }
 
+  /**
+   * Updates an organization's settings.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization to update
+   * @param request the request body containing the updated settings
+   * @return a {@link ResponseEntity} with the updated {@link OrganizationResponse}
+   */
   @PutMapping("/{organizationId}/settings")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationResponse> updateSettings(
@@ -112,6 +169,13 @@ public class OrganizationController {
     return ResponseEntity.ok(organization);
   }
 
+  /**
+   * Deletes an organization.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization to delete
+   * @return a {@link ResponseEntity} with no content
+   */
   @DeleteMapping("/{organizationId}")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<Void> deleteOrganization(
@@ -121,6 +185,13 @@ public class OrganizationController {
     return ResponseEntity.noContent().build();
   }
 
+  /**
+   * Retrieves a list of all members in an organization.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization
+   * @return a {@link ResponseEntity} containing a list of {@link OrganizationMemberInfoResponse}s
+   */
   @GetMapping("/{organizationId}/members")
   @PreAuthorize("@tenantGuard.canAccessOrganization(#principal, #organizationId)")
   public ResponseEntity<List<OrganizationMemberInfoResponse>> getMembers(
@@ -132,6 +203,14 @@ public class OrganizationController {
     return ResponseEntity.ok(responses);
   }
 
+  /**
+   * Invites a user to join an organization.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization
+   * @param request the request body containing the invitation details
+   * @return a {@link ResponseEntity} with the created {@link InvitationResponse}
+   */
   @PostMapping("/{organizationId}/invitations")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<InvitationResponse> inviteUser(
@@ -144,6 +223,12 @@ public class OrganizationController {
     return ResponseEntity.status(HttpStatus.CREATED).body(invitation);
   }
 
+  /**
+   * Accepts an invitation to join an organization.
+   *
+   * @param token the invitation token
+   * @return a {@link ResponseEntity} with the new {@link OrganizationMemberResponse}
+   */
   @PostMapping("/invitations/{token}/accept")
   @PreAuthorize("permitAll()")
   public ResponseEntity<OrganizationMemberResponse> acceptInvitation(@PathVariable String token) {
@@ -151,6 +236,12 @@ public class OrganizationController {
     return ResponseEntity.ok(member);
   }
 
+  /**
+   * Declines an invitation to join an organization.
+   *
+   * @param token the invitation token
+   * @return a {@link ResponseEntity} with no content
+   */
   @PostMapping("/invitations/{token}/decline")
   @PreAuthorize("permitAll()")
   public ResponseEntity<Void> declineInvitation(@PathVariable String token) {
@@ -158,6 +249,13 @@ public class OrganizationController {
     return ResponseEntity.noContent().build();
   }
 
+  /**
+   * Retrieves a list of pending invitations for an organization.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization
+   * @return a {@link ResponseEntity} containing a list of {@link InvitationResponse}s
+   */
   @GetMapping("/{organizationId}/invitations")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<List<InvitationResponse>> getPendingInvitations(
@@ -169,6 +267,13 @@ public class OrganizationController {
     return ResponseEntity.ok(responses);
   }
 
+  /**
+   * Revokes a pending invitation.
+   *
+   * @param principal the authenticated user principal
+   * @param invitationId the ID of the invitation to revoke
+   * @return a {@link ResponseEntity} with no content
+   */
   @DeleteMapping("/invitations/{invitationId}")
   @PreAuthorize("@tenantGuard.isAdmin(#principal)")
   public ResponseEntity<Void> revokeInvitation(
@@ -178,6 +283,14 @@ public class OrganizationController {
     return ResponseEntity.noContent().build();
   }
 
+  /**
+   * Removes a member from an organization.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user to remove
+   * @return a {@link ResponseEntity} with no content
+   */
   @DeleteMapping("/{organizationId}/members/{userId}")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<Void> removeMember(
@@ -189,6 +302,15 @@ public class OrganizationController {
     return ResponseEntity.noContent().build();
   }
 
+  /**
+   * Updates the role of a member in an organization.
+   *
+   * @param principal the authenticated user principal
+   * @param organizationId the ID of the organization
+   * @param userId the ID of the user whose role is to be updated
+   * @param request the request body containing the new role
+   * @return a {@link ResponseEntity} with the updated {@link OrganizationMemberResponse}
+   */
   @PutMapping("/{organizationId}/members/{userId}/role")
   @PreAuthorize("@tenantGuard.canManageOrganization(#principal, #organizationId)")
   public ResponseEntity<OrganizationMemberResponse> updateMemberRole(

@@ -9,8 +9,10 @@ import com.platform.shared.security.TenantContext;
 import com.platform.shared.types.Money;
 
 /**
- * Validation component for payment-related operations.
- * Centralizes validation logic for better maintainability and consistency.
+ * A component for validating payment-related operations.
+ *
+ * <p>This class centralizes all validation logic for payments, payment methods, and related
+ * entities, ensuring that all operations are consistent and secure.
  */
 @Component
 public class PaymentValidator {

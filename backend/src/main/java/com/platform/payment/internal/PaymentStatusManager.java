@@ -5,8 +5,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 /**
- * Manager class that coordinates payment status changes using the Strategy pattern.
- * Provides a clean interface for status transitions while delegating to appropriate strategies.
+ * Manages payment status transitions using the Strategy pattern.
+ *
+ * <p>This class provides a clean and centralized interface for handling all payment status changes.
+ * It delegates the logic for specific transitions to a collection of {@link PaymentStatusStrategy}
+ * implementations, ensuring that status changes are valid and consistent.
+ *
+ * @see PaymentStatusStrategy
+ * @see Payment
  */
 @Service
 public class PaymentStatusManager {
@@ -14,6 +20,12 @@ public class PaymentStatusManager {
     private final List<PaymentStatusStrategy> strategies;
     private final PaymentRepository paymentRepository;
 
+    /**
+     * Constructs a new PaymentStatusManager.
+     *
+     * @param strategies a list of all available payment status strategies
+     * @param paymentRepository the repository for managing payments
+     */
     public PaymentStatusManager(List<PaymentStatusStrategy> strategies, PaymentRepository paymentRepository) {
         this.strategies = strategies;
         this.paymentRepository = paymentRepository;
@@ -25,6 +37,8 @@ public class PaymentStatusManager {
      * @param payment the payment to update
      * @param newStatus the new status
      * @param context the context for the status change
+     * @throws IllegalArgumentException if the payment or new status is null
+     * @throws IllegalStateException if no strategy can be found for the requested transition
      */
     public void updatePaymentStatus(Payment payment, Payment.Status newStatus,
                                    PaymentStatusStrategy.StatusChangeContext context) {
@@ -49,11 +63,11 @@ public class PaymentStatusManager {
     }
 
     /**
-     * Updates a payment status from Stripe webhook data.
+     * Updates a payment's status based on a Stripe webhook event.
      *
      * @param payment the payment to update
-     * @param stripeStatus the Stripe status string
-     * @param webhookEventId the webhook event ID for auditing
+     * @param stripeStatus the status string from the Stripe webhook
+     * @param webhookEventId the ID of the webhook event, for auditing purposes
      */
     public void updateFromStripeWebhook(Payment payment, String stripeStatus, String webhookEventId) {
         Payment.Status newStatus = mapStripeStatusToPaymentStatus(stripeStatus);
@@ -64,12 +78,12 @@ public class PaymentStatusManager {
     }
 
     /**
-     * Manually updates a payment status (e.g., admin action).
+     * Manually updates a payment's status, typically for administrative actions.
      *
      * @param payment the payment to update
-     * @param newStatus the new status
-     * @param userId the user making the change
-     * @param reason the reason for the status change
+     * @param newStatus the new status to set
+     * @param userId the ID of the user performing the manual update
+     * @param reason a description of why the status is being changed manually
      */
     public void updateManually(Payment payment, Payment.Status newStatus, String userId, String reason) {
         PaymentStatusStrategy.StatusChangeContext context =
@@ -79,11 +93,11 @@ public class PaymentStatusManager {
     }
 
     /**
-     * Checks if a status transition is valid.
+     * Checks if a transition between two statuses is valid.
      *
      * @param currentStatus the current status
      * @param newStatus the target status
-     * @return true if the transition is allowed
+     * @return {@code true} if a strategy exists for the transition, {@code false} otherwise
      */
     public boolean isValidTransition(Payment.Status currentStatus, Payment.Status newStatus) {
         return strategies.stream()
@@ -91,10 +105,10 @@ public class PaymentStatusManager {
     }
 
     /**
-     * Gets all possible next statuses from the current status.
+     * Gets all possible next statuses from a given current status.
      *
      * @param currentStatus the current payment status
-     * @return list of possible next statuses
+     * @return a list of all possible next statuses
      */
     public List<Payment.Status> getPossibleTransitions(Payment.Status currentStatus) {
         return List.of(Payment.Status.values())

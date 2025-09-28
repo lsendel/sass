@@ -1,35 +1,38 @@
 package com.platform.payment.api;
 
+import com.platform.payment.api.PaymentDto.BillingDetails;
+import com.platform.payment.api.PaymentDto.ConfirmPaymentIntentRequest;
+import com.platform.payment.api.PaymentDto.CreatePaymentIntentRequest;
+import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
+import com.platform.payment.api.PaymentDto.PaymentMethodResponse;
+import com.platform.payment.api.PaymentDto.PaymentResponse;
+import com.platform.payment.api.PaymentDto.PaymentStatisticsResponse;
+import com.stripe.exception.StripeException;
 import java.util.List;
 import java.util.UUID;
 
-import com.platform.payment.api.PaymentDto.PaymentResponse;
-import com.platform.payment.api.PaymentDto.PaymentMethodResponse;
-import com.platform.payment.api.PaymentDto.PaymentStatisticsResponse;
-import com.platform.payment.api.PaymentDto.PaymentIntentResponse;
-import com.platform.payment.api.PaymentDto.CreatePaymentIntentRequest;
-import com.platform.payment.api.PaymentDto.ConfirmPaymentIntentRequest;
-import com.platform.payment.api.PaymentDto.BillingDetails;
-import com.stripe.exception.StripeException;
-
 /**
- * Service interface for payment management operations.
- * This interface provides the API layer with access to payment functionality
- * without depending on internal implementation details.
+ * Defines the contract for payment management operations.
+ *
+ * <p>This service interface provides a high-level API for handling all payment-related
+ * functionality, such as creating payments and payment intents, managing payment methods, and
+ * retrieving payment data. It serves as an abstraction layer between the controllers and the
+ * internal implementation details of the payment module.
+ * </p>
  */
 public interface PaymentManagementService {
 
   /**
-   * Creates a payment intent.
+   * Creates a new payment.
    *
-   * @param organizationId the organization ID
-   * @param amount the payment amount
-   * @param currency the payment currency
-   * @param paymentMethodId the payment method ID (optional)
-   * @param description the payment description
-   * @param confirm whether to confirm the payment immediately
-   * @return the created payment
-   * @throws StripeException if Stripe operation fails
+   * @param organizationId The ID of the organization making the payment.
+   * @param amount The amount to be charged.
+   * @param currency The currency of the payment.
+   * @param paymentMethodId The ID of the payment method to use (optional).
+   * @param description A description for the payment.
+   * @param confirm Whether to confirm the payment immediately.
+   * @return A {@link PaymentResponse} containing details of the created payment.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
   PaymentResponse createPayment(
       UUID organizationId,
@@ -37,135 +40,133 @@ public interface PaymentManagementService {
       String currency,
       String paymentMethodId,
       String description,
-      boolean confirm) throws StripeException;
-
-  /**
-   * Creates a Stripe payment intent.
-   *
-   * @param request the payment intent request payload
-   * @return payment intent details
-   * @throws StripeException if Stripe operation fails
-   */
-  PaymentIntentResponse createPaymentIntent(CreatePaymentIntentRequest request)
+      boolean confirm)
       throws StripeException;
 
   /**
-   * Confirms a Stripe payment intent.
+   * Creates a new Stripe PaymentIntent.
    *
-   * @param organizationId the organization ID
-   * @param paymentIntentId the payment intent ID
-   * @param request the confirm request payload
-   * @return payment intent details after confirmation
-   * @throws StripeException if Stripe operation fails
+   * @param request The request DTO containing the details for the payment intent.
+   * @return A {@link PaymentIntentResponse} with details of the created intent.
+   * @throws StripeException if there is an error communicating with the Stripe API.
+   */
+  PaymentIntentResponse createPaymentIntent(CreatePaymentIntentRequest request) throws StripeException;
+
+  /**
+   * Confirms a Stripe PaymentIntent after client-side actions.
+   *
+   * @param organizationId The ID of the organization.
+   * @param paymentIntentId The ID of the PaymentIntent to confirm.
+   * @param request The request DTO containing confirmation details.
+   * @return A {@link PaymentIntentResponse} with the updated status of the intent.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
   PaymentIntentResponse confirmPaymentIntent(
       UUID organizationId, String paymentIntentId, ConfirmPaymentIntentRequest request)
       throws StripeException;
 
   /**
-   * Cancels a Stripe payment intent.
+   * Cancels a Stripe PaymentIntent.
    *
-   * @param organizationId the organization ID
-   * @param paymentIntentId the payment intent ID
-   * @return payment intent details after cancellation
-   * @throws StripeException if Stripe operation fails
+   * @param organizationId The ID of the organization.
+   * @param paymentIntentId The ID of the PaymentIntent to cancel.
+   * @return A {@link PaymentIntentResponse} with the updated status of the intent.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
   PaymentIntentResponse cancelPaymentIntent(UUID organizationId, String paymentIntentId)
       throws StripeException;
 
   /**
-   * Confirms a payment intent.
+   * Confirms a payment.
    *
-   * @param organizationId the organization ID
-   * @param paymentIntentId the payment intent ID
-   * @return the confirmed payment
-   * @throws StripeException if Stripe operation fails
+   * @param organizationId The ID of the organization.
+   * @param paymentIntentId The ID of the payment intent to confirm.
+   * @return A {@link PaymentResponse} for the confirmed payment.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
   PaymentResponse confirmPayment(UUID organizationId, String paymentIntentId) throws StripeException;
 
   /**
-   * Cancels a payment intent.
+   * Cancels a payment.
    *
-   * @param organizationId the organization ID
-   * @param paymentIntentId the payment intent ID
-   * @return the canceled payment
-   * @throws StripeException if Stripe operation fails
+   * @param organizationId The ID of the organization.
+   * @param paymentIntentId The ID of the payment intent to cancel.
+   * @return A {@link PaymentResponse} for the canceled payment.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
   PaymentResponse cancelPayment(UUID organizationId, String paymentIntentId) throws StripeException;
 
   /**
-   * Gets payments for an organization.
+   * Retrieves a list of all payments for an organization.
    *
-   * @param organizationId the organization ID
-   * @return list of payments
+   * @param organizationId The ID of the organization.
+   * @return A list of {@link PaymentResponse} objects.
    */
   List<PaymentResponse> getOrganizationPayments(UUID organizationId);
 
   /**
-   * Gets payments for an organization filtered by status.
+   * Retrieves a list of payments for an organization, filtered by status.
    *
-   * @param organizationId the organization ID
-   * @param status the status filter
-   * @return list of payments
+   * @param organizationId The ID of the organization.
+   * @param status The payment status to filter by.
+   * @return A list of matching {@link PaymentResponse} objects.
    */
   List<PaymentResponse> getOrganizationPaymentsByStatus(UUID organizationId, String status);
 
   /**
-   * Attaches a payment method to an organization.
+   * Attaches a new payment method to an organization's customer profile.
    *
-   * @param organizationId the organization ID
-   * @param stripePaymentMethodId the Stripe payment method ID
-   * @return the attached payment method
-   * @throws StripeException if Stripe operation fails
+   * @param organizationId The ID of the organization.
+   * @param stripePaymentMethodId The Stripe ID of the payment method to attach.
+   * @return A {@link PaymentMethodResponse} for the newly attached payment method.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
-  PaymentMethodResponse attachPaymentMethod(UUID organizationId, String stripePaymentMethodId) throws StripeException;
+  PaymentMethodResponse attachPaymentMethod(UUID organizationId, String stripePaymentMethodId)
+      throws StripeException;
 
   /**
-   * Sets a payment method as default for an organization.
+   * Sets a specific payment method as the default for an organization.
    *
-   * @param organizationId the organization ID
-   * @param paymentMethodId the payment method ID
-   * @return the updated payment method
+   * @param organizationId The ID of the organization.
+   * @param paymentMethodId The internal ID of the payment method to set as default.
+   * @return A {@link PaymentMethodResponse} for the updated payment method.
    */
   PaymentMethodResponse setDefaultPaymentMethod(UUID organizationId, UUID paymentMethodId);
 
   /**
-   * Detaches a payment method from an organization.
+   * Detaches a payment method from an organization's customer profile.
    *
-   * @param organizationId the organization ID
-   * @param paymentMethodId the payment method ID
-   * @throws StripeException if Stripe operation fails
+   * @param organizationId The ID of the organization.
+   * @param paymentMethodId The internal ID of the payment method to detach.
+   * @throws StripeException if there is an error communicating with the Stripe API.
    */
   void detachPaymentMethod(UUID organizationId, UUID paymentMethodId) throws StripeException;
 
   /**
-   * Updates a payment method.
+   * Updates the details of a stored payment method.
    *
-   * @param organizationId the organization ID
-   * @param paymentMethodId the payment method ID
-   * @param displayName the new display name
-   * @param billingDetails the new billing details
-   * @return the updated payment method
+   * @param organizationId The ID of the organization.
+   * @param paymentMethodId The internal ID of the payment method to update.
+   * @param displayName The new display name for the payment method.
+   * @param billingDetails The new billing details.
+   * @return A {@link PaymentMethodResponse} for the updated payment method.
    */
   PaymentMethodResponse updatePaymentMethod(
-      UUID organizationId,
-      UUID paymentMethodId,
-      String displayName,
-      BillingDetails billingDetails);
+      UUID organizationId, UUID paymentMethodId, String displayName, BillingDetails billingDetails);
 
   /**
-   * Gets payment methods for an organization.
+   * Retrieves all stored payment methods for an organization.
    *
-   * @param organizationId the organization ID
-   * @return list of payment methods
+   * @param organizationId The ID of the organization.
+   * @return A list of {@link PaymentMethodResponse} objects.
    */
   List<PaymentMethodResponse> getOrganizationPaymentMethods(UUID organizationId);
 
   /**
-   * Gets payment statistics for an organization.
+   * Retrieves payment statistics for an organization.
    *
-   * @param organizationId the organization ID
-   * @return payment statistics
+   * @param organizationId The ID of the organization.
+   * @return A {@link PaymentStatisticsResponse} containing aggregated payment data.
    */
   PaymentStatisticsResponse getPaymentStatistics(UUID organizationId);
 }

@@ -21,7 +21,17 @@ import com.platform.audit.internal.AuditService;
 import com.platform.shared.security.TenantContext;
 import com.platform.shared.types.Email;
 
-/** Service for managing user operations with tenant context awareness. */
+/**
+ * Service for managing user-related operations.
+ *
+ * <p>This service encapsulates the business logic for creating, updating, deleting, and retrieving
+ * users. It is aware of the tenant context for security purposes and performs detailed auditing for
+ * all significant operations.
+ *
+ * @see User
+ * @see UserRepository
+ * @see AuditService
+ */
 @Service
 @Transactional
 public class UserService {
@@ -31,24 +41,45 @@ public class UserService {
   private final UserRepository userRepository;
   private final AuditService auditService;
 
+  /**
+   * Constructs a new UserService.
+   *
+   * @param userRepository the repository for managing users
+   * @param auditService the service for logging audit events
+   */
   public UserService(UserRepository userRepository, AuditService auditService) {
     this.userRepository = userRepository;
     this.auditService = auditService;
   }
 
-  /** Get user by ID */
+  /**
+   * Finds a user by their ID, excluding soft-deleted ones.
+   *
+   * @param userId the ID of the user
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<User> findById(UUID userId) {
     return userRepository.findById(userId).filter(user -> !user.isDeleted());
   }
 
-  /** Get user by email */
+  /**
+   * Finds a user by their email address, excluding soft-deleted ones.
+   *
+   * @param email the email address of the user
+   * @return an {@link Optional} containing the user if found, otherwise an empty {@link Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<User> findByEmail(String email) {
     return userRepository.findByEmailAndDeletedAtIsNull(email);
   }
 
-  /** Get current authenticated user */
+  /**
+   * Retrieves the currently authenticated user from the security context.
+   *
+   * @return an {@link Optional} containing the current user if authenticated, otherwise an empty
+   *     {@link Optional}
+   */
   @Transactional(readOnly = true)
   public Optional<User> getCurrentUser() {
     UUID currentUserId = TenantContext.getCurrentUserId();
@@ -58,12 +89,30 @@ public class UserService {
     return findById(currentUserId);
   }
 
-  /** Create a new user */
+  /**
+   * Creates a new user.
+   *
+   * @param email the user's email address
+   * @param name the user's full name
+   * @param provider the name of the authentication provider
+   * @param providerId the user's ID from the provider
+   * @return the newly created {@link User} entity
+   */
   public User createUser(String email, String name, String provider, String providerId) {
     return createUser(email, name, provider, providerId, Map.of());
   }
 
-  /** Create a new user with preferences */
+  /**
+   * Creates a new user with a set of preferences.
+   *
+   * @param email the user's email address
+   * @param name the user's full name
+   * @param provider the name of the authentication provider
+   * @param providerId the user's ID from the provider
+   * @param preferences a map of custom preferences for the user
+   * @return the newly created {@link User} entity
+   * @throws IllegalArgumentException if the email or provider ID already exists
+   */
   public User createUser(
       String email,
       String name,
@@ -184,7 +233,16 @@ public class UserService {
     return savedUser;
   }
 
-  /** Update user profile */
+  /**
+   * Updates a user's profile information.
+   *
+   * @param userId the ID of the user to update
+   * @param name the new name for the user
+   * @param preferences a map of new preferences for the user
+   * @return the updated {@link User} entity
+   * @throws IllegalArgumentException if the user is not found
+   * @throws SecurityException if the current user is not authorized to update the profile
+   */
   public User updateProfile(UUID userId, String name, Map<String, Object> preferences) {
     User user =
         findById(userId)
@@ -245,7 +303,15 @@ public class UserService {
     return savedUser;
   }
 
-  /** Update user preferences only */
+  /**
+   * Updates a user's preferences.
+   *
+   * @param userId the ID of the user to update
+   * @param preferences a map of new preferences for the user
+   * @return the updated {@link User} entity
+   * @throws IllegalArgumentException if the user is not found
+   * @throws SecurityException if the current user is not authorized to update the preferences
+   */
   public User updatePreferences(UUID userId, Map<String, Object> preferences) {
     User user =
         findById(userId)
@@ -260,7 +326,13 @@ public class UserService {
     return savedUser;
   }
 
-  /** Soft delete user */
+  /**
+   * Soft-deletes a user.
+   *
+   * @param userId the ID of the user to delete
+   * @throws IllegalArgumentException if the user is not found
+   * @throws SecurityException if the current user is not authorized to delete the user
+   */
   public void deleteUser(UUID userId) {
     User user =
         findById(userId)
@@ -326,19 +398,40 @@ public class UserService {
     logger.info("Soft deleted user: {}", userId);
   }
 
-  /** Find users by name pattern */
+  /**
+   * Searches for users by a name pattern.
+   *
+   * @param namePattern the pattern to search for in user names
+   * @return a list of users matching the name pattern
+   */
   @Transactional(readOnly = true)
   public List<User> searchUsersByName(String namePattern) {
     return userRepository.findByNameContainingIgnoreCase(namePattern);
   }
 
-  /** Get users by provider */
+  /**
+   * Finds all users who authenticated with a specific provider.
+   *
+   * @param provider the name of the provider
+   * @return a list of users from the specified provider
+   */
   @Transactional(readOnly = true)
   public List<User> findUsersByProvider(String provider) {
     return userRepository.findByProviderAndDeletedAtIsNull(provider);
   }
 
-  /** Get paginated list of users (admin function) */
+  /**
+   * Retrieves a paginated list of all active users.
+   *
+   * <p>This is an administrative function and requires admin privileges.
+   *
+   * @param page the page number to retrieve
+   * @param size the number of users per page
+   * @param sortBy the field to sort by
+   * @param sortDirection the sort direction ("asc" or "desc")
+   * @return a {@link Page} of users
+   * @throws SecurityException if the current user is not an administrator
+   */
   @Transactional(readOnly = true)
   public Page<User> findAllUsers(int page, int size, String sortBy, String sortDirection) {
     // Validate admin access
@@ -353,20 +446,36 @@ public class UserService {
     return userRepository.findByDeletedAtIsNull(pageable);
   }
 
-  /** Get recently active users */
+  /**
+   * Retrieves a list of users who have been recently active.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param since the timestamp from which to consider users as recently active
+   * @return a list of recently active users
+   * @throws SecurityException if the current user is not an administrator
+   */
   @Transactional(readOnly = true)
   public List<User> getRecentlyActiveUsers(Instant since) {
     validateAdminAccess();
     return userRepository.findRecentlyActive(since);
   }
 
-  /** Count active users */
+  /**
+   * Counts the total number of active users.
+   *
+   * @return the count of active users
+   */
   @Transactional(readOnly = true)
   public long countActiveUsers() {
     return userRepository.countActiveUsers();
   }
 
-  /** Count users by provider */
+  /**
+   * Gets a map of user counts for each authentication provider.
+   *
+   * @return a map where keys are provider names and values are user counts
+   */
   @Transactional(readOnly = true)
   public Map<String, Long> getUserCountsByProvider() {
     List<String> providers = List.of("google", "github", "microsoft");
@@ -376,14 +485,33 @@ public class UserService {
                 provider -> provider, provider -> userRepository.countUsersByProvider(provider)));
   }
 
-  /** Find users with specific preference */
+  /**
+   * Finds users by a specific preference key-value pair.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param preferenceKey the key of the preference
+   * @param preferenceValue the value of the preference
+   * @return a list of users with the specified preference
+   * @throws SecurityException if the current user is not an administrator
+   */
   @Transactional(readOnly = true)
   public List<User> findUsersByPreference(String preferenceKey, String preferenceValue) {
     validateAdminAccess();
     return userRepository.findByPreference(preferenceKey, preferenceValue);
   }
 
-  /** Restore soft-deleted user (admin function) */
+  /**
+   * Restores a soft-deleted user.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param userId the ID of the user to restore
+   * @return the restored {@link User} entity
+   * @throws IllegalArgumentException if the user is not found, not deleted, or if their email is
+   *     already in use
+   * @throws SecurityException if the current user is not an administrator
+   */
   public User restoreUser(UUID userId) {
     validateAdminAccess();
 
@@ -490,7 +618,15 @@ public class UserService {
     return restoredUser;
   }
 
-  /** Bulk restore multiple deleted users */
+  /**
+   * Restores multiple soft-deleted users in a single operation.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param userIds a list of user IDs to restore
+   * @return a list of the restored {@link User} entities
+   * @throws SecurityException if the current user is not an administrator
+   */
   public List<User> bulkRestoreUsers(List<UUID> userIds) {
     validateAdminAccess();
 
@@ -509,7 +645,14 @@ public class UserService {
     return restoredUsers;
   }
 
-  /** Bulk delete multiple users */
+  /**
+   * Soft-deletes multiple users in a single operation.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param userIds a list of user IDs to delete
+   * @throws SecurityException if the current user is not an administrator
+   */
   public void bulkDeleteUsers(List<UUID> userIds) {
     validateAdminAccess();
 
@@ -527,7 +670,17 @@ public class UserService {
     logger.info("Bulk deleted {} out of {} users", deletedCount, userIds.size());
   }
 
-  /** Bulk update provider for users */
+  /**
+   * Bulk updates the provider for a set of users.
+   *
+   * <p>This is an administrative function. Note: This method currently only logs the intended
+   * operation and does not perform the update.
+   *
+   * @param fromProvider the original provider
+   * @param toProvider the new provider
+   * @return a list of users who would have been updated
+   * @throws SecurityException if the current user is not an administrator
+   */
   public List<User> bulkUpdateProvider(String fromProvider, String toProvider) {
     validateAdminAccess();
 
@@ -550,7 +703,17 @@ public class UserService {
     return updatedUsers;
   }
 
-  /** Export users based on criteria */
+  /**
+   * Exports a list of users based on specified criteria.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param status the status to filter by (e.g., "active")
+   * @param provider the provider to filter by
+   * @param createdAfter an ISO 8601 timestamp to filter by creation date
+   * @return a list of users matching the criteria
+   * @throws SecurityException if the current user is not an administrator
+   */
   @Transactional(readOnly = true)
   public List<User> exportUsers(String status, String provider, String createdAfter) {
     validateAdminAccess();
@@ -583,7 +746,15 @@ public class UserService {
     return users;
   }
 
-  /** Get user activity analytics */
+  /**
+   * Retrieves user activity analytics for a given number of days.
+   *
+   * <p>This is an administrative function.
+   *
+   * @param days the number of days to look back for activity
+   * @return a map containing analytics data
+   * @throws SecurityException if the current user is not an administrator
+   */
   @Transactional(readOnly = true)
   public Map<String, Object> getUserActivityAnalytics(int days) {
     validateAdminAccess();
@@ -612,7 +783,14 @@ public class UserService {
     return analytics;
   }
 
-  /** Get user statistics (admin function) */
+  /**
+   * Retrieves overall user statistics.
+   *
+   * <p>This is an administrative function.
+   *
+   * @return a {@link UserStatistics} record containing the statistics
+   * @throws SecurityException if the current user is not an administrator
+   */
   @Transactional(readOnly = true)
   public UserStatistics getUserStatistics() {
     validateAdminAccess();
@@ -633,7 +811,13 @@ public class UserService {
     return new UserStatistics(totalUsers, activeUsers, recentUsers.size(), providerCounts, averageSessionDuration);
   }
 
-  /** Calculate average session duration based on user activity patterns */
+  /**
+   * Calculates an estimated average session duration for active users.
+   *
+   * <p>This method provides a simplified estimation based on user activity frequency.
+   *
+   * @return the estimated average session duration in minutes
+   */
   @Transactional(readOnly = true)
   public double calculateAverageSessionDuration() {
     try {
@@ -708,7 +892,15 @@ public class UserService {
     }
   }
 
-  /** User statistics data class */
+  /**
+   * DTO for holding user statistics.
+   *
+   * @param totalUsers the total number of active users
+   * @param activeUsers the number of users active in the last 30 days
+   * @param newUsersThisWeek the number of new users created in the last 7 days
+   * @param usersByProvider a map of user counts by authentication provider
+   * @param averageSessionDuration an estimated average session duration in minutes
+   */
   public record UserStatistics(
       long totalUsers,
       long activeUsers,
