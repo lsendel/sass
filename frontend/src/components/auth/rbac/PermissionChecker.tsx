@@ -15,7 +15,7 @@
 import React, { useMemo, useCallback, useEffect, useRef } from 'react'
 
 import { useCheckPermissionQuery } from '../../../store/api/rbacApi'
-import { useAppSelector, useAppDispatch } from '../../../store/hooks'
+import { useAppSelector } from '../../../store/hooks'
 import { selectCurrentUser } from '../../../store/slices/authSlice'
 import { logger } from '../../../utils/logger'
 import { auditPermissionCheck } from '../../../utils/auditLogger'
@@ -211,7 +211,7 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
     if (isAnomalous && securityMonitoring.logSecurityEvents) {
       securityMonitor.reportAnomaly({
         type: 'permission_check_anomaly',
-        userId: user?.id,
+        ...(user?.id ? { userId: user.id } : {}),
         resource,
         action,
         anomalyScore: metrics.anomalyScore,
@@ -251,10 +251,10 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
 
     return {
       userId: user.id,
-      organizationId,
+      ...(organizationId ? { organizationId } : {}),
       resource,
       action,
-      resourceId,
+      ...(resourceId ? { resourceId } : {}),
       additionalContext: {
         ...context,
         constitutionalCompliance: {
@@ -265,24 +265,12 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         securityContext: {
           userAgent: navigator.userAgent,
           timestamp: Date.now(),
-          sessionId: user.sessionId,
+          sessionId: (user as any).sessionId || 'unknown',
         },
       },
     }
   }, [user, organizationId, resource, action, resourceId, context, constitutionalRequirements, validateConstitutionalCompliance])
 
-  // Check cache first if caching is enabled
-  const cachedResult = useMemo(async () => {
-    if (!performanceOptions.enableCaching || !permissionContext) return null
-
-    return await permissionCache.get(
-      permissionContext.userId,
-      permissionContext.resource,
-      permissionContext.action,
-      permissionContext.resourceId,
-      permissionContext.organizationId
-    )
-  }, [permissionContext, performanceOptions.enableCaching])
 
   // Enhanced permission checking with caching and security monitoring
   const {
@@ -308,8 +296,8 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
       permissionContext.action,
       permissionResult.allowed,
       {
-        resourceId: permissionContext.resourceId,
-        organizationId: permissionContext.organizationId,
+        ...(permissionContext.resourceId ? { resourceId: permissionContext.resourceId } : {}),
+        ...(permissionContext.organizationId ? { organizationId: permissionContext.organizationId } : {}),
         reason: permissionResult.reason,
         matchedPermissions: permissionResult.matchedPermissions,
         conditions: permissionResult.conditions,
@@ -602,7 +590,7 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
         securityContext: {
           userAgent: navigator.userAgent,
           ipAddress: 'client-side',
-          sessionId: user.sessionId,
+          sessionId: (user as any).sessionId || 'unknown',
         },
       })
     }
@@ -661,7 +649,7 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
       securityContext: {
         userAgent: navigator.userAgent,
         ipAddress: 'client-side',
-        sessionId: user.sessionId,
+        sessionId: (user as any).sessionId || 'unknown',
       },
     })
   }

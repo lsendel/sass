@@ -35,6 +35,12 @@ vi.mock('../../../../utils/securityMonitor')
 vi.mock('../../../../utils/permissionCache')
 vi.mock('../../../../utils/logger')
 
+// Mock instances accessible across all test suites
+const mockUseCheckPermissionQuery = vi.mocked(useCheckPermissionQuery)
+const mockAuditPermissionCheck = vi.mocked(auditPermissionCheck)
+const mockSecurityMonitor = vi.mocked(securityMonitor)
+const mockPermissionCache = vi.mocked(permissionCache)
+
 // Mock store setup
 const createMockStore = (initialState = {}) => {
   return configureStore({
@@ -107,10 +113,6 @@ const createMockPermissionResult = (
 }
 
 describe('PermissionChecker', () => {
-  const mockUseCheckPermissionQuery = vi.mocked(useCheckPermissionQuery)
-  const mockAuditPermissionCheck = vi.mocked(auditPermissionCheck)
-  const mockSecurityMonitor = vi.mocked(securityMonitor)
-  const mockPermissionCache = vi.mocked(permissionCache)
 
   beforeEach(() => {
     vi.clearAllMocks()
