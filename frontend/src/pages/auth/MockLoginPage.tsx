@@ -27,13 +27,14 @@ const MockLoginPage: React.FC = () => {
       const mockUser = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         email: 'demo@example.com',
-        name: 'Demo User',
-        organization: {
-          id: 'b48e719b-3116-423e-b114-c9791e296a8d',
-          name: 'Demo Organization',
-          slug: 'demo-org'
-        },
-        role: 'ADMIN' as const
+        emailVerified: true,
+        role: 'ADMIN' as const,
+        firstName: 'Demo',
+        lastName: 'User',
+        organizationId: 'b48e719b-3116-423e-b114-c9791e296a8d',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+        lastLoginAt: '2024-01-01T00:00:00Z'
       }
 
       const mockToken = 'mock-jwt-token-' + Date.now()

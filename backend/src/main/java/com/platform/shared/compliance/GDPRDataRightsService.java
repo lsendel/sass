@@ -451,17 +451,13 @@ public class GDPRDataRightsService {
     }
 
     private void publishAuditEvent(String eventType, UUID userId, String requestedBy, String description) {
-        AuditEvent auditEvent = AuditEvent.builder()
-            .id(UUID.randomUUID())
-            .action(eventType)
-            .actorId(userId)
-            .ipAddress("127.0.0.1") // Would get actual IP
-            .details(Map.of(
+        AuditEvent auditEvent = new AuditEvent(userId, eventType)
+            .withIpAddress("127.0.0.1") // Would get actual IP
+            .withDetails(Map.of(
                 "requested_by", requestedBy,
                 "description", description
             ))
-            .correlationId(UUID.randomUUID().toString())
-            .build();
+            .withCorrelationId(UUID.randomUUID().toString());
 
         eventPublisher.publishEvent(auditEvent);
     }

@@ -87,17 +87,20 @@ export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    const correlationId = this.generateCorrelationId();
+    const userId = this.getCurrentUserId();
+
     const errorDetails: ErrorDetails = {
       name: error.name,
       message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack || undefined,
-      correlationId: this.generateCorrelationId(),
+      ...(error.stack ? { stack: error.stack } : {}),
+      ...(errorInfo.componentStack ? { componentStack: errorInfo.componentStack } : {}),
+      ...(correlationId ? { correlationId } : {}),
       timestamp: Date.now(),
       userAgent: navigator.userAgent,
       url: window.location.href,
-      userId: this.getCurrentUserId(),
+      ...(userId ? { userId } : {}),
     };
 
     const errorId = ErrorReportingService.generateErrorId();
@@ -128,7 +131,7 @@ export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
     }
   }
 
-  componentWillUnmount(): void {
+  override componentWillUnmount(): void {
     // Clean up any pending retry timeouts
     this.retryTimeouts.forEach(timeout => clearTimeout(timeout));
   }
@@ -207,7 +210,7 @@ ${errorDetails.componentStack}
     window.open(githubUrl, '_blank');
   };
 
-  render(): ReactNode {
+  override render(): ReactNode {
     const { hasError, errorDetails, errorId, retryCount } = this.state;
     const { children, fallback, maxRetries = 3 } = this.props;
 

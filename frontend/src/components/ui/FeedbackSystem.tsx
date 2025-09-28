@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -243,19 +243,19 @@ export const createNotificationHelpers = () => {
   const { addNotification, updateNotification } = useNotifications()
 
   const showSuccess = (title: string, message?: string) =>
-    addNotification({ variant: 'success', title, message })
+    addNotification({ variant: 'success', title, ...(message ? { message } : {}) })
 
   const showError = (title: string, message?: string) =>
-    addNotification({ variant: 'error', title, message })
+    addNotification({ variant: 'error', title, ...(message ? { message } : {}) })
 
   const showWarning = (title: string, message?: string) =>
-    addNotification({ variant: 'warning', title, message })
+    addNotification({ variant: 'warning', title, ...(message ? { message } : {}) })
 
   const showInfo = (title: string, message?: string) =>
-    addNotification({ variant: 'info', title, message })
+    addNotification({ variant: 'info', title, ...(message ? { message } : {}) })
 
   const showLoading = (title: string, message?: string) =>
-    addNotification({ variant: 'loading', title, message, persistent: true })
+    addNotification({ variant: 'loading', title, persistent: true, ...(message ? { message } : {}) })
 
   const showActionable = (
     title: string,

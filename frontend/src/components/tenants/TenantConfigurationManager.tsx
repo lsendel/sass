@@ -35,12 +35,7 @@ import {
   useGetTenantQuotasQuery,
   useUpdateTenantQuotasMutation,
 } from '@/store/api/tenantApi'
-import type {
-  TenantSettings,
-  TenantBranding,
-  TenantQuotas,
-  UpdateTenantRequest,
-} from '@/types/multitenancy'
+// Types imported via API
 import { TenantBrandingSchema } from '@/types/multitenancy'
 
 // Icons

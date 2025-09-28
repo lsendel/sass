@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { clsx } from 'clsx'
 import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
   CheckIcon,
-  EllipsisHorizontalIcon,
   ArrowUpIcon,
 } from '@heroicons/react/24/outline'
 
@@ -338,7 +337,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   <div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     {group}
                   </div>
-                  {groupItems.map((item, index) => {
+                  {groupItems.map((item, _index) => {
                     const globalIndex = filteredItems.indexOf(item)
                     const isSelected = globalIndex === selectedIndex
 
@@ -443,7 +442,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         top: position.y
       }}
     >
-      {actions.map((action, index) => (
+      {actions.map((action, _index) => (
         <React.Fragment key={action.id}>
           {action.divider ? (
             <div className="border-t border-gray-200 my-1" />

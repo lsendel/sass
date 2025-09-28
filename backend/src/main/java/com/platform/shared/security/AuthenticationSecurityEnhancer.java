@@ -16,7 +16,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.platform.audit.internal.AuditEvent;
-import com.platform.audit.internal.ComprehensiveAuditService;
+import com.platform.audit.internal.EnhancedAuditService;
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 
 /**
@@ -35,7 +35,7 @@ public class AuthenticationSecurityEnhancer {
     private SecurityMetricsCollector metricsCollector;
 
     @Autowired
-    private ComprehensiveAuditService auditService;
+    private EnhancedAuditService auditService;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;

@@ -45,6 +45,23 @@ spring:
       timeout: 2000ms
       password: ${REDIS_PASSWORD:}
 
+# InfluxDB configuration for security metrics time-series storage
+influxdb:
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN:security-dashboard-token}
+  org: ${INFLUXDB_ORG:sass-platform}
+  bucket: ${INFLUXDB_BUCKET:security-metrics}
+  connection:
+    timeout: 5000ms
+    read-timeout: 10000ms
+    write-timeout: 10000ms
+  batch:
+    size: 5000
+    flush-interval: 1000ms
+  retention:
+    detailed: P90D  # 90 days for detailed metrics
+    aggregated: P365D  # 1 year for aggregated metrics
+
   session:
     store-type: redis
     timeout: 24h

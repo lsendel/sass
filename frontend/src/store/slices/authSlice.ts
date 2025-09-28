@@ -2,6 +2,9 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import { User } from '@/types/api'
 
+// Re-export User type for components
+export type { User }
+
 export interface AuthState {
   user: User | null
   token: string | null

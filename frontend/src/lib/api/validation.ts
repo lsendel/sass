@@ -105,7 +105,7 @@ export function createValidatedEndpoint<TResponse, TRequest = void>(
 ) {
   return {
     ...endpoint,
-    transformResponse: (response: unknown, meta: any, arg: TRequest) => {
+    transformResponse: (response: unknown) => {
       // First, try to validate as error response
       try {
         const errorResponse = ApiErrorResponseSchema.parse(response);
@@ -199,20 +199,22 @@ export function validateResponseInDev<T>(
       console.log('Response data:', result);
       console.groupEnd();
       return result;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.error('❌ Validation failed');
-        console.error('Issues:', error.issues);
-        console.error('Raw data:', data);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          console.error('❌ Validation failed');
+          console.error('Issues:', error.issues);
+          console.error('Raw data:', data);
+          console.groupEnd();
+          throw new ApiValidationError(
+            `API validation failed for ${endpoint}`,
+            error,
+            data
+          );
+        }
+        console.error('❌ Unexpected parsing error');
         console.groupEnd();
-        throw new ApiValidationError(
-          `API validation failed for ${endpoint}`,
-          error,
-          data
-        );
+        throw error;
       }
-      throw error;
-    }
   }
 
   return schema.parse(data);
@@ -225,7 +227,7 @@ export function safeParseApiResponse<T>(
   schema: z.ZodSchema<T>,
   data: unknown,
   fallback?: T
-): { success: true; data: T } | { success: false; error: z.ZodError; fallback?: T } {
+): { success: true; data: T } | { success: false; error: z.ZodError; fallback: T | undefined } {
   const result = schema.safeParse(data);
 
   if (result.success) {

@@ -834,7 +834,7 @@ export const withPermissionCheck = <P extends object>(
       <PermissionChecker
         resource={requiredPermissions[0].resource}
         action={requiredPermissions[0].action}
-        resourceId={requiredPermissions[0].resourceId ? requiredPermissions[0].resourceId as ResourceId : undefined}
+        {...(requiredPermissions[0].resourceId ? { resourceId: requiredPermissions[0].resourceId as ResourceId } : {})}
         fallback={
           <div className="text-center py-8" data-testid="permission-denied">
             <div className="text-gray-400 mb-2">
@@ -915,8 +915,8 @@ export const PermissionButton: React.FC<PermissionButtonProps> = ({
     <PermissionChecker
       resource={resource}
       action={action}
-      resourceId={resourceId ? resourceId as ResourceId : undefined}
-      organizationId={organizationId}
+      {...(resourceId ? { resourceId: resourceId as ResourceId } : {})}
+      {...(organizationId ? { organizationId } : {})}
       fallback={
         hideWhenNoPermission ? null : (
           <button

@@ -13,7 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com.platform.audit.internal.ComprehensiveAuditService;
+import com.platform.audit.internal.EnhancedAuditService;
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 
 /**
@@ -37,7 +37,7 @@ public class SecurityObservabilityDashboard {
     private SecurityMetricsCollector metricsCollector;
 
     @Autowired
-    private ComprehensiveAuditService auditService;
+    private EnhancedAuditService auditService;
 
     @Autowired
     private ThreatDetectionService threatDetectionService;

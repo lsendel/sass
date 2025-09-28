@@ -94,7 +94,7 @@ export const SecureForm = <T extends Record<string, any>>({
     watch,
     setError,
   } = useForm<T>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     mode: 'onBlur',
   });
 
@@ -112,7 +112,7 @@ export const SecureForm = <T extends Record<string, any>>({
     Object.entries(watchedValues).forEach(([fieldName, value]) => {
       if (typeof value === 'string' && value) {
         if (SecurityValidator.checkXss(value) || SecurityValidator.checkSqlInjection(value)) {
-          setError(fieldName as keyof T, {
+          setError(fieldName as any, {
             type: 'security',
             message: 'Security violation detected in input',
           });
@@ -125,7 +125,7 @@ export const SecureForm = <T extends Record<string, any>>({
   }, [watchedValues, setError]);
 
   const handleSecureSubmit = useCallback(
-    async (data: T) => {
+    async (data: any) => {
       if (!isSecurityValidated) {
         onValidationError?.({ security: 'Security validation failed' });
         return;
@@ -219,7 +219,7 @@ export const SecureInput: React.FC<SecureInputProps> = ({
         return;
       }
 
-      const result = validateField(value, type);
+      const result = validateField(value, type as 'email' | 'password' | 'text');
       if (!result.isValid) {
         setSecurityStatus('danger');
       } else if (SecurityValidator.checkXss(value) || SecurityValidator.checkSqlInjection(value)) {

@@ -18,9 +18,7 @@ import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
 import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
 import { useGetSubscriptionStatisticsQuery } from '../../store/api/subscriptionApi'
 import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { LoadingCard, CardSkeleton, InlineLoading } from '../../components/ui/LoadingStates'
-import { Button } from '../../components/ui/button'
+import { LoadingCard, InlineLoading } from '../../components/ui/LoadingStates'
 import StatsCard from '../../components/ui/StatsCard'
 import { getCardClasses } from '../../lib/theme'
 import { usePagePerformance, usePerformanceTracking } from '../../utils/performance'
@@ -31,11 +29,10 @@ const DashboardPage: React.FC = () => {
 
   // Performance tracking for dashboard
   usePagePerformance('Dashboard')
-  const performanceTracking = usePerformanceTracking()
+  usePerformanceTracking()
   const {
     data: organizations,
-    isLoading: orgsLoading,
-    refetch: refetchOrganizations
+    isLoading: orgsLoading
   } = useGetUserOrganizationsQuery()
 
   // Get statistics for the first organization (primary org)
@@ -127,7 +124,7 @@ const DashboardPage: React.FC = () => {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Welcome back, <span className="brand-element">{user?.name}</span>! 👋
+            Welcome back, <span className="brand-element">{user?.email}</span>! 👋
           </h1>
           <p className="text-sm text-gray-600">
             Here's your dashboard overview with the latest insights and metrics.

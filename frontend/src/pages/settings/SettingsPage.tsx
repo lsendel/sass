@@ -16,7 +16,7 @@ import {
   useGetCurrentUserQuery,
   useUpdateProfileMutation,
 } from '../../store/api/userApi'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
+
 import { LoadingCard, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
 import { parseApiError } from '../../utils/apiError'
@@ -468,7 +468,7 @@ const SettingsPage: React.FC = () => {
                       </p>
                     </div>
                     <LoadingButton
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
                       onClick={() => {
                         if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {

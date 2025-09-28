@@ -35,7 +35,7 @@ interface DataSyncOptions {
  */
 export const useDataSync = (options: DataSyncOptions) => {
   const { dependencies, onSync, interval, enabled = true, debounceMs = 300 } = options
-  const dispatch = useAppDispatch()
+  // const _dispatch = useAppDispatch()
   const lastSyncRef = useRef<Record<string, any>>({})
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)

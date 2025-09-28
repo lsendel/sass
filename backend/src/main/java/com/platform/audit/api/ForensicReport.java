@@ -1,6 +1,5 @@
 package com.platform.audit.api;
 
-import com.platform.audit.internal.ComprehensiveAuditService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +21,10 @@ public class ForensicReport {
   private Instant generatedAt;
   private int totalEvents;
   private Map<String, Long> eventTypeCounts;
-  private List<ComprehensiveAuditService.SuspiciousPattern> suspiciousPatterns;
-  private ComprehensiveAuditService.LoginAnalysis loginAnalysis;
-  private ComprehensiveAuditService.AccessAnalysis accessAnalysis;
-  private List<ComprehensiveAuditService.TimelineEvent> timeline;
+  private List<SuspiciousPattern> suspiciousPatterns;
+  private LoginAnalysis loginAnalysis;
+  private AccessAnalysis accessAnalysis;
+  private List<TimelineEvent> timeline;
   private double riskScore;
   private ForensicSummary summary;
 
@@ -88,19 +87,19 @@ public class ForensicReport {
     return eventTypeCounts;
   }
 
-  public List<ComprehensiveAuditService.SuspiciousPattern> getSuspiciousPatterns() {
+  public List<SuspiciousPattern> getSuspiciousPatterns() {
     return suspiciousPatterns;
   }
 
-  public ComprehensiveAuditService.LoginAnalysis getLoginAnalysis() {
+  public LoginAnalysis getLoginAnalysis() {
     return loginAnalysis;
   }
 
-  public ComprehensiveAuditService.AccessAnalysis getAccessAnalysis() {
+  public AccessAnalysis getAccessAnalysis() {
     return accessAnalysis;
   }
 
-  public List<ComprehensiveAuditService.TimelineEvent> getTimeline() {
+  public List<TimelineEvent> getTimeline() {
     return timeline;
   }
 
@@ -122,10 +121,10 @@ public class ForensicReport {
     private Instant generatedAt;
     private int totalEvents;
     private Map<String, Long> eventTypeCounts;
-    private List<ComprehensiveAuditService.SuspiciousPattern> suspiciousPatterns;
-    private ComprehensiveAuditService.LoginAnalysis loginAnalysis;
-    private ComprehensiveAuditService.AccessAnalysis accessAnalysis;
-    private List<ComprehensiveAuditService.TimelineEvent> timeline;
+    private List<SuspiciousPattern> suspiciousPatterns;
+    private LoginAnalysis loginAnalysis;
+    private AccessAnalysis accessAnalysis;
+    private List<TimelineEvent> timeline;
     private double riskScore;
     private ForensicSummary summary;
 
@@ -166,22 +165,22 @@ public class ForensicReport {
     }
 
     public Builder suspiciousPatterns(
-        List<ComprehensiveAuditService.SuspiciousPattern> suspiciousPatterns) {
+        List<SuspiciousPattern> suspiciousPatterns) {
       this.suspiciousPatterns = suspiciousPatterns;
       return this;
     }
 
-    public Builder loginAnalysis(ComprehensiveAuditService.LoginAnalysis loginAnalysis) {
+    public Builder loginAnalysis(LoginAnalysis loginAnalysis) {
       this.loginAnalysis = loginAnalysis;
       return this;
     }
 
-    public Builder accessAnalysis(ComprehensiveAuditService.AccessAnalysis accessAnalysis) {
+    public Builder accessAnalysis(AccessAnalysis accessAnalysis) {
       this.accessAnalysis = accessAnalysis;
       return this;
     }
 
-    public Builder timeline(List<ComprehensiveAuditService.TimelineEvent> timeline) {
+    public Builder timeline(List<TimelineEvent> timeline) {
       this.timeline = timeline;
       return this;
     }

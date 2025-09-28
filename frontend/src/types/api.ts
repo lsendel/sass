@@ -118,6 +118,7 @@ export const PaymentSchema = z.object({
   subscriptionId: z.string().uuid().optional(),
   description: z.string().optional(),
   metadata: z.record(z.string(), z.string()).optional(),
+  stripePaymentIntentId: z.string().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   paidAt: z.string().datetime().optional(),
@@ -239,9 +240,29 @@ export const AuditEventSchema = z.object({
   timestamp: z.string().datetime(),
 });
 
-// Export TypeScript types from Zod schemas
+/**
+ * Partial organization types for different contexts
+ * Avoid type mismatches when different components expect different subsets of organization properties
+ */
+
+export type OrganizationBasic = Omit<z.infer<typeof OrganizationSchema>, 'plan' | 'status' | 'maxUsers' | 'currentUsers' | 'billingEmail'> & {
+  slug: string; // Organizations page expects slug for routing
+};
+export const OrganizationBasicSchema = OrganizationSchema.omit({
+  plan: true,
+  status: true,
+  maxUsers: true,
+  currentUsers: true,
+  billingEmail: true,
+}).extend({
+  slug: z.string(),
+});
+
+export type OrganizationFull = z.infer<typeof OrganizationSchema>;
+
+// Keep Organization as alias for OrganizationFull for backward compatibility
+export type Organization = OrganizationFull;
 export type User = z.infer<typeof UserSchema>;
-export type Organization = z.infer<typeof OrganizationSchema>;
 export type OAuth2Provider = z.infer<typeof OAuth2ProviderSchema>;
 export type SessionInfo = z.infer<typeof SessionInfoSchema>;
 export type AuthMethodsResponse = z.infer<typeof AuthMethodsResponseSchema>;

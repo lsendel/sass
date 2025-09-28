@@ -13,9 +13,9 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
   const [status, setStatus] = useState<AutoSaveStatus>('idle')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState<Error | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout>()
-  const lastSavedRef = useRef<string>()
-  const initialDataRef = useRef<string>()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSavedRef = useRef<string | null>(null)
+  const initialDataRef = useRef<string | null>(null)
 
   // Track initial data to detect if there are unsaved changes
   useEffect(() => {

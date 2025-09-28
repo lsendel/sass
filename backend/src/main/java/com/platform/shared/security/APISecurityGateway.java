@@ -18,7 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.platform.audit.internal.ComprehensiveAuditService;
+import com.platform.audit.internal.EnhancedAuditService;
 import com.platform.audit.api.ZeroTrustValidationResult;
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 import com.platform.shared.security.ThreatDetectionService.ThreatLevel;
@@ -49,7 +49,7 @@ public class APISecurityGateway extends OncePerRequestFilter {
     private SecurityMetricsCollector metricsCollector;
 
     @Autowired
-    private ComprehensiveAuditService auditService;
+    private EnhancedAuditService auditService;
 
     @Autowired
     private RateLimitingService rateLimitingService;

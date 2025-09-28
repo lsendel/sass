@@ -134,12 +134,12 @@ const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
             email: formData.email,
             address: {
               line1: formData.address.line1,
-              line2: formData.address.line2 || undefined,
+              ...(formData.address.line2 ? { line2: formData.address.line2 } : {}),
               city: formData.address.city,
               state: formData.address.state,
               postal_code: formData.address.postal_code,
               country: formData.address.country,
-            },
+            } as any,
           },
         },
       })

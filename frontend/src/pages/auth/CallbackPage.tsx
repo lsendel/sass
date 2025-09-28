@@ -47,7 +47,7 @@ const CallbackPage: React.FC = () => {
         // Exchange code for user session
         const result = await handleCallback({
           code,
-          state: state ?? undefined,
+          ...(state ? { state } : {}),
         }).unwrap()
 
         // Set credentials (token handled via httpOnly cookie from server)

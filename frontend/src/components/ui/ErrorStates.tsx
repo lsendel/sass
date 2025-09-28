@@ -96,20 +96,20 @@ const ErrorState: React.FC<ErrorStateProps> = ({
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         {showRetry && onRetry && (
-          <Button onClick={onRetry} variant="primary" size="md">
+          <Button onClick={onRetry} variant="default" size="default">
             <ArrowPathIcon className="w-4 h-4 mr-2" />
             Try Again
           </Button>
         )}
 
         {action && (
-          <Button onClick={action.onClick} variant="secondary" size="md">
+          <Button onClick={action.onClick} variant="secondary" size="default">
             {action.label}
           </Button>
         )}
 
         {variant === 'not-found' && (
-          <Button onClick={() => window.location.href = '/'} variant="secondary" size="md">
+          <Button onClick={() => window.location.href = '/'} variant="secondary" size="default">
             <HomeIcon className="w-4 h-4 mr-2" />
             Go Home
           </Button>
@@ -187,8 +187,8 @@ export const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
   return (
     <ErrorState
       {...errorDetails}
-      onRetry={onRetry}
       showRetry={!!onRetry}
+      {...(onRetry && { onRetry })}
     />
   )
 }

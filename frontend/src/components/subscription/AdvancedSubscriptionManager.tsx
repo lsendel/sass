@@ -109,7 +109,7 @@ interface AdvancedSubscriptionManagerProps {
 
 const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  organizationId,
+  organizationId: _organizationId,
   className,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'billing' | 'usage' | 'analytics' | 'settings'>('overview')
@@ -555,7 +555,7 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
 
                     <Button
                       className="w-full"
-                      variant={plan.id === subscription.planId ? 'outline' : 'primary'}
+                      variant={plan.id === subscription.planId ? 'outline' : 'default'}
                       disabled={plan.id === subscription.planId}
                     >
                       {plan.id === subscription.planId ? 'Current Plan' : 'Select Plan'}

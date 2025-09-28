@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BuildingOfficeIcon,
@@ -8,19 +8,12 @@ import {
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 
-import { useGetUserOrganizationsQuery, useCreateOrganizationMutation } from '../../store/api/organizationApi'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
+import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
+import { ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
-import { Button } from '../../components/ui/button'
 import CreateOrganizationModal from '../../components/organizations/CreateOrganizationModal'
-import { useCrossComponentSync } from '../../hooks/useDataSync'
-import { useOptimisticList } from '../../hooks/useOptimisticUpdates'
-import { useOptimisticNotifications } from '../../hooks/useNotificationIntegration'
-import { OptimisticListItem, OptimisticOverlay } from '../../components/ui/OptimisticComponents'
 import { getIconClasses, getCardClasses } from '../../lib/theme'
-import { logger } from '../../utils/logger'
-import type { Organization } from '../../types/api'
+
 
 const OrganizationsPage: React.FC = () => {
   const {
@@ -29,29 +22,7 @@ const OrganizationsPage: React.FC = () => {
     error,
     refetch,
   } = useGetUserOrganizationsQuery()
-  const [createOrganization] = useCreateOrganizationMutation()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const { syncOrganizationData } = useCrossComponentSync()
-  const optimisticNotifications = useOptimisticNotifications<Organization>()
-
-  // Optimistic updates for organizations list
-  const {
-    data: optimisticOrganizations,
-    setData,
-    addItem,
-    hasOptimisticUpdates,
-    optimisticUpdates
-  } = useOptimisticList<Organization>(organizations || [])
-
-  // Update optimistic list when server data changes
-  useEffect(() => {
-    if (organizations) {
-      setData(organizations)
-    }
-  }, [organizations, setData])
-
-  const pendingUpdates = optimisticUpdates.filter(u => u.status === 'pending')
-  const failedUpdates = optimisticUpdates.filter(u => u.status === 'failed')
 
   if (isLoading) {
     return (
@@ -92,10 +63,7 @@ const OrganizationsPage: React.FC = () => {
 
         <ApiErrorDisplay
           error={error}
-          onRetry={() => {
-            void refetch()
-            void syncOrganizationData()
-          }}
+          onRetry={() => refetch()}
           fallbackMessage="Failed to load organizations. Please try again."
         />
       </div>
@@ -126,24 +94,15 @@ const OrganizationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Optimistic Updates Overlay */}
-      <OptimisticOverlay
-        isActive={hasOptimisticUpdates}
-        pendingCount={pendingUpdates.length}
-        failedCount={failedUpdates.length}
-      />
-
       {/* Organizations List */}
-      {optimisticOrganizations && optimisticOrganizations.length > 0 ? (
+      {organizations && organizations.length > 0 ? (
         <div className="grid gap-4">
-          {optimisticOrganizations.map(organization => {
-            // Find the corresponding optimistic update
-            const optimisticUpdate = optimisticUpdates.find(update =>
-              update.data.type === 'add' && update.data.item.id === organization.id
-            )
-            const status = optimisticUpdate?.status
-
-            const OrganizationCard = (
+          {organizations.map((organization: any) => (
+            <Link
+              key={organization.id}
+              to={`/organizations/${organization.slug}`}
+              className="block group transition-transform hover:scale-[1.02]"
+            >
               <div className={`${getCardClasses('elevated')} group-hover:shadow-xl transition-all duration-200`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -192,41 +151,8 @@ const OrganizationsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )
-
-            if (status) {
-              // This is an optimistic update, wrap with optimistic indicator
-              return (
-                <OptimisticListItem
-                  key={organization.id}
-                  status={status}
-                  className="p-0 border-0 bg-transparent"
-                >
-                  {status === 'confirmed' || !status ? (
-                    <Link
-                      to={`/organizations/${organization.slug}`}
-                      className="block group transition-transform hover:scale-[1.02]"
-                    >
-                      {OrganizationCard}
-                    </Link>
-                  ) : (
-                    OrganizationCard
-                  )}
-                </OptimisticListItem>
-              )
-            } else {
-              // This is confirmed data, render normally with link
-              return (
-                <Link
-                  key={organization.id}
-                  to={`/organizations/${organization.slug}`}
-                  className="block group transition-transform hover:scale-[1.02]"
-                >
-                  {OrganizationCard}
-                </Link>
-              )
-            }
-          })}
+            </Link>
+          ))}
         </div>
       ) : (
         <div className={`${getCardClasses('subtle')} text-center py-8`}>
@@ -254,44 +180,6 @@ const OrganizationsPage: React.FC = () => {
       <CreateOrganizationModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onOptimisticCreate={async (optimisticOrg) => {
-          // Use enhanced notification system with optimistic updates
-          return optimisticNotifications.addOptimisticUpdateWithNotifications(
-            optimisticOrg,
-            async (org) => {
-              const result = await createOrganization({
-                name: org.name,
-                slug: org.slug,
-                settings: org.settings
-              }).unwrap()
-
-              // Refresh the entire list to get latest data
-              await refetch()
-              await syncOrganizationData()
-
-              return result
-            },
-            {
-              loadingTitle: 'Creating organization...',
-              loadingMessage: `Setting up "${optimisticOrg.name}"`,
-              successTitle: 'Organization created!',
-              successMessage: `"${optimisticOrg.name}" is ready to use`,
-              errorTitle: 'Failed to create organization',
-              showLoadingNotification: true,
-              showSuccessNotification: true,
-              autoCloseLoading: true,
-              onSuccess: () => {
-                // Organization will appear optimistically in the list
-                // and be confirmed when the server responds
-              },
-              onError: (error, rollbackData) => {
-                logger.error('Organization creation failed:', error)
-                // The optimistic item will be marked as failed
-                // and the user can retry or undo
-              }
-            }
-          )
-        }}
       />
     </div>
   )

@@ -13,7 +13,7 @@ import {
   useGetOrganizationPaymentsQuery,
   useGetPaymentStatisticsQuery,
 } from '../../store/api/paymentApi'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
+
 import { LoadingCard, TableSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay, EmptyState } from '../../components/ui/ErrorStates'
 import { useCrossComponentSync } from '../../hooks/useDataSync'
@@ -57,7 +57,6 @@ const PaymentsPage: React.FC = () => {
 
   const {
     data: statistics,
-    error: statisticsError,
     refetch: refetchStatistics
   } = useGetPaymentStatisticsQuery(primaryOrg?.id || '', {
       skip: !primaryOrg?.id,
@@ -270,7 +269,7 @@ const PaymentsPage: React.FC = () => {
         resultsCount={
           <ResultsCounter
             total={payments?.length || 0}
-            filtered={searchQuery || statusFilter.length > 0 || dateRange.start || dateRange.end ? filteredPayments.length : undefined}
+            {...((searchQuery || statusFilter.length > 0 || dateRange.start || dateRange.end) ? { filtered: filteredPayments.length } : {})}
             query={searchQuery}
           />
         }

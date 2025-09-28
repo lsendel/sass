@@ -1,0 +1,430 @@
+openapi: 3.0.3
+info:
+  title: Security Metrics API
+  version: 1.0.0
+  description: API for security metrics and aggregated data
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+paths:
+  /metrics:
+    get:
+      summary: Query security metrics
+      operationId: queryMetrics
+      parameters:
+        - name: metricNames
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: fromTimestamp
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: toTimestamp
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [MINUTE, HOUR, DAY]
+            default: HOUR
+        - name: tags
+          in: query
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+      responses:
+        '200':
+          description: Metric data points
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metrics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MetricSeries'
+
+  /metrics/available:
+    get:
+      summary: List available metrics
+      operationId: listAvailableMetrics
+      responses:
+        '200':
+          description: Available metric definitions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetricDefinition'
+
+  /metrics/realtime:
+    get:
+      summary: Real-time metrics stream
+      operationId: streamMetrics
+      parameters:
+        - name: metricNames
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Server-sent events stream of metrics
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /alerts:
+    get:
+      summary: List alert rules
+      operationId: listAlertRules
+      parameters:
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Alert rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertRule'
+
+    post:
+      summary: Create alert rule
+      operationId: createAlertRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertRuleCreate'
+      responses:
+        '201':
+          description: Alert rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+
+  /alerts/{ruleId}:
+    get:
+      summary: Get alert rule
+      operationId: getAlertRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Alert rule details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+
+    put:
+      summary: Update alert rule
+      operationId: updateAlertRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertRuleUpdate'
+      responses:
+        '200':
+          description: Alert rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+
+    delete:
+      summary: Delete alert rule
+      operationId: deleteAlertRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Alert rule deleted
+
+  /alerts/{ruleId}/history:
+    get:
+      summary: Get alert rule trigger history
+      operationId: getAlertHistory
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fromTimestamp
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toTimestamp
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Alert trigger history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertTrigger'
+
+components:
+  schemas:
+    MetricSeries:
+      type: object
+      required:
+        - metricName
+        - dataPoints
+      properties:
+        metricName:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        unit:
+          type: string
+        dataPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataPoint'
+
+    DataPoint:
+      type: object
+      required:
+        - timestamp
+        - value
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        value:
+          type: number
+
+    MetricDefinition:
+      type: object
+      required:
+        - name
+        - description
+        - unit
+        - type
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        unit:
+          type: string
+        type:
+          type: string
+          enum: [COUNTER, GAUGE, HISTOGRAM, TIMER]
+        tags:
+          type: array
+          items:
+            type: string
+
+    AlertRule:
+      type: object
+      required:
+        - id
+        - name
+        - condition
+        - severity
+        - threshold
+        - timeWindow
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        condition:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW]
+        enabled:
+          type: boolean
+          default: true
+        threshold:
+          type: number
+        timeWindow:
+          type: string
+          format: duration
+        cooldownPeriod:
+          type: string
+          format: duration
+        notificationChannels:
+          type: array
+          items:
+            type: string
+        escalationRules:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+        lastTriggered:
+          type: string
+          format: date-time
+          nullable: true
+        triggerCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AlertRuleCreate:
+      type: object
+      required:
+        - name
+        - condition
+        - severity
+        - threshold
+        - timeWindow
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        condition:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW]
+        enabled:
+          type: boolean
+          default: true
+        threshold:
+          type: number
+        timeWindow:
+          type: string
+          format: duration
+        cooldownPeriod:
+          type: string
+          format: duration
+          default: PT30S
+        notificationChannels:
+          type: array
+          items:
+            type: string
+        escalationRules:
+          type: object
+          additionalProperties: true
+
+    AlertRuleUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        condition:
+          type: string
+        enabled:
+          type: boolean
+        threshold:
+          type: number
+        timeWindow:
+          type: string
+          format: duration
+        cooldownPeriod:
+          type: string
+          format: duration
+        notificationChannels:
+          type: array
+          items:
+            type: string
+        escalationRules:
+          type: object
+          additionalProperties: true
+
+    AlertTrigger:
+      type: object
+      required:
+        - id
+        - ruleId
+        - triggeredAt
+        - value
+        - threshold
+      properties:
+        id:
+          type: string
+          format: uuid
+        ruleId:
+          type: string
+          format: uuid
+        triggeredAt:
+          type: string
+          format: date-time
+        value:
+          type: number
+        threshold:
+          type: number
+        message:
+          type: string
+        resolved:
+          type: boolean
+          default: false
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

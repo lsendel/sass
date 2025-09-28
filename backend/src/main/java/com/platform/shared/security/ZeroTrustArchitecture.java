@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.platform.audit.internal.ComprehensiveAuditService;
+import com.platform.audit.internal.EnhancedAuditService;
 import com.platform.audit.api.ZeroTrustValidationResult;
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 
@@ -34,7 +34,7 @@ public class ZeroTrustArchitecture {
     private SecurityMetricsCollector metricsCollector;
 
     @Autowired
-    private ComprehensiveAuditService auditService;
+    private EnhancedAuditService auditService;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;

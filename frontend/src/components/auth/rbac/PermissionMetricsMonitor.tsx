@@ -12,7 +12,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { permissionCache } from '../../../utils/permissionCache'
 import { getAuditMetrics } from '../../../utils/auditLogger'
-import { securityMonitor } from '../../../utils/securityMonitor'
 import { logger } from '../../../utils/logger'
 import type { CacheMetrics } from '../../../utils/permissionCache'
 

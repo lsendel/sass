@@ -59,6 +59,28 @@ public class CacheConfig {
         // Session validation - very short cache for performance
         cacheConfigurations.put("session-validation", defaultConfig.entryTtl(Duration.ofMinutes(2)));
 
+        // Security Dashboard specific caches
+        // Dashboard configurations - cache for 1 hour (rarely change once created)
+        cacheConfigurations.put("security-dashboards", defaultConfig.entryTtl(Duration.ofHours(1)));
+
+        // Widget configurations - cache for 30 minutes
+        cacheConfigurations.put("dashboard-widgets", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+
+        // Active alert rules - cache for 5 minutes (need fresh data for alerting)
+        cacheConfigurations.put("alert-rules", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+
+        // Security metrics - cache for 10 minutes (balance between freshness and performance)
+        cacheConfigurations.put("security-metrics", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+
+        // Threat indicators - cache for 1 hour (external data, less frequently updated)
+        cacheConfigurations.put("threat-indicators", defaultConfig.entryTtl(Duration.ofHours(1)));
+
+        // Security event counts/aggregations - cache for 5 minutes
+        cacheConfigurations.put("security-event-stats", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+
+        // Dashboard data (widget data) - very short cache for real-time feeling
+        cacheConfigurations.put("dashboard-data", defaultConfig.entryTtl(Duration.ofMinutes(2)));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

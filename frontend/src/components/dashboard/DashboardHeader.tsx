@@ -37,7 +37,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       <RealTimeStatus
         isActive={isRealTimeActive}
         onRefresh={onRefresh}
-        lastUpdated={lastUpdated}
+        {...(lastUpdated ? { lastUpdated } : {})}
       />
     </div>
   );

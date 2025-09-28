@@ -1,61 +1,18 @@
-import React, { useState, useEffect, memo, useMemo, useCallback } from 'react'
-import { useOptimizedSelector, usePerformanceMonitor, useDebouncedCallback } from '../../hooks/usePerformanceOptimization'
+import { memo, useMemo } from 'react'
 import {
   useGetHealthSummaryQuery,
   useGetCacheStatsQuery,
-  useGetAuditMetricsQuery,
-  useGetSecurityAnalysisQuery,
-  useGetAuditStreamStatusQuery,
-  useTriggerAuditArchivalMutation,
-  useTriggerAuditCompressionMutation,
-  performanceUtils
 } from '../../store/api/performanceApi'
-import { useTenant } from '../../hooks/useTenant'
-
-interface PerformanceMetrics {
-  memory_usage_mb: number
-  total_requests: number
-  database_connections: number
-  active_sessions: number
-}
-
-interface CacheStats {
-  organizations: { hitRatio: number; status: string }
-  users: { hitRatio: number; status: string }
-  'payment-methods': { hitRatio: number; status: string }
-}
-
-interface Recommendation {
-  category: string
-  issue: string
-  suggestion: string
-  priority: 'HIGH' | 'MEDIUM' | 'LOW'
-}
-
-interface HealthSummary {
-  healthScore: number
-  status: string
-  metrics: PerformanceMetrics
-  recommendations: Recommendation[]
-  cachePerformance: Record<string, number>
-}
 
 /**
  * Enhanced real-time performance monitoring dashboard with audit integration,
  * security analysis, and automated optimization recommendations.
  */
 const RealTimePerformanceDashboard = memo(() => {
-  const { markStart, markEnd } = usePerformanceMonitor('RealTimePerformanceDashboard')
-  const { currentTenant } = useTenant()
-
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'audit' | 'security'>('overview')
-  const [alertsEnabled, setAlertsEnabled] = useState(true)
-
   // RTK Query hooks with real-time polling
   const {
     data: healthSummary,
-    isLoading: healthLoading,
-    error: healthError
+    isLoading: healthLoading
   } = useGetHealthSummaryQuery()
 
   const {
@@ -63,75 +20,10 @@ const RealTimePerformanceDashboard = memo(() => {
     isLoading: cacheLoading
   } = useGetCacheStatsQuery()
 
-  const {
-    data: auditMetrics,
-    isLoading: auditLoading
-  } = useGetAuditMetricsQuery()
+  const isLoading = healthLoading || cacheLoading
+  // const error = healthError // Unused for now
 
-  const {
-    data: securityAnalysis,
-    isLoading: securityLoading
-  } = useGetSecurityAnalysisQuery(
-    { organizationId: currentTenant?.id || '', lookbackHours: 24 },
-    { skip: !currentTenant?.id }
-  )
 
-  const {
-    data: streamStatus,
-    isLoading: streamLoading
-  } = useGetAuditStreamStatusQuery()
-
-  // Mutations for administrative actions
-  const [triggerArchival, { isLoading: archivalLoading }] = useTriggerAuditArchivalMutation()
-  const [triggerCompression, { isLoading: compressionLoading }] = useTriggerAuditCompressionMutation()
-
-  const isLoading = healthLoading || cacheLoading || auditLoading
-  const error = healthError
-
-  // Memoized calculations
-  const overallPerformanceScore = useMemo(() => {
-    if (!healthSummary || !cacheStats) return 0
-    return performanceUtils.calculatePerformanceScore(
-      healthSummary.healthScore,
-      cacheStats,
-      auditMetrics
-    )
-  }, [healthSummary, cacheStats, auditMetrics])
-
-  const alertLevel = useMemo(() => {
-    if (!healthSummary || !securityAnalysis) return 'none'
-    return performanceUtils.getAlertLevel(
-      healthSummary.healthScore,
-      securityAnalysis.riskScore,
-      healthSummary.metrics
-    )
-  }, [healthSummary, securityAnalysis])
-
-  // Debounced tab change
-  const handleTabChange = useDebouncedCallback((tab: 'overview' | 'audit' | 'security') => {
-    setSelectedTab(tab)
-  }, 100)
-
-  // Administrative action handlers
-  const handleArchival = useCallback(async () => {
-    try {
-      await triggerArchival().unwrap()
-      // Show success notification
-    } catch (error) {
-      console.error('Archival failed:', error)
-      // Show error notification
-    }
-  }, [triggerArchival])
-
-  const handleCompression = useCallback(async () => {
-    try {
-      await triggerCompression().unwrap()
-      // Show success notification
-    } catch (error) {
-      console.error('Compression failed:', error)
-      // Show error notification
-    }
-  }, [triggerCompression])
 
   // Memoized health status styling
   const getStatusColor = useMemo(() => (status: string) => {
@@ -178,23 +70,6 @@ const RealTimePerformanceDashboard = memo(() => {
     )
   }
 
-  if (error) {
-    return (
-      <div className="p-6 bg-white rounded-lg shadow-sm border">
-        <div className="text-center text-red-600">
-          <div className="text-lg font-medium mb-2">Error Loading Performance Data</div>
-          <div className="text-sm">{error}</div>
-          <button
-            onClick={fetchPerformanceData}
-            className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   if (!healthSummary) return null
 
   return (
@@ -207,17 +82,6 @@ const RealTimePerformanceDashboard = memo(() => {
         </div>
 
         <div className="flex items-center gap-3">
-          <select
-            value={refreshInterval}
-            onChange={(e) => setRefreshInterval(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-          >
-            <option value={2000}>2s refresh</option>
-            <option value={5000}>5s refresh</option>
-            <option value={10000}>10s refresh</option>
-            <option value={30000}>30s refresh</option>
-          </select>
-
           <div className={`px-3 py-2 rounded-md text-sm font-medium ${getStatusColor(healthSummary.status)}`}>
             Health: {healthSummary.healthScore}/100 ({healthSummary.status})
           </div>
@@ -361,8 +225,7 @@ const RealTimePerformanceDashboard = memo(() => {
 
       {/* Status Indicator */}
       <div className="text-center text-sm text-gray-500">
-        Last updated: {new Date().toLocaleTimeString()} •
-        Refreshing every {refreshInterval / 1000}s
+        Last updated: {new Date().toLocaleTimeString()}
       </div>
     </div>
   )

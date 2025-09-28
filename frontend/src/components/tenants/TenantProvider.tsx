@@ -21,7 +21,7 @@ import type {
 // Create tenant context
 interface TenantContextValue {
   tenant: Tenant | null
-  tenantSettings: TenantSettings | null
+  tenantSettings: TenantSettings | undefined
   tenantContext: TenantContext | null
   isLoading: boolean
   isError: boolean
@@ -273,7 +273,7 @@ export const TenantBranding: React.FC<TenantBrandingProps> = ({
   nameClassName = 'text-xl font-semibold text-gray-900',
   fallbackLogo,
 }) => {
-  const { branding, tenant } = useTenant()
+  const { branding, tenant: _tenant } = useTenant()
 
   const logoUrl = branding.getLogoUrl()
   const displayName = branding.getDisplayName()

@@ -93,8 +93,7 @@ export const useOptimisticUpdates = <T>() => {
         toast.error(
           `${errorMessage} Click to undo.`,
           {
-            duration: rollbackDelay,
-            onClick: () => rollbackUpdate(updateId, data, onError)
+            duration: rollbackDelay
           }
         )
 
@@ -223,7 +222,7 @@ export const useOptimisticList = <T extends { id: string }>(
   const addItem = useCallback(
     async (item: T, mutationFn: (item: T) => Promise<T>, index?: number) => {
       return addOptimisticUpdate(
-        { type: 'add', item, index },
+        { type: 'add', item, ...(index !== undefined ? { index } : {}) },
         async () => mutationFn(item),
         {
           successMessage: 'Item added successfully',

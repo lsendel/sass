@@ -156,7 +156,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   onLogout,
   currentPath,
   user,
-  isMobile = false,
+  isMobile: _isMobile = false, // Future mobile optimization
 }) => {
   return (
     <>

@@ -17,15 +17,15 @@ import {
   useGetTenantQuery,
   useGetTenantBySlugQuery,
   useGetTenantSettingsQuery,
-  createTenantContextSelector,
+  // createTenantContextSelector,
 } from '@/store/api/tenantApi'
 import { selectCurrentUser } from '@/store/slices/authSlice'
 import type {
   TenantId,
   TenantSlug,
   TenantContext,
-  Tenant,
-  TenantSettings,
+  // Tenant,
+  // TenantSettings,
   TenantRoute,
 } from '@/types/multitenancy'
 import { createTenantId, createTenantSlug } from '@/types/multitenancy'
@@ -90,13 +90,13 @@ export const useTenantContext = () => {
       }
 
       // 4. Use current user's default tenant
-      if (currentUser?.defaultTenantId) {
-        setResolvedTenant({
-          tenantId: createTenantId(currentUser.defaultTenantId),
-          source: 'user',
-        })
-        return
-      }
+      // if (currentUser?.defaultTenantId) {
+      //   setResolvedTenant({
+      //     tenantId: createTenantId(currentUser.defaultTenantId),
+      //     source: 'user',
+      //   })
+      //   return
+      // }
 
       // 5. No tenant context
       setResolvedTenant({ source: 'none' })
@@ -139,8 +139,8 @@ export const useTenantContext = () => {
       tier: activeTenant.tier,
       features: activeTenant.features,
       quotas: activeTenant.quotas,
-      userId: currentUser?.id,
-      organizationId: currentUser?.currentOrganizationId,
+      userId: currentUser?.id || '',
+      organizationId: currentUser?.organizationId || '',
     }
   }, [activeTenant, currentUser])
 
@@ -188,7 +188,7 @@ export const useTenantContext = () => {
         tenantId: activeTenant.id,
         isCustomDomain: resolvedTenant.source === 'domain',
         subdomain: resolvedTenant.source === 'subdomain' ?
-          window.location.hostname.split('.')[0] : undefined,
+          window.location.hostname.split('.')[0] : '',
       }
     },
   }), [activeTenant, location, resolvedTenant])
@@ -266,9 +266,9 @@ export const useTenantContext = () => {
       if (!tenantContext?.quotas) return false
 
       const quota = tenantContext.quotas[quotaType]
-      if (quota.limit === -1) return false // Unlimited
+      if ((quota as any).limit === -1) return false // Unlimited
 
-      return quota.current >= quota.limit
+      return (quota as any).current >= (quota as any).limit
     },
 
     /**
@@ -278,9 +278,9 @@ export const useTenantContext = () => {
       if (!tenantContext?.quotas) return 0
 
       const quota = tenantContext.quotas[quotaType]
-      if (quota.limit === -1) return 0 // Unlimited
+      if ((quota as any).limit === -1) return 0 // Unlimited
 
-      return Math.min((quota.current / quota.limit) * 100, 100)
+      return Math.min(((quota as any).current / (quota as any).limit) * 100, 100)
     },
 
     /**
@@ -297,9 +297,9 @@ export const useTenantContext = () => {
       if (!tenantContext?.quotas) return 0
 
       const quota = tenantContext.quotas[quotaType]
-      if (quota.limit === -1) return Infinity // Unlimited
+      if ((quota as any).limit === -1) return Infinity // Unlimited
 
-      return Math.max(quota.limit - quota.current, 0)
+      return Math.max((quota as any).limit - (quota as any).current, 0)
     },
   }), [tenantContext])
 
@@ -377,9 +377,8 @@ export const useMultiTenantAdmin = () => {
 
   const isMultiTenantAdmin = useMemo(() => {
     // Check if user has cross-tenant admin permissions
-    return currentUser?.roles?.some(role =>
-      ['system_admin', 'platform_admin', 'tenant_manager'].includes(role)
-    ) || false
+    return currentUser?.role ?
+      ['system_admin', 'platform_admin', 'tenant_manager'].includes(currentUser.role) : false
   }, [currentUser])
 
   return {

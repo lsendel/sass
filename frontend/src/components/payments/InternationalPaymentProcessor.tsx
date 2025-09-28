@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useMemo } from 'react'
+import { toast } from 'react-hot-toast'
 import {
   GlobeAltIcon,
   CreditCardIcon,
@@ -25,7 +26,7 @@ interface Currency {
   symbol: string
   decimals: number
   isSupported: boolean
-  exchangeRate: number // relative to USD
+  exchangeRate: number // relative to USDcontinue next phase
   minimumAmount: number
 }
 
@@ -235,11 +236,7 @@ const InternationalPaymentProcessor: React.FC<InternationalPaymentProcessorProps
   }, [selectedCurrency, customerCountry])
 
   // Calculate tax for the transaction
-  const calculateTax = (
-    amount: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    currency: string
-  ) => {
+  const calculateTax = (amount: number) => {
     const taxRate = allTaxRates.find(rate => rate.country === customerCountry)
     if (!taxRate) return { taxAmount: 0, taxRate: 0, taxName: '' }
 
@@ -258,7 +255,7 @@ const InternationalPaymentProcessor: React.FC<InternationalPaymentProcessorProps
 
   // Calculate tax
   const taxInfo = useMemo(() => {
-    return calculateTax(convertedAmount, selectedCurrency)
+    return calculateTax(convertedAmount)
   }, [convertedAmount, selectedCurrency])
 
   // Total amount including tax

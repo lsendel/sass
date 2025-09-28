@@ -188,18 +188,46 @@ ios/ or android/
 
 **Task Generation Strategy**:
 - Load `/templates/tasks-template.md` as base
-- Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Each contract → contract test task [P]
-- Each entity → model creation task [P] 
-- Each user story → integration test task
-- Implementation tasks to make tests pass
+- Generate tasks from Phase 1 design docs (data-model.md, contracts/, quickstart.md)
+- Each API contract → contract test task [P]
+  - security-events-api.yaml → SecurityEventsApiContractTest
+  - dashboard-api.yaml → DashboardApiContractTest
+  - metrics-api.yaml → MetricsApiContractTest
+- Each entity → model creation task [P]
+  - SecurityEvent, Dashboard, DashboardWidget, AlertRule, SecurityMetric, ThreatIndicator
+- Each user story from quickstart → integration test task
+  - Security analyst monitoring workflow
+  - Incident response workflow
+  - Dashboard customization workflow
+- Implementation tasks to make tests pass (TDD order)
 
 **Ordering Strategy**:
-- TDD order: Tests before implementation 
-- Dependency order: Models before services before UI
-- Mark [P] for parallel execution (independent files)
+- TDD order: Contract tests → Integration tests → E2E tests → Implementation
+- Dependency order:
+  1. Database/InfluxDB schema and entities [P]
+  2. Core services (SecurityEventService, MetricsService) [P]
+  3. API controllers [P]
+  4. WebSocket handlers for real-time updates
+  5. Frontend components and dashboard widgets [P]
+  6. Integration between frontend and backend
+- Mark [P] for parallel execution (independent files/modules)
 
-**Estimated Output**: 25-30 numbered, ordered tasks in tasks.md
+**Specific Task Categories**:
+1. **Infrastructure Setup** (5 tasks): Database migrations, InfluxDB setup, Redis configuration
+2. **Backend Core** (8 tasks): Entities, repositories, services, security configuration
+3. **API Implementation** (6 tasks): REST controllers, WebSocket handlers, validation
+4. **Frontend Core** (7 tasks): Dashboard components, chart widgets, real-time updates
+5. **Integration** (4 tasks): API integration, WebSocket connection, error handling
+6. **Testing** (6 tasks): Contract tests, integration tests, E2E user stories
+7. **Libraries** (4 tasks): security-monitoring-lib, dashboard-ui-lib, CLI tools
+
+**Estimated Output**: 40-45 numbered, ordered tasks in tasks.md
+
+**Performance Requirements Integration**:
+- Each UI task includes <200ms render requirement
+- Real-time tasks include <1s latency requirement
+- API tasks include <200ms response time validation
+- Load testing tasks for 100+ concurrent users
 
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
@@ -223,17 +251,17 @@ ios/ or android/
 *This checklist is updated during execution flow*
 
 **Phase Status**:
-- [ ] Phase 0: Research complete (/plan command)
-- [ ] Phase 1: Design complete (/plan command)
-- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
-- [ ] Phase 3: Tasks generated (/tasks command)
+- [x] Phase 0: Research complete (/plan command)
+- [x] Phase 1: Design complete (/plan command)
+- [x] Phase 2: Task planning complete (/plan command - describe approach only)
+- [x] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [ ] Initial Constitution Check: PASS
-- [ ] Post-Design Constitution Check: PASS
-- [ ] All NEEDS CLARIFICATION resolved
+- [x] Initial Constitution Check: PASS
+- [x] Post-Design Constitution Check: PASS
+- [x] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
 
 ---

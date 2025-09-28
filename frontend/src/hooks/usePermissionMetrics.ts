@@ -12,7 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { permissionCache } from '../utils/permissionCache'
 import { getAuditMetrics } from '../utils/auditLogger'
-import { securityMonitor } from '../utils/securityMonitor'
+// import { securityMonitor } from '../utils/securityMonitor'
 import { logger } from '../utils/logger'
 import type { CacheMetrics } from '../utils/permissionCache'
 
@@ -172,7 +172,7 @@ export const usePermissionMetrics = (
       message,
       timestamp: new Date(),
       acknowledged: false,
-      metadata,
+      metadata: metadata || {},
     }
   }, [])
 

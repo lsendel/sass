@@ -1,0 +1,817 @@
+openapi: 3.0.3
+info:
+  title: User Module RBAC API
+  description: |
+    Comprehensive Role-Based Access Control (RBAC) API for the Spring Boot Modulith payment platform.
+
+    This API provides multi-tenant permission management with organization isolation, custom role creation,
+    and real-time permission checking with sub-200ms performance requirements.
+
+    ## Features
+    - Multi-tenant organization isolation
+    - System and custom role management
+    - Resource×Action permission model
+    - Role assignment with expiration support
+    - Comprehensive caching for performance
+    - Event-driven architecture
+
+    ## Authentication
+    All endpoints require valid JWT authentication with appropriate permissions.
+
+    ## Rate Limiting
+    - Permission checks: 1000 requests/minute per user
+    - Role management: 100 requests/minute per user
+    - User assignments: 500 requests/minute per user
+  version: 1.0.0
+  contact:
+    name: Platform Team
+    email: platform@company.com
+  license:
+    name: Proprietary
+    url: https://company.com/license
+
+servers:
+  - url: https://api.platform.com/v1
+    description: Production server
+  - url: https://staging-api.platform.com/v1
+    description: Staging server
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Permissions
+    description: Permission checking and validation operations
+  - name: Roles
+    description: Role management operations
+  - name: User Roles
+    description: User role assignment operations
+
+paths:
+  /api/permissions:
+    get:
+      tags: [Permissions]
+      summary: Get all system permissions
+      description: |
+        Retrieve all available system permissions. Used for permission management
+        interfaces and role creation.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of all system permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/permissions/resources:
+    get:
+      tags: [Permissions]
+      summary: Get all permission resources
+      description: Get all unique resources in the permission system
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of permission resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourcesResponse'
+
+  /api/permissions/resources/{resource}/actions:
+    get:
+      tags: [Permissions]
+      summary: Get actions for a resource
+      description: Get all actions available for a specific resource
+      parameters:
+        - name: resource
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PAYMENTS
+      responses:
+        '200':
+          description: List of actions for the resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionsResponse'
+
+  /api/organizations/{organizationId}/permissions/check:
+    post:
+      tags: [Permissions]
+      summary: Check multiple permissions
+      description: |
+        Check multiple permissions for the current user in an organization.
+        Efficient batch permission checking for complex authorization scenarios.
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCheckRequest'
+      responses:
+        '200':
+          description: Permission check results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionCheckResponse'
+    get:
+      tags: [Permissions]
+      summary: Check single permission
+      description: Check a single permission for the current user
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: resource
+          in: query
+          required: true
+          schema:
+            type: string
+            example: PAYMENTS
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            example: WRITE
+      responses:
+        '200':
+          description: Single permission check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SinglePermissionCheckResponse'
+
+  /api/organizations/{organizationId}/permissions/my-permissions:
+    get:
+      tags: [Permissions]
+      summary: Get current user permissions
+      description: Get all permissions assigned to the current user in an organization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      responses:
+        '200':
+          description: User permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPermissionsResponse'
+
+  /api/organizations/{organizationId}/roles:
+    get:
+      tags: [Roles]
+      summary: Get organization roles
+      description: Get all roles for an organization (predefined and custom)
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      responses:
+        '200':
+          description: List of organization roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolesResponse'
+    post:
+      tags: [Roles]
+      summary: Create custom role
+      description: |
+        Create a new custom role in an organization. Only organization admins
+        can create custom roles.
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Role name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/organizations/{organizationId}/roles/{roleId}:
+    get:
+      tags: [Roles]
+      summary: Get role details
+      description: Get detailed information about a specific role including permissions
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/RoleId'
+      responses:
+        '200':
+          description: Role details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleDetailsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Roles]
+      summary: Update custom role
+      description: Update an existing custom role (predefined roles cannot be modified)
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/RoleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleUpdatedResponse'
+    delete:
+      tags: [Roles]
+      summary: Delete custom role
+      description: |
+        Delete a custom role. Only custom roles with no active assignments
+        can be deleted.
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/RoleId'
+      responses:
+        '200':
+          description: Role deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleDeletedResponse'
+
+  /api/organizations/{organizationId}/users/{userId}/roles:
+    get:
+      tags: [User Roles]
+      summary: Get user role assignments
+      description: Get all role assignments for a user in an organization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User role assignments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRoleAssignmentsResponse'
+    post:
+      tags: [User Roles]
+      summary: Assign role to user
+      description: |
+        Assign a role to a user with optional expiration. Creates a new role
+        assignment with audit tracking.
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+      responses:
+        '201':
+          description: Role assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignmentResponse'
+        '409':
+          description: Role already assigned to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/organizations/{organizationId}/users/{userId}/roles/{roleId}:
+    delete:
+      tags: [User Roles]
+      summary: Remove role from user
+      description: Remove a role assignment from a user with audit tracking
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/RoleId'
+      responses:
+        '200':
+          description: Role removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleRemovalResponse'
+
+  /api/organizations/{organizationId}/users/{userId}/roles/{roleId}/extend:
+    put:
+      tags: [User Roles]
+      summary: Extend role assignment
+      description: Extend the expiration date of a role assignment
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/RoleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtendRoleRequest'
+      responses:
+        '200':
+          description: Role assignment extended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleExtensionResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    OrganizationId:
+      name: organizationId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 1
+      description: Organization identifier
+
+    RoleId:
+      name: roleId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 5
+      description: Role identifier
+
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 10
+      description: User identifier
+
+  schemas:
+    PermissionInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        resource:
+          type: string
+          example: PAYMENTS
+        action:
+          type: string
+          example: WRITE
+        description:
+          type: string
+          example: "Write access to payment operations"
+      required:
+        - id
+        - resource
+        - action
+
+    PermissionsResponse:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionInfo'
+
+    ResourcesResponse:
+      type: object
+      properties:
+        resources:
+          type: array
+          items:
+            type: string
+          example: ["USERS", "PAYMENTS", "ORGANIZATIONS", "SUBSCRIPTIONS", "AUDIT"]
+
+    ActionsResponse:
+      type: object
+      properties:
+        resource:
+          type: string
+          example: PAYMENTS
+        actions:
+          type: array
+          items:
+            type: string
+          example: ["READ", "WRITE", "ADMIN"]
+
+    PermissionCheckRequestItem:
+      type: object
+      properties:
+        resource:
+          type: string
+          example: PAYMENTS
+        action:
+          type: string
+          example: READ
+      required:
+        - resource
+        - action
+
+    PermissionCheckRequest:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionCheckRequestItem'
+      required:
+        - permissions
+
+    PermissionCheckResult:
+      type: object
+      properties:
+        resource:
+          type: string
+          example: PAYMENTS
+        action:
+          type: string
+          example: READ
+        hasPermission:
+          type: boolean
+          example: true
+
+    PermissionCheckResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionCheckResult'
+
+    SinglePermissionCheckResponse:
+      type: object
+      properties:
+        resource:
+          type: string
+          example: PAYMENTS
+        action:
+          type: string
+          example: WRITE
+        hasPermission:
+          type: boolean
+          example: false
+
+    UserPermissionsResponse:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["PAYMENTS:READ", "PAYMENTS:WRITE", "USERS:READ"]
+
+    RoleInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 5
+        name:
+          type: string
+          example: payment-manager
+        description:
+          type: string
+          example: "Manages payment processing and customer billing"
+        roleType:
+          type: string
+          enum: [PREDEFINED, CUSTOM]
+          example: CUSTOM
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        assignedUserCount:
+          type: integer
+          format: int64
+          example: 3
+
+    RoleDetails:
+      allOf:
+        - $ref: '#/components/schemas/RoleInfo'
+        - type: object
+          properties:
+            createdBy:
+              type: integer
+              format: int64
+              example: 1
+            permissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PermissionInfo'
+
+    RoleStatistics:
+      type: object
+      properties:
+        totalRoles:
+          type: integer
+          format: int64
+          example: 8
+        customRoles:
+          type: integer
+          format: int64
+          example: 4
+        predefinedRoles:
+          type: integer
+          format: int64
+          example: 4
+        totalAssignedUsers:
+          type: integer
+          format: int64
+          example: 25
+
+    RolesResponse:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleInfo'
+        statistics:
+          $ref: '#/components/schemas/RoleStatistics'
+
+    RoleDetailsResponse:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/RoleDetails'
+
+    CreateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: payment-manager
+        description:
+          type: string
+          maxLength: 500
+          example: "Manages payment processing and customer billing"
+        permissionIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          example: [1, 2, 5]
+      required:
+        - name
+        - permissionIds
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: payment-specialist
+        description:
+          type: string
+          maxLength: 500
+          example: "Specialized payment processing role"
+        permissionIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          example: [1, 2, 5, 8]
+      required:
+        - name
+
+    RoleCreatedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Success
+        roleName:
+          type: string
+          example: payment-manager
+        message:
+          type: string
+          example: "Role created with 3 permissions"
+
+    RoleUpdatedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Success
+        message:
+          type: string
+          example: "Role updated successfully"
+
+    RoleDeletedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Success
+        message:
+          type: string
+          example: "Role deleted successfully"
+
+    UserRoleAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 15
+        userId:
+          type: integer
+          format: int64
+          example: 10
+        roleId:
+          type: integer
+          format: int64
+          example: 5
+        roleName:
+          type: string
+          example: payment-manager
+        assignedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        assignedBy:
+          type: integer
+          format: int64
+          example: 1
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-02-15T10:30:00Z"
+        isActive:
+          type: boolean
+          example: true
+        isExpired:
+          type: boolean
+          example: false
+        isTemporary:
+          type: boolean
+          example: true
+
+    UserRoleAssignmentsResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 10
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRoleAssignment'
+
+    AssignRoleRequest:
+      type: object
+      properties:
+        roleId:
+          type: integer
+          format: int64
+          example: 5
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-31T23:59:59Z"
+      required:
+        - roleId
+
+    RoleAssignmentResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Success
+        message:
+          type: string
+          example: "Role assigned successfully"
+        assignment:
+          $ref: '#/components/schemas/UserRoleAssignment'
+
+    RoleRemovalResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Success
+        message:
+          type: string
+          example: "Role removed successfully"
+
+    ExtendRoleRequest:
+      type: object
+      properties:
+        newExpirationDate:
+          type: string
+          format: date-time
+          example: "2024-12-31T23:59:59Z"
+      required:
+        - newExpirationDate
+
+    RoleExtensionResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Success
+        message:
+          type: string
+          example: "Role assignment extended until 2024-12-31T23:59:59Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid request parameters"
+        correlationId:
+          type: string
+          example: "abc123-def456-ghi789"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -359,6 +359,52 @@ public class EnhancedAuditService extends AuditService {
     return Math.min(100, score); // Cap at 100
   }
 
+  /**
+   * Creates a new audit event with the specified parameters.
+   *
+   * @param eventType the type of the audit event
+   * @param userId the ID of the user who performed the action
+   * @param description a description of the action
+   * @return a new AuditEvent instance
+   */
+  public AuditEvent createAuditEvent(String eventType, String userId, String description) {
+    try {
+      // This is a placeholder implementation
+      // In a real implementation, this would create and save an AuditEvent
+      return new AuditEvent(
+          TenantContext.getCurrentOrganizationId(),
+          UUID.fromString(userId),
+          eventType,
+          "UNKNOWN", // resourceType placeholder
+          null, // resourceId
+          "UNKNOWN", // action placeholder
+          description,
+          null, // requestData
+          null, // responseData
+          "127.0.0.1", // ipAddress placeholder
+          "unknown", // userAgent placeholder
+          java.util.Map.of() // metadata placeholder
+      );
+    } catch (Exception e) {
+      logger.error("Failed to create audit event", e);
+      // Return a minimal audit event for error cases
+      return new AuditEvent(
+          null, // organizationId
+          userId != null ? UUID.fromString(userId) : null,
+          eventType,
+          "ERROR",
+          null,
+          "UNKNOWN",
+          description,
+          null,
+          null,
+          "127.0.0.1",
+          "unknown",
+          java.util.Map.of()
+      );
+    }
+  }
+
   /** A container for security analysis results. */
   public static class SecurityAnalysisResult {
     private final int securityEventCount;

@@ -21,7 +21,6 @@ import { logger } from '../../utils/logger'
 import {
   useFocusTrap,
   useKeyboardNavigation,
-  useReducedMotion,
   useAccessibilityContext,
 } from '../../hooks/useAccessibility'
 import { CommandPalette } from '../ui/InteractionPatterns'
@@ -193,7 +192,7 @@ const AccessibleDashboardLayout: React.FC = () => {
               aria-label="Close navigation menu"
             />
             <div
-              ref={sidebarFocusTrap}
+              ref={sidebarFocusTrap as React.RefObject<HTMLDivElement>}
               className={cn(
                 'relative flex-1 flex flex-col max-w-xs w-full transform transition-transform duration-300 ease-in-out',
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -215,7 +214,7 @@ const AccessibleDashboardLayout: React.FC = () => {
                   currentPath={location.pathname}
                   user={user}
                   isMobile
-                  navRef={navRef}
+                  navRef={navRef as React.RefObject<HTMLElement>}
                   onNavigate={(path) => {
                     navigate(path)
                     closeSidebar()
@@ -232,7 +231,7 @@ const AccessibleDashboardLayout: React.FC = () => {
                 onLogout={handleLogout}
                 currentPath={location.pathname}
                 user={user}
-                navRef={navRef}
+                navRef={navRef as React.RefObject<HTMLElement>}
                 onNavigate={navigate}
               />
             </div>
@@ -262,7 +261,7 @@ const AccessibleDashboardLayout: React.FC = () => {
                   </div>
                   {user && (
                     <div className="flex items-center space-x-3">
-                      <span className="text-sm text-gray-700">{user.name}</span>
+                      <span className="text-sm text-gray-700">{user.firstName || user.email}</span>
                       <UserCircleIcon className="h-8 w-8 text-gray-500" aria-hidden="true" />
                     </div>
                   )}
@@ -341,7 +340,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
         id="navigation"
         className="flex-1 flex flex-col overflow-y-auto px-3 py-3"
         aria-label="Main navigation"
-        ref={navRef}
+        ref={navRef as React.RefObject<HTMLElement>}
       >
         <ul className="flex-1 space-y-1" role="list">
           {navigation.map((item, index) => {

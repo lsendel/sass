@@ -7,7 +7,6 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
-import type { OptimisticUpdate } from '../../hooks/useOptimisticUpdates'
 
 interface OptimisticIndicatorProps {
   status: 'pending' | 'confirmed' | 'failed' | 'rolledBack'

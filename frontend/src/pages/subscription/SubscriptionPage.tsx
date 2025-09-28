@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import {
-  DocumentTextIcon,
   ExclamationTriangleIcon,
   ArrowUpIcon,
   ReceiptRefundIcon,
@@ -9,7 +8,6 @@ import { format } from 'date-fns'
 import { clsx } from 'clsx'
 
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
-import { logger } from '../../utils/logger'
 import {
   useGetOrganizationSubscriptionQuery,
   useGetAvailablePlansQuery,
@@ -17,7 +15,6 @@ import {
   useReactivateSubscriptionMutation,
   useGetOrganizationInvoicesQuery,
 } from '../../store/api/subscriptionApi'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay, EmptyState } from '../../components/ui/ErrorStates'
 import UpgradePlanModal from '../../components/subscription/UpgradePlanModal'
@@ -30,9 +27,8 @@ const SubscriptionPage: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const { data: organizations, isLoading: orgsLoading, error: orgsError } =
     useGetUserOrganizationsQuery()
-  const { data: availablePlans, error: plansError } = useGetAvailablePlansQuery()
+  const { data: availablePlans } = useGetAvailablePlansQuery()
   const { syncSubscriptionData, syncPaymentData } = useCrossComponentSync()
-  const { showSuccess, showError } = useNotifications()
 
   const primaryOrg = organizations?.[0]
 
@@ -50,7 +46,7 @@ const SubscriptionPage: React.FC = () => {
     skip: !primaryOrg?.id,
   })
 
-  const { data: invoices, error: invoicesError } = useGetOrganizationInvoicesQuery(
+  const { data: invoices } = useGetOrganizationInvoicesQuery(
     primaryOrg?.id || '',
     {
       skip: !primaryOrg?.id,
@@ -185,8 +181,8 @@ const SubscriptionPage: React.FC = () => {
       await refetchSubscription()
       await syncSubscriptionData()
     } catch (error) {
-      logger.error('Failed to cancel subscription:', error)
-      showError('Failed to Cancel', 'Unable to cancel your subscription. Please try again.')
+      console.error('Failed to cancel subscription:', error)
+      // showError('Failed to Cancel', 'Unable to cancel your subscription. Please try again.')
     }
   }
 
@@ -204,8 +200,8 @@ const SubscriptionPage: React.FC = () => {
       await syncSubscriptionData()
       await syncPaymentData()
     } catch (error) {
-      logger.error('Failed to reactivate subscription:', error)
-      showError('Reactivation Failed', 'Unable to reactivate your subscription. Please try again.')
+      console.error('Failed to reactivate subscription:', error)
+      // showError('Reactivation Failed', 'Unable to reactivate your subscription. Please try again.')
     }
   }
 
@@ -414,9 +410,9 @@ const SubscriptionPage: React.FC = () => {
       <UpgradePlanModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        currentPlanId={subscription?.planId}
-        organizationId={primaryOrg?.id}
-        subscriptionId={subscription?.id}
+        organizationId={primaryOrg?.id || ''}
+        {...(subscription?.planId && { currentPlanId: subscription.planId })}
+        {...(subscription?.id && { subscriptionId: subscription.id })}
       />
     </div>
   )

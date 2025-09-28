@@ -116,7 +116,7 @@ export const useOptimisticNotifications = <T>() => {
     (notificationId: string, progress: number, message?: string) => {
       notifications.updateNotification(notificationId, {
         title: `Processing... ${progress}%`,
-        message
+        ...(message ? { message } : {})
       })
     },
     [notifications]
@@ -178,7 +178,7 @@ export const useFormSubmissionNotifications = () => {
         helpers.updateNotification(loadingId, {
           variant: 'success',
           title: successTitle,
-          message: successMessage,
+          ...(successMessage ? { message: successMessage } : {}),
           persistent: false,
           duration: 4000
         })

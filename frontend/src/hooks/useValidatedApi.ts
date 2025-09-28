@@ -60,7 +60,7 @@ export function useValidatedQuery<T>(
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [lastFetch, setLastFetch] = useState<number>(0);
+  const [_lastFetch, setLastFetch] = useState<number>(0);
 
   const cacheRef = useRef<Map<string, { data: T; timestamp: number }>>(new Map());
   const { handleError, createRetryHandler } = useApiErrorHandler();

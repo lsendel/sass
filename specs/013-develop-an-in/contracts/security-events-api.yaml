@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: Security Events API
+  version: 1.0.0
+  description: API for managing security events and real-time monitoring
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+paths:
+  /security-events:
+    get:
+      summary: List security events
+      operationId: listSecurityEvents
+      parameters:
+        - name: eventType
+          in: query
+          schema:
+            type: string
+            enum: [LOGIN_ATTEMPT, PERMISSION_CHECK, PAYMENT_FRAUD, DATA_ACCESS, API_ABUSE]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        - name: fromTimestamp
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toTimestamp
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 1000
+      responses:
+        '200':
+          description: List of security events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SecurityEvent'
+                  page:
+                    $ref: '#/components/schemas/PageInfo'
+        '400':
+          description: Invalid query parameters
+        '403':
+          description: Insufficient permissions
+
+    post:
+      summary: Create security event
+      operationId: createSecurityEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityEventCreate'
+      responses:
+        '201':
+          description: Security event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityEvent'
+        '400':
+          description: Invalid event data
+        '403':
+          description: Insufficient permissions
+
+  /security-events/{eventId}:
+    get:
+      summary: Get security event by ID
+      operationId: getSecurityEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Security event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityEvent'
+        '404':
+          description: Event not found
+        '403':
+          description: Insufficient permissions
+
+    patch:
+      summary: Update security event
+      operationId: updateSecurityEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityEventUpdate'
+      responses:
+        '200':
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityEvent'
+        '404':
+          description: Event not found
+        '400':
+          description: Invalid update data
+
+  /security-events/stream:
+    get:
+      summary: Real-time security event stream
+      operationId: streamSecurityEvents
+      parameters:
+        - name: eventTypes
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: severities
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Server-sent events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  schemas:
+    SecurityEvent:
+      type: object
+      required:
+        - id
+        - eventType
+        - severity
+        - timestamp
+        - sourceModule
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum: [LOGIN_ATTEMPT, PERMISSION_CHECK, PAYMENT_FRAUD, DATA_ACCESS, API_ABUSE]
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        timestamp:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          nullable: true
+        sessionId:
+          type: string
+        sourceModule:
+          type: string
+        sourceIp:
+          type: string
+        userAgent:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        correlationId:
+          type: string
+        resolved:
+          type: boolean
+          default: false
+        resolvedBy:
+          type: string
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    SecurityEventCreate:
+      type: object
+      required:
+        - eventType
+        - severity
+        - sourceModule
+      properties:
+        eventType:
+          type: string
+          enum: [LOGIN_ATTEMPT, PERMISSION_CHECK, PAYMENT_FRAUD, DATA_ACCESS, API_ABUSE]
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        userId:
+          type: string
+          nullable: true
+        sessionId:
+          type: string
+        sourceModule:
+          type: string
+        sourceIp:
+          type: string
+        userAgent:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        correlationId:
+          type: string
+
+    SecurityEventUpdate:
+      type: object
+      properties:
+        resolved:
+          type: boolean
+        resolvedBy:
+          type: string
+
+    PageInfo:
+      type: object
+      properties:
+        number:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

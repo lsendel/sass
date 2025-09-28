@@ -1,0 +1,445 @@
+openapi: 3.0.3
+info:
+  title: Security Dashboard API
+  version: 1.0.0
+  description: API for managing security dashboards and widgets
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+paths:
+  /dashboards:
+    get:
+      summary: List user dashboards
+      operationId: listDashboards
+      parameters:
+        - name: shared
+          in: query
+          schema:
+            type: boolean
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: List of dashboards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dashboard'
+
+    post:
+      summary: Create dashboard
+      operationId: createDashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DashboardCreate'
+      responses:
+        '201':
+          description: Dashboard created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '400':
+          description: Invalid dashboard data
+
+  /dashboards/{dashboardId}:
+    get:
+      summary: Get dashboard by ID
+      operationId: getDashboard
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dashboard details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '404':
+          description: Dashboard not found
+        '403':
+          description: Access denied
+
+    put:
+      summary: Update dashboard
+      operationId: updateDashboard
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DashboardUpdate'
+      responses:
+        '200':
+          description: Dashboard updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '404':
+          description: Dashboard not found
+        '400':
+          description: Invalid update data
+
+    delete:
+      summary: Delete dashboard
+      operationId: deleteDashboard
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Dashboard deleted
+        '404':
+          description: Dashboard not found
+        '403':
+          description: Cannot delete dashboard
+
+  /dashboards/{dashboardId}/widgets:
+    post:
+      summary: Add widget to dashboard
+      operationId: addWidget
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetCreate'
+      responses:
+        '201':
+          description: Widget added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+
+  /dashboards/{dashboardId}/widgets/{widgetId}:
+    put:
+      summary: Update widget
+      operationId: updateWidget
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: widgetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetUpdate'
+      responses:
+        '200':
+          description: Widget updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+
+    delete:
+      summary: Remove widget
+      operationId: removeWidget
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: widgetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Widget removed
+
+  /dashboards/{dashboardId}/data:
+    get:
+      summary: Get dashboard data
+      operationId: getDashboardData
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d, 30d]
+            default: 24h
+      responses:
+        '200':
+          description: Dashboard widget data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/WidgetData'
+
+components:
+  schemas:
+    Dashboard:
+      type: object
+      required:
+        - id
+        - name
+        - widgets
+        - permissions
+        - owner
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Widget'
+        permissions:
+          type: array
+          items:
+            type: string
+        isDefault:
+          type: boolean
+          default: false
+        tags:
+          type: array
+          items:
+            type: string
+        owner:
+          type: string
+        shared:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+        lastModified:
+          type: string
+          format: date-time
+
+    DashboardCreate:
+      type: object
+      required:
+        - name
+        - permissions
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        isDefault:
+          type: boolean
+          default: false
+        tags:
+          type: array
+          items:
+            type: string
+        shared:
+          type: boolean
+          default: false
+
+    DashboardUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        shared:
+          type: boolean
+
+    Widget:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - configuration
+        - position
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [CHART, TABLE, METRIC, ALERT_LIST, THREAT_MAP]
+        configuration:
+          type: object
+          additionalProperties: true
+        position:
+          $ref: '#/components/schemas/WidgetPosition'
+        permissions:
+          type: array
+          items:
+            type: string
+        refreshInterval:
+          type: string
+          format: duration
+        dataSource:
+          type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastModified:
+          type: string
+          format: date-time
+
+    WidgetCreate:
+      type: object
+      required:
+        - name
+        - type
+        - configuration
+        - position
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [CHART, TABLE, METRIC, ALERT_LIST, THREAT_MAP]
+        configuration:
+          type: object
+          additionalProperties: true
+        position:
+          $ref: '#/components/schemas/WidgetPosition'
+        permissions:
+          type: array
+          items:
+            type: string
+        refreshInterval:
+          type: string
+          format: duration
+          default: PT30S
+        dataSource:
+          type: string
+
+    WidgetUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        configuration:
+          type: object
+          additionalProperties: true
+        position:
+          $ref: '#/components/schemas/WidgetPosition'
+        refreshInterval:
+          type: string
+          format: duration
+        dataSource:
+          type: string
+
+    WidgetPosition:
+      type: object
+      required:
+        - x
+        - y
+        - width
+        - height
+      properties:
+        x:
+          type: integer
+          minimum: 0
+        y:
+          type: integer
+          minimum: 0
+        width:
+          type: integer
+          minimum: 1
+          maximum: 12
+        height:
+          type: integer
+          minimum: 1
+          maximum: 20
+
+    WidgetData:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        lastUpdated:
+          type: string
+          format: date-time
+        nextUpdate:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

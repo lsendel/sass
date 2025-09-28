@@ -17,7 +17,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.platform.audit.internal.AuditEvent;
-import com.platform.audit.internal.ComprehensiveAuditService;
+import com.platform.audit.internal.EnhancedAuditService;
 import com.platform.shared.security.ThreatDetectionService.ThreatLevel;
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 
@@ -43,7 +43,7 @@ public class SecurityIncidentResponseService {
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    private ComprehensiveAuditService auditService;
+    private EnhancedAuditService auditService;
 
     /**
      * Handle threat detection events and initiate appropriate response
