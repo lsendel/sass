@@ -137,7 +137,7 @@ public class PerformanceMonitor {
     private Timer getOrCreateTimer(String metricName) {
         return timers.computeIfAbsent(metricName, name ->
             Timer.builder("method.execution.time")
-                .tag("method", name)
+                .tags("method", name)
                 .description("Execution time for method: " + name)
                 .register(meterRegistry)
         );

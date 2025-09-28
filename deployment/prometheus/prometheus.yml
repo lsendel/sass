@@ -1,0 +1,116 @@
+# Prometheus configuration for Payment Platform Performance Monitoring
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - "alert_rules.yml"
+  - "performance_rules.yml"
+
+# Scrape configuration for Payment Platform services
+scrape_configs:
+  # Main application metrics
+  - job_name: 'payment-platform'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['payment-platform:8080']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Custom performance metrics
+  - job_name: 'payment-platform-performance'
+    metrics_path: '/actuator/performance/prometheus'
+    static_configs:
+      - targets: ['payment-platform:8080']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # JVM and system metrics
+  - job_name: 'payment-platform-jvm'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['payment-platform:8080']
+    scrape_interval: 60s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'jvm_.*|system_.*|process_.*'
+        action: keep
+
+  # Database metrics (PostgreSQL Exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # Redis metrics (Redis Exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Node/System metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 60s
+
+  # Nginx metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 60s
+
+# Recording rules for aggregated metrics
+recording_rules:
+  - name: performance.rules
+    rules:
+      # API response time percentiles
+      - record: payment_platform:api_response_time_p95
+        expr: histogram_quantile(0.95, rate(api_response_duration_seconds_bucket[5m]))
+
+      - record: payment_platform:api_response_time_p99
+        expr: histogram_quantile(0.99, rate(api_response_duration_seconds_bucket[5m]))
+
+      # Database query performance
+      - record: payment_platform:db_query_time_avg
+        expr: rate(database_query_duration_seconds_sum[5m]) / rate(database_query_duration_seconds_count[5m])
+
+      - record: payment_platform:slow_queries_rate
+        expr: rate(database_queries_slow_total[5m])
+
+      # Cache hit ratio
+      - record: payment_platform:cache_hit_ratio
+        expr: rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))
+
+      # Error rates
+      - record: payment_platform:error_rate
+        expr: rate(http_server_requests_seconds_count{status=~"[45].*"}[5m]) / rate(http_server_requests_seconds_count[5m])
+
+      # Payment processing metrics
+      - record: payment_platform:payment_success_rate
+        expr: rate(payment_transactions_total{status="success"}[5m]) / rate(payment_transactions_total[5m])
+
+      # Memory usage percentage
+      - record: payment_platform:memory_usage_percent
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) * 100
+
+      # Database connection usage
+      - record: payment_platform:db_connection_usage_percent
+        expr: (hikaricp_connections_active / hikaricp_connections_max) * 100

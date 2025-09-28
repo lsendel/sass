@@ -49,7 +49,8 @@ public class GDPRDataRightsService {
         logger.info("Starting GDPR data export for user: {} requested by: {}", userId, requestedBy);
 
         try {
-            DataExportResult result = new DataExportResult(userId);
+            DataExportResult result = new DataExportResult();
+            result.setUserId(userId);
 
             // Collect user profile data
             Map<String, Object> profileData = collectUserProfileData(userId);
@@ -85,7 +86,8 @@ public class GDPRDataRightsService {
         } catch (Exception e) {
             logger.error("Error during GDPR data export for user: {}", userId, e);
 
-            DataExportResult errorResult = new DataExportResult(userId);
+            DataExportResult errorResult = new DataExportResult();
+            errorResult.setUserId(userId);
             errorResult.setStatus(DataExportResult.Status.FAILED);
             errorResult.setError("Data export failed: " + e.getMessage());
 
@@ -106,7 +108,8 @@ public class GDPRDataRightsService {
             userId, requestedBy, legalBasis);
 
         try {
-            DataErasureResult result = new DataErasureResult(userId);
+            DataErasureResult result = new DataErasureResult();
+            result.setUserId(userId);
 
             // Validate legal basis for erasure
             if (!isErasureLegal(userId, legalBasis)) {
@@ -156,7 +159,8 @@ public class GDPRDataRightsService {
         } catch (Exception e) {
             logger.error("Error during GDPR data erasure for user: {}", userId, e);
 
-            DataErasureResult errorResult = new DataErasureResult(userId);
+            DataErasureResult errorResult = new DataErasureResult();
+            errorResult.setUserId(userId);
             errorResult.setStatus(DataErasureResult.Status.FAILED);
             errorResult.setError("Data erasure failed: " + e.getMessage());
 
@@ -349,7 +353,13 @@ public class GDPRDataRightsService {
     private String formatDataForPortability(Map<String, Object> data, String format) {
         // Format data according to requested format
         return switch (format.toLowerCase()) {
-            case "json" -> com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(data);
+            case "json" -> {
+                try {
+                    yield new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(data);
+                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                    throw new RuntimeException("Failed to convert data to JSON", e);
+                }
+            }
             case "csv" -> convertToCSV(data);
             case "xml" -> convertToXML(data);
             default -> throw new IllegalArgumentException("Unsupported format: " + format);
@@ -443,44 +453,17 @@ public class GDPRDataRightsService {
     private void publishAuditEvent(String eventType, UUID userId, String requestedBy, String description) {
         AuditEvent auditEvent = AuditEvent.builder()
             .id(UUID.randomUUID())
-            .eventType(eventType)
-            .severity("INFO")
-            .userId(userId.toString())
+            .action(eventType)
+            .actorId(userId)
             .ipAddress("127.0.0.1") // Would get actual IP
             .details(Map.of(
                 "requested_by", requestedBy,
                 "description", description
             ))
-            .timestamp(Instant.now())
             .correlationId(UUID.randomUUID().toString())
             .build();
 
         eventPublisher.publishEvent(auditEvent);
     }
 
-    // Result classes would be defined here (simplified for brevity)
-    public static class DataExportResult {
-        public enum Status { IN_PROGRESS, COMPLETED, FAILED }
-        // Implementation details...
-    }
-
-    public static class DataErasureResult {
-        public enum Status { IN_PROGRESS, COMPLETED, FAILED, REJECTED }
-        // Implementation details...
-    }
-
-    public static class DataPortabilityResult {
-        public enum Status { IN_PROGRESS, COMPLETED, FAILED }
-        // Implementation details...
-    }
-
-    public static class DataRectificationResult {
-        public enum Status { IN_PROGRESS, COMPLETED, FAILED }
-        // Implementation details...
-    }
-
-    public static class DataRestrictionResult {
-        public enum Status { IN_PROGRESS, COMPLETED, FAILED }
-        // Implementation details...
-    }
 }

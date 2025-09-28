@@ -491,10 +491,10 @@ class GDPRComplianceIntegrationTest {
     @Test
     void shouldTrackDataProcessingLegalBasis() throws Exception {
         // Log events with legal basis for processing
-        Map<String, Object> processingMetadata = Map.of(
+        Map<String, String> processingMetadata = Map.of(
             "legalBasis", "LEGITIMATE_INTEREST",
             "purpose", "fraud-prevention",
-            "dataCategories", List.of("ip-address", "user-agent", "transaction-amount")
+            "dataCategories", "ip-address,user-agent,transaction-amount"
         );
 
         auditService.logEvent(
@@ -509,7 +509,7 @@ class GDPRComplianceIntegrationTest {
             processingMetadata
         ).get(5, TimeUnit.SECONDS);
 
-        Map<String, Object> consentBasedProcessing = Map.of(
+        Map<String, String> consentBasedProcessing = Map.of(
             "legalBasis", "CONSENT",
             "consentId", "consent-" + UUID.randomUUID(),
             "purpose", "marketing-analytics"

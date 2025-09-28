@@ -439,18 +439,15 @@ public class SecurityTestingPipeline {
 
     private void publishSecurityPipelineEvent(SecurityPipelineResult result) {
         AuditEvent auditEvent = AuditEvent.builder()
-            .id(java.util.UUID.randomUUID())
-            .eventType("SECURITY_PIPELINE_COMPLETED")
-            .severity(result.getStatus() == PipelineStatus.FAILED ? "WARN" : "INFO")
-            .userId("SYSTEM")
+            .action("SECURITY_PIPELINE_COMPLETED")
+            .actorId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000000")) // System user
             .ipAddress("127.0.0.1")
             .details(Map.of(
                 "pipeline_id", result.getPipelineId(),
                 "status", result.getStatus().toString(),
-                "security_score", result.getOverallSecurityScore(),
-                "test_count", result.getTestResults().size()
+                "security_score", String.valueOf(result.getOverallSecurityScore()),
+                "test_count", String.valueOf(result.getTestResults().size())
             ))
-            .timestamp(Instant.now())
             .correlationId(result.getPipelineId())
             .build();
 

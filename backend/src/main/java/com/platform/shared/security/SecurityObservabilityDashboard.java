@@ -366,10 +366,10 @@ public class SecurityObservabilityDashboard {
 
     private Map<String, Long> getThreatsByLevel() {
         return Map.of(
-            "CRITICAL", metricsCollector.getCounterValue("threats_critical_total"),
-            "HIGH", metricsCollector.getCounterValue("threats_high_total"),
-            "MEDIUM", metricsCollector.getCounterValue("threats_medium_total"),
-            "LOW", metricsCollector.getCounterValue("threats_low_total")
+            "CRITICAL", Math.round(metricsCollector.getCounterValue("threats_critical_total")),
+            "HIGH", Math.round(metricsCollector.getCounterValue("threats_high_total")),
+            "MEDIUM", Math.round(metricsCollector.getCounterValue("threats_medium_total")),
+            "LOW", Math.round(metricsCollector.getCounterValue("threats_low_total"))
         );
     }
 

@@ -178,29 +178,6 @@ interface DashboardLayout {
   responsive: boolean
 }
 
-interface DashboardWidget {
-  id: string
-  type: 'metric' | 'chart' | 'table' | 'text' | 'image' | 'iframe'
-  title: string
-  description?: string
-
-  // Position and size
-  position: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-
-  // Configuration
-  config: WidgetConfig
-
-  // Data binding
-  dataSources: DataSource[]
-
-  // Display settings
-  styling?: WidgetStyling
-}
 
 interface WidgetConfig {
   // Chart-specific config
@@ -229,7 +206,8 @@ interface WidgetConfig {
   interactive?: boolean
 }
 
-interface DataSource {
+// Export DataSource and DashboardWidget interfaces
+export interface DataSource {
   id: string
   type: 'metric' | 'query' | 'api'
   metricId?: MetricId
@@ -237,6 +215,17 @@ interface DataSource {
   endpoint?: string
   parameters?: Record<string, string | number | boolean>
   transform?: DataTransformation[]
+}
+
+export interface DashboardWidget {
+  id: string
+  type: 'metric' | 'chart' | 'table' | 'text' | 'image' | 'iframe'
+  title: string
+  description?: string
+  config: WidgetConfig | Record<string, unknown>
+  dataSources: DataSource[]
+  position: { x: number; y: number; w: number; h: number }
+  styling?: WidgetStyling
 }
 
 interface DataTransformation {

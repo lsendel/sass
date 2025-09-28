@@ -211,6 +211,11 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
   List<Object[]> getTopPerformingOrganizations(
       @Param("startDate") Instant startDate, @Param("topN") int topN);
 
+  /** Alias for getTopOrganizationsByRevenue for backwards compatibility */
+  default List<Object[]> getTopPerformingOrganizations(Instant startDate, Instant endDate, int limit) {
+      return getTopPerformingOrganizations(startDate, limit);
+  }
+
   /**
    * Analyzes the performance of different payment methods.
    *

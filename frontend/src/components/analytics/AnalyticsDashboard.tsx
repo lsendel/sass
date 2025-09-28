@@ -22,7 +22,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
+  Legend as RechartsLegend,
   ResponsiveContainer,
 } from 'recharts'
 import {
@@ -405,7 +405,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     <XAxis dataKey="time" />
                     <YAxis />
                     <Tooltip />
-                    <Legend />
+                    <RechartsLegend />
                     <Line
                       type="monotone"
                       dataKey="users"
@@ -433,7 +433,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     <XAxis dataKey="time" />
                     <YAxis />
                     <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
-                    <Legend />
+                    <RechartsLegend />
                     <Area
                       type="monotone"
                       dataKey="revenue"
@@ -458,7 +458,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     <XAxis dataKey="time" />
                     <YAxis />
                     <Tooltip />
-                    <Legend />
+                    <RechartsLegend />
                     <Bar dataKey="sessions" fill="#8B5CF6" />
                     <Bar dataKey="conversions" fill="#F59E0B" />
                   </BarChart>

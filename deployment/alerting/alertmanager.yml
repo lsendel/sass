@@ -1,0 +1,261 @@
+# Alertmanager configuration for Payment Platform
+global:
+  smtp_smarthost: '${EMAIL_SMTP_HOST}:${EMAIL_SMTP_PORT}'
+  smtp_from: '${EMAIL_FROM_ADDRESS}'
+  smtp_auth_username: '${EMAIL_USERNAME}'
+  smtp_auth_password: '${EMAIL_PASSWORD}'
+  smtp_require_tls: true
+
+# Define routing tree based on severity and component
+route:
+  group_by: ['alertname', 'severity', 'component']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+
+    # Payment-related alerts - high priority
+    - match:
+        component: payment
+      receiver: 'payment-alerts'
+      group_wait: 30s
+      group_interval: 3m
+      repeat_interval: 4h
+
+    # Security alerts - immediate notification
+    - match:
+        component: security
+      receiver: 'security-alerts'
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 2h
+
+    # Database alerts
+    - match:
+        component: database
+      receiver: 'database-alerts'
+      group_wait: 60s
+      group_interval: 5m
+      repeat_interval: 6h
+
+    # Performance alerts
+    - match_re:
+        alertname: '.*Performance.*|.*Slow.*|.*Memory.*'
+      receiver: 'performance-alerts'
+      group_wait: 2m
+      group_interval: 10m
+      repeat_interval: 8h
+
+    # Warning alerts - less frequent notifications
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 5m
+      group_interval: 15m
+      repeat_interval: 24h
+
+# Alert receivers configuration
+receivers:
+  # Default receiver for uncategorized alerts
+  - name: 'default'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#platform-alerts'
+        title: 'Payment Platform Alert'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+          {{ end }}
+        footer: 'Payment Platform Monitoring'
+        send_resolved: true
+
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#critical-alerts'
+        title: '🚨 CRITICAL: Payment Platform Alert'
+        color: 'danger'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+
+          **Component:** {{ .Labels.component }}
+          **Severity:** {{ .Labels.severity }}
+          **Time:** {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+        actions:
+          - type: button
+            text: 'View Grafana'
+            url: '${GRAFANA_URL}/d/performance-overview'
+          - type: button
+            text: 'Check Logs'
+            url: '${KIBANA_URL}'
+        send_resolved: true
+
+    email_configs:
+      - to: '${CRITICAL_ALERTS_EMAIL}'
+        subject: '🚨 CRITICAL: Payment Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Alert - Payment Platform</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Component:</strong> {{ .Labels.component }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}</p>
+          {{ if .Annotations.runbook_url }}
+          <p><a href="{{ .Annotations.runbook_url }}">Runbook</a></p>
+          {{ end }}
+          {{ end }}
+
+    # SMS notifications for critical alerts (using webhook)
+    webhook_configs:
+      - url: '${SMS_WEBHOOK_URL}'
+        send_resolved: false
+        http_config:
+          bearer_token: '${SMS_API_TOKEN}'
+        title: 'CRITICAL: Payment Platform Alert'
+        text: |
+          {{ range .Alerts }}
+          {{ .Annotations.summary }}: {{ .Annotations.description }}
+          {{ end }}
+
+  # Payment-specific alerts
+  - name: 'payment-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#payment-alerts'
+        title: '💳 Payment System Alert'
+        color: 'warning'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+
+          **Payment Component:** {{ .Labels.component }}
+          **Severity:** {{ .Labels.severity }}
+          {{ end }}
+        send_resolved: true
+
+    email_configs:
+      - to: '${PAYMENT_TEAM_EMAIL}'
+        subject: '💳 Payment Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Payment System Alert</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p>{{ .Annotations.description }}</p>
+          {{ end }}
+
+  # Security alerts
+  - name: 'security-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#security-alerts'
+        title: '🔒 Security Alert'
+        color: 'danger'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+
+          **Security Event:** {{ .Labels.component }}
+          **Severity:** {{ .Labels.severity }}
+          **Immediate Action Required**
+          {{ end }}
+        send_resolved: true
+
+    email_configs:
+      - to: '${SECURITY_TEAM_EMAIL}'
+        subject: '🔒 SECURITY ALERT - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Security Alert - Immediate Attention Required</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}</p>
+          {{ end }}
+
+  # Database alerts
+  - name: 'database-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#database-alerts'
+        title: '🗄️ Database Alert'
+        color: 'warning'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  # Performance alerts
+  - name: 'performance-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#performance-alerts'
+        title: '⚡ Performance Alert'
+        color: 'warning'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+          {{ end }}
+        actions:
+          - type: button
+            text: 'View Performance Dashboard'
+            url: '${GRAFANA_URL}/d/performance-overview'
+        send_resolved: true
+
+  # Warning alerts - less urgent
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#platform-warnings'
+        title: '⚠️ Platform Warning'
+        color: 'warning'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # Inhibit warning alerts when critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'component']
+
+  # Inhibit database connection alerts when database is down
+  - source_match:
+      alertname: 'DatabaseDown'
+    target_match_re:
+      alertname: '.*Connection.*|.*Slow.*Query.*'
+    equal: ['instance']
+
+  # Inhibit memory warnings when memory critical is firing
+  - source_match:
+      alertname: 'CriticalMemoryUsage'
+    target_match:
+      alertname: 'HighMemoryUsage'
+    equal: ['instance']
+
+# Templates for custom message formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

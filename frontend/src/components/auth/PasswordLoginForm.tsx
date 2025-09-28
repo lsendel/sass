@@ -49,11 +49,10 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
       }
       const result = await passwordLogin(loginData).unwrap()
 
-      // Update auth state with user and token
+      // Update auth state with user
       dispatch(
         setCredentials({
           user: result.user,
-          token: result.token,
         })
       )
 

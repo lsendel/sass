@@ -38,17 +38,7 @@ public class SessionEventListener {
         String ipAddress = (String) event.getSession().getAttribute("ipAddress");
 
         if (userId != null) {
-            securityEventLogger.logSecurityEvent(
-                SecurityEventLogger.SecurityEventType.SESSION_CREATED,
-                userId,
-                SecurityEventLogger.SecuritySeverity.INFO,
-                ipAddress,
-                null,
-                Map.of(
-                    "sessionId", sessionId,
-                    "action", "session_created"
-                )
-            );
+            securityEventLogger.logSessionCreated(userId, sessionId, ipAddress);
         }
     }
 
@@ -64,17 +54,7 @@ public class SessionEventListener {
         String ipAddress = (String) event.getSession().getAttribute("ipAddress");
 
         if (userId != null) {
-            securityEventLogger.logSecurityEvent(
-                SecurityEventLogger.SecurityEventType.SESSION_EXPIRED,
-                userId,
-                SecurityEventLogger.SecuritySeverity.INFO,
-                ipAddress,
-                null,
-                Map.of(
-                    "sessionId", sessionId,
-                    "action", "session_expired"
-                )
-            );
+            securityEventLogger.logSessionExpired(userId, sessionId, ipAddress);
         }
     }
 
@@ -90,17 +70,7 @@ public class SessionEventListener {
         String ipAddress = (String) event.getSession().getAttribute("ipAddress");
 
         if (userId != null) {
-            securityEventLogger.logSecurityEvent(
-                SecurityEventLogger.SecurityEventType.SESSION_DESTROYED,
-                userId,
-                SecurityEventLogger.SecuritySeverity.INFO,
-                ipAddress,
-                null,
-                Map.of(
-                    "sessionId", sessionId,
-                    "action", "session_deleted"
-                )
-            );
+            securityEventLogger.logSessionDestroyed(userId, sessionId, ipAddress);
         }
     }
 }

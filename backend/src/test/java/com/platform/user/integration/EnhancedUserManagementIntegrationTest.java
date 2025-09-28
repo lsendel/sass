@@ -225,7 +225,7 @@ class EnhancedUserManagementIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Invited User"));
 
         // Step 4: Verify user was created
-        var invitedUser = userRepository.findByEmail("invite@enhanced.com");
+        var invitedUser = userRepository.findByEmailAndDeletedAtIsNull("invite@enhanced.com");
         assertTrue(invitedUser.isPresent());
         assertEquals(orgId, invitedUser.get().getOrganization().getId());
         assertEquals(UserRole.USER, invitedUser.get().getRole());

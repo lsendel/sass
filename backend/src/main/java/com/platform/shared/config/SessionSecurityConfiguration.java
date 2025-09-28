@@ -16,8 +16,7 @@ import org.springframework.session.web.http.HttpSessionIdResolver;
  */
 @Configuration
 @EnableRedisHttpSession(
-    maxInactiveIntervalInSeconds = 1800, // 30 minutes default
-    cleanupCron = "0 */5 * * * *" // Cleanup every 5 minutes
+    maxInactiveIntervalInSeconds = 1800 // 30 minutes default
 )
 public class SessionSecurityConfiguration {
 
@@ -43,8 +42,8 @@ public class SessionSecurityConfiguration {
         DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
 
         // Security settings
-        cookieSerializer.setHttpOnly(true); // Prevent XSS access to session cookie
-        cookieSerializer.setSecure(secureCookie); // HTTPS only in production
+        cookieSerializer.setUseHttpOnlyCookie(true); // Prevent XSS access to session cookie
+        cookieSerializer.setUseSecureCookie(secureCookie); // HTTPS only in production
         cookieSerializer.setSameSite(sameSite); // CSRF protection
 
         // Cookie naming and domain

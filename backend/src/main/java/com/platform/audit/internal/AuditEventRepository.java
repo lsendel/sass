@@ -46,6 +46,14 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
       UUID organizationId, UUID actorId, Pageable pageable);
 
   /**
+   * Finds a list of audit events for a specific actor, sorted by creation date in descending order.
+   *
+   * @param actorId the ID of the actor
+   * @return a {@link List} of {@link AuditEvent}s
+   */
+  List<AuditEvent> findByActorIdOrderByCreatedAtDesc(UUID actorId);
+
+  /**
    * Finds a paginated list of audit events for a specific organization and action type, sorted by
    * creation date in descending order.
    *
@@ -118,6 +126,12 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
    * @param endDate the end of the date range
    * @return a list of matching {@link AuditEvent}s
    */
+  @Query(
+      "SELECT ae FROM AuditEvent ae WHERE ae.resourceType = :resourceType AND ae.resourceId = :resourceId ORDER BY ae.createdAt DESC")
+  List<AuditEvent> findByResourceTypeAndResourceId(
+      @Param("resourceType") String resourceType,
+      @Param("resourceId") String resourceId);
+
   @Query(
       "SELECT ae FROM AuditEvent ae WHERE ae.organizationId = :organizationId AND ae.ipAddress = :ipAddress AND ae.createdAt BETWEEN :startDate AND :endDate ORDER BY ae.createdAt DESC")
   List<AuditEvent> findByOrganizationIdAndIpAddressAndCreatedAtBetween(

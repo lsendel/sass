@@ -242,7 +242,7 @@ class MultiTenancySecurityIntegrationTest {
                 .andExpect(status().isForbidden());
 
         // Verify new user belongs to correct organization
-        var newUser = userRepository.findByEmail("newuser@tenanta.com");
+        var newUser = userRepository.findByEmailAndDeletedAtIsNull("newuser@tenanta.com");
         assertTrue(newUser.isPresent());
         assertEquals(org1Id, newUser.get().getOrganization().getId());
     }
@@ -397,7 +397,7 @@ class MultiTenancySecurityIntegrationTest {
 
         // Verify Tenant B's data is still intact
         authenticateAs(user2Id, org2Id, "tenant-b", "USER");
-        var tenantBUser = userRepository.findByEmail("user2@tenantb.com");
+        var tenantBUser = userRepository.findByEmailAndDeletedAtIsNull("user2@tenantb.com");
         assertTrue(tenantBUser.isPresent());
         assertEquals(org2Id, tenantBUser.get().getOrganization().getId());
     }

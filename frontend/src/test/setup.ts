@@ -35,10 +35,13 @@ const isBrowserTest = typeof process !== 'undefined' && (
   typeof window !== 'undefined'
 )
 
+// Check if we're in a browser environment at module level
+const isBrowserEnvironment = typeof window !== 'undefined' || typeof globalThis !== 'undefined' && 'window' in globalThis
+
 // Use sync initialization to avoid top-level await
 const createLifecycle = (): Lifecycle => {
-  // Skip MSW setup in browser environments or when explicitly testing in browser mode
-  if (!isNodeRuntime || isBrowserTest) {
+  // Skip MSW setup completely in browser environments
+  if (!isNodeRuntime || isBrowserTest || isBrowserEnvironment) {
     return {
       setup: () => undefined,
       reset: () => undefined,
@@ -53,16 +56,19 @@ const createLifecycle = (): Lifecycle => {
       if (!setupPromise) {
         setupPromise = (async () => {
           try {
-            // Double-check runtime environment before importing MSW
-            if (typeof window !== 'undefined' || process.env?.VITEST_BROWSER) {
+            // Triple-check runtime environment before importing MSW to prevent browser imports
+            if (typeof window !== 'undefined' ||
+                typeof globalThis !== 'undefined' && 'window' in globalThis ||
+                process.env?.VITEST_BROWSER) {
               if (process.env.NODE_ENV === 'test') {
                 console.warn('Skipping MSW setup in browser environment')
               }
               return
             }
 
-            // Use direct dynamic import inside async function instead of wrapped in Function
-            const mswModule = await import('msw/node')
+            // Use conditional import to avoid static analysis in browser environments
+            const importMSW = new Function('return import("msw/node")')
+            const mswModule = await importMSW()
             serverInstance = globalThis.__MSW_SERVER__ ?? mswModule.setupServer(...handlers)
             globalThis.__MSW_SERVER__ = serverInstance
             serverInstance.listen({ onUnhandledRequest: 'error' })

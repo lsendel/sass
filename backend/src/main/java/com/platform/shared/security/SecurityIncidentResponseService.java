@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import com.platform.audit.internal.AuditEvent;
 import com.platform.audit.internal.ComprehensiveAuditService;
+import com.platform.shared.security.ThreatDetectionService.ThreatLevel;
 import com.platform.shared.monitoring.SecurityMetricsCollector;
 
 /**

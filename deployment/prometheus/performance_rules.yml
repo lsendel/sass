@@ -1,0 +1,248 @@
+# Performance Alert Rules for Payment Platform
+
+groups:
+  - name: api_performance
+    rules:
+      # Critical API Response Time
+      - alert: CriticalAPIResponseTime
+        expr: payment_platform:api_response_time_p95 > 1
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Critical API response time detected"
+          description: "95th percentile API response time is {{ $value }}s, exceeding 1s threshold"
+          runbook_url: "https://docs.platform.com/runbooks/api-performance"
+
+      # High API Response Time
+      - alert: HighAPIResponseTime
+        expr: payment_platform:api_response_time_p95 > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API response time detected"
+          description: "95th percentile API response time is {{ $value }}s, exceeding 500ms threshold"
+
+      # High API Error Rate
+      - alert: HighAPIErrorRate
+        expr: payment_platform:error_rate > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }}, exceeding 5% threshold"
+
+  - name: database_performance
+    rules:
+      # Slow Database Queries
+      - alert: HighSlowQueryRate
+        expr: payment_platform:slow_queries_rate > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High rate of slow database queries"
+          description: "Slow query rate is {{ $value }} queries/second, exceeding threshold"
+
+      # Critical Database Query Time
+      - alert: CriticalDatabaseQueryTime
+        expr: payment_platform:db_query_time_avg > 0.5
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Critical database query time detected"
+          description: "Average database query time is {{ $value }}s, exceeding 500ms threshold"
+
+      # High Database Connection Usage
+      - alert: HighDatabaseConnectionUsage
+        expr: payment_platform:db_connection_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value }}%, exceeding 80% threshold"
+
+      # Critical Database Connection Usage
+      - alert: CriticalDatabaseConnectionUsage
+        expr: payment_platform:db_connection_usage_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Critical database connection usage"
+          description: "Database connection usage is {{ $value }}%, exceeding 95% threshold"
+
+  - name: cache_performance
+    rules:
+      # Low Cache Hit Ratio
+      - alert: LowCacheHitRatio
+        expr: payment_platform:cache_hit_ratio < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit ratio detected"
+          description: "Cache hit ratio is {{ $value | humanizePercentage }}, below 80% threshold"
+
+      # Critical Cache Hit Ratio
+      - alert: CriticalCacheHitRatio
+        expr: payment_platform:cache_hit_ratio < 0.6
+        for: 2m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Critical cache hit ratio detected"
+          description: "Cache hit ratio is {{ $value | humanizePercentage }}, below 60% threshold"
+
+  - name: memory_performance
+    rules:
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: payment_platform:memory_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}%, exceeding 80% threshold"
+
+      # Critical Memory Usage
+      - alert: CriticalMemoryUsage
+        expr: payment_platform:memory_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+          component: memory
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is {{ $value }}%, exceeding 90% threshold"
+
+      # Memory Leak Detection
+      - alert: PotentialMemoryLeak
+        expr: increase(jvm_memory_used_bytes{area="heap"}[1h]) > 100000000 # 100MB increase per hour
+        for: 30m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "Potential memory leak detected"
+          description: "Memory usage increased by {{ $value | humanize1024 }} in the last hour"
+
+  - name: payment_performance
+    rules:
+      # Low Payment Success Rate
+      - alert: LowPaymentSuccessRate
+        expr: payment_platform:payment_success_rate < 0.95
+        for: 5m
+        labels:
+          severity: critical
+          component: payment
+        annotations:
+          summary: "Low payment success rate detected"
+          description: "Payment success rate is {{ $value | humanizePercentage }}, below 95% threshold"
+
+      # Payment Processing Delays
+      - alert: PaymentProcessingDelays
+        expr: histogram_quantile(0.95, rate(payment_processing_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: payment
+        annotations:
+          summary: "Payment processing delays detected"
+          description: "95th percentile payment processing time is {{ $value }}s, exceeding 10s threshold"
+
+  - name: system_performance
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%, exceeding 80% threshold on {{ $labels.instance }}"
+
+      # Critical CPU Usage
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is {{ $value }}%, exceeding 95% threshold on {{ $labels.instance }}"
+
+      # High Disk Usage
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value }}% available on {{ $labels.instance }}:{{ $labels.mountpoint }}"
+
+      # Critical Disk Usage
+      - alert: CriticalDiskUsage
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical disk usage detected"
+          description: "Disk usage is {{ $value }}% available on {{ $labels.instance }}:{{ $labels.mountpoint }}"
+
+  - name: security_performance
+    rules:
+      # High Security Event Rate
+      - alert: HighSecurityEventRate
+        expr: rate(security_events_total[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High security event rate detected"
+          description: "Security event rate is {{ $value }} events/second, exceeding threshold"
+
+      # Authentication Failure Spike
+      - alert: AuthenticationFailureSpike
+        expr: rate(security_events_total{event_type="authentication_failure"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Authentication failure spike detected"
+          description: "Authentication failure rate is {{ $value }} failures/second, possible attack"
+
+      # Account Lockout Spike
+      - alert: AccountLockoutSpike
+        expr: rate(security_events_total{event_type="account_lockout"}[5m]) > 2
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Account lockout spike detected"
+          description: "Account lockout rate is {{ $value }} lockouts/second, investigating needed"
