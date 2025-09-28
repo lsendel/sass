@@ -29,6 +29,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 /**
  * The core service for handling all payment-related business logic.
  *
@@ -36,6 +37,19 @@ import org.springframework.transaction.annotation.Transactional;
  * Stripe PaymentIntents, handling payment methods, processing webhooks, and providing payment
  * analytics. It acts as the central point for all payment operations within the internal domain.
  */
+
+import com.platform.audit.internal.AuditService;
+import com.platform.shared.security.TenantContext;
+import com.platform.shared.stripe.StripeCustomerService;
+import com.platform.shared.types.Money;
+import com.platform.user.internal.Organization;
+import com.platform.user.internal.OrganizationRepository;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.*;
+import com.stripe.param.*;
+
+
 @Service
 @Transactional
 public class PaymentService {
@@ -47,6 +61,7 @@ public class PaymentService {
   private final OrganizationRepository organizationRepository;
   private final ApplicationEventPublisher eventPublisher;
   private final AuditService auditService;
+  private final StripeCustomerService stripeCustomerService;
 
   /**
    * Constructs the service with its dependencies and initializes the Stripe API key.
@@ -64,12 +79,14 @@ public class PaymentService {
       OrganizationRepository organizationRepository,
       ApplicationEventPublisher eventPublisher,
       AuditService auditService,
-      @Value("${stripe.secret-key}") String stripeSecretKey) {
+      @Value("${stripe.secret-key}") String stripeSecretKey,
+      StripeCustomerService stripeCustomerService) {
     this.paymentRepository = paymentRepository;
     this.paymentMethodRepository = paymentMethodRepository;
     this.organizationRepository = organizationRepository;
     this.eventPublisher = eventPublisher;
     this.auditService = auditService;
+    this.stripeCustomerService = stripeCustomerService;
     Stripe.apiKey = stripeSecretKey;
   }
 
@@ -97,7 +114,12 @@ public class PaymentService {
             .findById(organizationId)
             .orElseThrow(
                 () -> new IllegalArgumentException("Organization not found: " + organizationId));
-    String customerId = getOrCreateStripeCustomer(organization);
+
+    // Create or get Stripe customer
+    String customerId = stripeCustomerService.getOrCreateCustomer(organization);
+
+    // Create payment intent
+
     PaymentIntentCreateParams params =
         PaymentIntentCreateParams.builder()
             .setAmount(amount.getAmountInCents())
@@ -276,7 +298,13 @@ public class PaymentService {
             .findById(organizationId)
             .orElseThrow(
                 () -> new IllegalArgumentException("Organization not found: " + organizationId));
-    String customerId = getOrCreateStripeCustomer(organization);
+
+
+    // Get or create Stripe customer
+    String customerId = stripeCustomerService.getOrCreateCustomer(organization);
+
+    // Attach payment method to customer
+
     com.stripe.model.PaymentMethod stripePaymentMethod =
         com.stripe.model.PaymentMethod.retrieve(stripePaymentMethodId);
     stripePaymentMethod.attach(PaymentMethodAttachParams.builder().setCustomer(customerId).build());
@@ -496,6 +524,9 @@ public class PaymentService {
     Customer customer = Customer.create(params);
     return customer.getId();
   }
+
+  // Helper methods
+
 
   private PaymentMethod.Type mapStripePaymentMethodType(String stripeType) {
     return switch (stripeType) {
