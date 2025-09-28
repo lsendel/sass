@@ -318,8 +318,8 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
       userId: user?.id || 'anonymous',
       resource,
       action,
-      resourceId: resourceId || undefined,
-      organizationId,
+      ...(resourceId ? { resourceId } : {}),
+      ...(organizationId ? { organizationId } : {}),
       context: permissionContext.additionalContext,
       timestamp: new Date().toISOString(),
       result: permissionResult?.allowed ? 'granted' : 'denied',
@@ -327,7 +327,7 @@ const PermissionChecker: React.FC<PermissionCheckerProps> = ({
       securityContext: {
         userAgent: navigator.userAgent,
         ipAddress: 'client-side', // Would be filled by backend
-        sessionId: user?.sessionId,
+        sessionId: (user as any)?.sessionId || 'unknown',
       },
     })
 
