@@ -1,5 +1,10 @@
 name: Security Scans
 
+# Prevent concurrent security scans
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 # Minimal required permissions
 permissions:
   security-events: write
@@ -58,10 +63,12 @@ jobs:
           pom.xml
 
     # SLSA provenance generation
-    - uses: slsa-framework/slsa-github-generator@v1
+    - uses: slsa-framework/slsa-github-generator@v2.0.1
       with:
         base64-subjects: "${{ needs.build.outputs.hashes }}"
         provenance-name: "provenance.intoto.jsonl"
+        upload-assets: true
+        compile-generator: true
 
     # Generate SBOM
     - name: Generate SBOM
@@ -72,8 +79,15 @@ jobs:
 
     # Vulnerability Scanning
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.17.0
       with:
+        scan-ref: '.'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+        timeout: '10m'
+        with:
         scan-type: 'fs'
         format: 'sarif'
         output: 'trivy-results.sarif'
@@ -155,6 +169,38 @@ jobs:
       uses: ossf/scorecard-action@v2.3.1
       with:
         publish_results: true
+
+    # Generate Security Summary
+    - name: Generate Security Summary
+      if: always()
+      run: |
+        echo "### Security Scan Summary :shield:" >> $GITHUB_STEP_SUMMARY
+        echo "\n#### Scan Results" >> $GITHUB_STEP_SUMMARY
+        
+        # Check Trivy results
+        if [ -f trivy-results.sarif ]; then
+          VULN_COUNT=$(grep -c "\"level\": \"error\"" trivy-results.sarif || echo "0")
+          echo "- Trivy Vulnerabilities: ${VULN_COUNT}" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- Trivy scan: No results file found" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check SBOM
+        if [ -f sbom.spdx.json ]; then
+          DEPS_COUNT=$(grep -c "\"name\"" sbom.spdx.json || echo "0")
+          echo "- Dependencies Analyzed: ${DEPS_COUNT}" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- SBOM: Not generated" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check CodeQL
+        if [ -d ../results/codeql ]; then
+          echo "- CodeQL Analysis: Complete" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- CodeQL Analysis: Failed or incomplete" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "\n> Note: Review full reports for detailed findings" >> $GITHUB_STEP_SUMMARY
 
   notify-security-issues:
     needs: security-checks

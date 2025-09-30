@@ -19,6 +19,7 @@ permissions:
 jobs:
   authenticate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       token: ${{ steps.auth.outputs.token }}
     
@@ -33,7 +34,7 @@ jobs:
         
     - name: Azure Login
       if: inputs.cloud-platform == 'azure'
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -41,7 +42,7 @@ jobs:
         
     - name: Authenticate to Google Cloud
       if: inputs.cloud-platform == 'gcp'
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -66,5 +67,27 @@ jobs:
           exit 1
         fi
         
-        echo "Generated token for ${{ inputs.cloud-platform }}"
+        # Validate token format based on platform
+        case "${{ inputs.cloud-platform }}" in
+          "aws")
+            if [[ ! "$TOKEN" =~ ^[0-9]{12}$ ]]; then
+              echo "Error: Invalid AWS account ID format"
+              exit 1
+            fi
+            ;;
+          "azure")
+            if [[ ! "$TOKEN" =~ ^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$ ]]; then
+              echo "Error: Invalid Azure subscription ID format"
+              exit 1
+            fi
+            ;;
+          "gcp")
+            if [[ ! "$TOKEN" =~ ^[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+$ ]]; then
+              echo "Error: Invalid GCP token format"
+              exit 1
+            fi
+            ;;
+        esac
+
+        echo "Generated and validated token for ${{ inputs.cloud-platform }}"
         echo "token=${TOKEN}" >> $GITHUB_OUTPUT
