@@ -14,6 +14,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/develop' && github.event.workflow_run.conclusion == 'success'
     environment: staging
 
@@ -51,6 +52,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
     environment: production
 

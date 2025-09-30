@@ -25,6 +25,7 @@ on:
 jobs:
   security-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     
     # SLSA compliance settings
     outputs:
@@ -159,6 +160,7 @@ jobs:
     needs: security-checks
     if: failure()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       issues: write
       security-events: write
