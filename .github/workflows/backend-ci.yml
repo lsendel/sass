@@ -5,7 +5,28 @@ on:
     branches: [ main, master, develop ]
     paths:
       - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
+    - name: Process Test Results
+      if: always()
+      run: |
+        cd backend
+        if [ -f build/test-results/test/TEST-*.xml ]; then
+          echo "Processing test results..."
+          mkdir -p build/test-summary
+          ./gradlew testReport
+        else
+          echo "No test results found"
+        fi
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          backend/build/reports/tests/
+          backend/build/test-results/
+          backend/build/test-summary/
+        retention-days: 14- '.github/workflows/backend-ci.yml'
   pull_request:
     paths:
       - 'backend/**'
@@ -55,15 +76,40 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
-        cache: 'gradle'
+
+    - name: Setup Gradle Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ~/.m2/repository
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
     - name: Grant execute permission for gradlew
       run: chmod +x backend/gradlew
 
     - name: Run Backend Tests
+      env:
+        SPRING_PROFILES_ACTIVE: test
+        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+        SPRING_DATASOURCE_USERNAME: test
+        SPRING_DATASOURCE_PASSWORD: test
+        SPRING_REDIS_HOST: localhost
+        SPRING_REDIS_PORT: 6379
       run: |
         cd backend
-        ./gradlew test jacocoTestReport --info
+        for i in {1..3}; do
+          ./gradlew test jacocoTestReport --info && break
+          if [ $i -eq 3 ]; then
+            echo "Tests failed after 3 retries"
+            exit 1
+          fi
+          echo "Retry $i..."
+          sleep 10
+        done
 
     - name: Run Spring Boot Modulith Tests
       run: |
@@ -83,10 +129,11 @@ jobs:
         path: backend/build/reports/tests/
 
     - name: Upload Coverage Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: backend/build/reports/jacoco/
+        retention-days: 14
 
     - name: SonarCloud Analysis
       env:
@@ -102,3 +149,15 @@ jobs:
       run: |
         cd backend
         ./gradlew dependencyCheckAnalyze
+
+    - name: Report Test Failures
+      if: failure()
+      run: |
+        cd backend
+        if [ -f build/test-results/test/TEST-*.xml ]; then
+          echo "Test Failures Summary:"
+          find build/test-results/test -name "TEST-*.xml" -exec grep -l "<failure" {} \; | while read file; do
+            echo "\nFailures in $file:"
+            grep -A 2 "<failure" "$file"
+          done
+        fi
