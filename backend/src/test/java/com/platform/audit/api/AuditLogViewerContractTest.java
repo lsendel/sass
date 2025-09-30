@@ -26,6 +26,8 @@ import static io.restassured.RestAssured.given;
 })
 class AuditLogViewerContractTest {
 
+    private static final int HTTP_NOT_FOUND = 404;
+
     @LocalServerPort
     private int port;
 
@@ -36,30 +38,30 @@ class AuditLogViewerContractTest {
     }
 
     @Test
-    void shouldFailUntilEndpointIsImplemented_GetAuditLogs() {
+    void shouldFailUntilEndpointIsImplementedGetAuditLogs() {
         // This test MUST FAIL initially - endpoint doesn't exist yet
-        // The GET /api/audit/logs endpoint will return 404 until we implement it
+        // The GET /api/audit/logs endpoint will return HTTP_NOT_FOUND until we implement it
         given()
             .contentType(ContentType.JSON)
             .when()
             .get("/api/audit/logs")
             .then()
-            .statusCode(404); // Expecting 404 until we implement the endpoint
+                .statusCode(HTTP_NOT_FOUND); // Expecting HTTP_NOT_FOUND until we implement the endpoint
     }
 
     @Test
-    void shouldFailUntilEndpointIsImplemented_GetAuditLogDetails() {
+    void shouldFailUntilEndpointIsImplementedGetAuditLogDetails() {
         // This test MUST FAIL initially - endpoint doesn't exist yet
         given()
             .contentType(ContentType.JSON)
             .when()
             .get("/api/audit/logs/550e8400-e29b-41d4-a716-446655440000")
             .then()
-            .statusCode(404); // Expecting 404 until we implement the endpoint
+                .statusCode(HTTP_NOT_FOUND); // Expecting HTTP_NOT_FOUND until we implement the endpoint
     }
 
     @Test
-    void shouldFailUntilEndpointIsImplemented_ExportAuditLogs() {
+    void shouldFailUntilEndpointIsImplementedExportAuditLogs() {
         // This test MUST FAIL initially - endpoint doesn't exist yet
         String exportRequest = """
             {
@@ -77,31 +79,31 @@ class AuditLogViewerContractTest {
             .when()
             .post("/api/audit/export")
             .then()
-            .statusCode(404); // Expecting 404 until we implement the endpoint
+                .statusCode(HTTP_NOT_FOUND); // Expecting HTTP_NOT_FOUND until we implement the endpoint
     }
 
     @Test
-    void shouldFailUntilEndpointIsImplemented_GetExportStatus() {
+    void shouldFailUntilEndpointIsImplementedGetExportStatus() {
         // This test MUST FAIL initially - endpoint doesn't exist yet
         given()
             .contentType(ContentType.JSON)
             .when()
             .get("/api/audit/export/550e8400-e29b-41d4-a716-446655440000/status")
             .then()
-            .statusCode(404); // Expecting 404 until we implement the endpoint
+                .statusCode(HTTP_NOT_FOUND); // Expecting HTTP_NOT_FOUND until we implement the endpoint
     }
 
     @Test
-    void shouldFailUntilEndpointIsImplemented_DownloadExport() {
+    void shouldFailUntilEndpointIsImplementedDownloadExport() {
         // This test MUST FAIL initially - endpoint doesn't exist yet
         given()
             .when()
             .get("/api/audit/export/sample-token/download")
             .then()
-            .statusCode(404); // Expecting 404 until we implement the endpoint
+                .statusCode(HTTP_NOT_FOUND); // Expecting HTTP_NOT_FOUND until we implement the endpoint
     }
 
-    // Note: These tests are intentionally simple and expect 404 errors
+    // Note: These tests are intentionally simple and expect HTTP_NOT_FOUND errors
     // Once we implement the endpoints, we'll update these tests to verify
     // the actual API contract requirements from audit-log-api.yaml
 }

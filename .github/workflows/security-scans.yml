@@ -1,0 +1,210 @@
+name: Security Scans
+
+# Minimal required permissions
+permissions:
+  security-events: write
+  actions: read
+  contents: read
+  id-token: write # Required for OIDC signing
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  security-checks:
+    runs-on: ubuntu-latest
+    
+    # SLSA compliance settings
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      sbom: ${{ steps.sbom.outputs.path }}
+      
+    # Use OIDC for cloud provider authentication
+    permissions:
+      id-token: write
+      contents: read
+      security-events: write
+    
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@v2
+      with:
+        egress-policy: audit
+        disable-telemetry: true
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        sparse-checkout: |
+          src/
+          backend/
+          frontend/
+          requirements*.txt
+          package*.json
+          gradle*
+          pom.xml
+
+    # SLSA provenance generation
+    - uses: slsa-framework/slsa-github-generator@v1
+      with:
+        base64-subjects: "${{ needs.build.outputs.hashes }}"
+        provenance-name: "provenance.intoto.jsonl"
+
+    # Generate SBOM
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0.15.1
+      with:
+        format: spdx-json
+        artifact-name: sbom.spdx.json
+
+    # Vulnerability Scanning
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+        ignore-unfixed: true
+        scanners: 'vuln,secret,config'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+        category: 'trivy'
+
+    # SCA Analysis
+    - name: OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'SASS'
+        path: '.'
+        format: 'SARIF'
+        failOnCVSS: 7
+        suppressionPath: 'security/suppressions.xml'
+
+    # Infrastructure Security
+    - name: Run tfsec with SARIF output
+      uses: aquasecurity/tfsec-sarif-action@v0.1.4
+      with:
+        working_directory: terraform
+        sarif_file: tfsec.sarif
+
+    # Container Security
+    - name: Run Snyk Container Security
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: payment-platform/sass:latest
+        args: --file=Dockerfile --severity-threshold=high
+
+    # Secrets Scanning
+    - name: Run GitGuardian scan
+      uses: GitGuardian/ggshield-action@master
+      env:
+        GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+    # CodeQL Analysis
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python, javascript, java
+        queries: security-extended,security-and-quality
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+    # SLSA Verification
+    - name: Verify SLSA provenance
+      uses: slsa-framework/slsa-verifier@v2.4.1
+      with:
+        provenance: provenance.intoto.jsonl
+        source: https://github.com/${{ github.repository }}
+
+    # Upload Reports
+    - name: Upload Security Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: |
+          reports/
+          *.sarif
+          sbom.spdx.json
+          provenance.intoto.jsonl
+        retention-days: 30
+        compression-level: 9
+
+    # Security Score
+    - name: Calculate Security Score
+      uses: ossf/scorecard-action@v2.3.1
+      with:
+        publish_results: true
+
+  notify-security-issues:
+    needs: security-checks
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      security-events: write
+    
+    steps:
+    - name: Create Security Issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue = await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🚨 Security Vulnerabilities Detected',
+            body: `### Security Scan Failed
+            
+            #### Scan Information
+            - Run ID: [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            - Triggered by: ${context.actor}
+            - Branch: ${context.ref}
+            
+            #### Security Reports
+            - Trivy Scan Results
+            - OWASP Dependency Check
+            - Infrastructure Security (tfsec)
+            - Container Security (Snyk)
+            - Secrets Scanning (GitGuardian)
+            - CodeQL Analysis
+            - SLSA Provenance
+            
+            Please review the security reports and address all findings.
+            
+            > **Note**: High and Critical vulnerabilities must be resolved immediately.`,
+            labels: ['security', 'high-priority', 'needs-triage']
+          });
+
+    - name: Send Security Alert
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        channel-id: 'security-alerts'
+        slack-message: |
+          🚨 *Security Vulnerabilities Detected*
+          
+          *Scan:* ${{ github.workflow }}
+          *Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Results>
+          *Branch:* ${{ github.ref_name }}
+          
+          Please review and address the security findings ASAP.
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

@@ -1,0 +1,97 @@
+# Fixed Spring Boot Test Configuration
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
+    web-application-type: servlet
+  
+  web:
+    resources:
+      add-mappings: false
+
+  # Test Database Configuration (H2 in-memory)
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-timeout: 5000
+
+  # JPA Configuration for Tests
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        show_sql: false
+        format_sql: false
+        generate_statistics: false
+        jdbc:
+          batch_size: 20
+    show-sql: false
+    open-in-view: false
+
+  # DISABLE Flyway for tests
+  flyway:
+    enabled: false
+
+  # DISABLE Redis auto-configuration for tests  
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
+      - org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
+
+  # H2 Console for debugging
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Test Security Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+          github:  
+            client-id: test-github-client-id
+            client-secret: test-github-client-secret
+
+# Server Configuration
+server:
+  port: 0  # Random port for tests
+
+# Application Configuration
+app:
+  auth:
+    password:
+      enabled: true
+  audit:
+    export:
+      enabled: false
+      max-items: 100
+
+# Logging Configuration  
+logging:
+  level:
+    com.platform: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+
+# Test-specific exclusions
+management:
+  endpoints:
+    enabled-by-default: false

@@ -28,7 +28,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
      * Find export requests by user and organization.
      */
     Page<AuditLogExportRequest> findByUserIdAndOrganizationIdOrderByCreatedAtDesc(
-        UUID userId, UUID organizationId, Pageable pageable);
+            UUID userId, UUID organizationId, Pageable pageable);
 
     /**
      * Find export request by download token.
@@ -47,7 +47,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SELECT e FROM AuditLogExportRequest e
         WHERE e.status = 'PENDING'
         ORDER BY e.createdAt ASC
-        """)
+            """)
     List<AuditLogExportRequest> findPendingExports();
 
     /**
@@ -57,7 +57,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SELECT e FROM AuditLogExportRequest e
         WHERE e.status = 'COMPLETED'
         AND e.downloadExpiresAt < :now
-        """)
+            """)
     List<AuditLogExportRequest> findExpiredExports(@Param("now") Instant now);
 
     /**
@@ -67,7 +67,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SELECT e FROM AuditLogExportRequest e
         WHERE e.status = 'PROCESSING'
         AND e.startedAt < :cutoffTime
-        """)
+            """)
     List<AuditLogExportRequest> findStaleProcessingExports(@Param("cutoffTime") Instant cutoffTime);
 
     /**
@@ -77,7 +77,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SELECT COUNT(e) FROM AuditLogExportRequest e
         WHERE e.userId = :userId
         AND e.status IN ('PENDING', 'PROCESSING')
-        """)
+            """)
     long countActiveExportsForUser(@Param("userId") UUID userId);
 
     /**
@@ -87,7 +87,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SELECT COUNT(e) FROM AuditLogExportRequest e
         WHERE e.userId = :userId
         AND e.createdAt > :since
-        """)
+            """)
     long countExportsForUserSince(@Param("userId") UUID userId, @Param("since") Instant since);
 
     /**
@@ -98,7 +98,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         DELETE FROM AuditLogExportRequest e
         WHERE e.createdAt < :cutoffTime
         AND e.status IN ('COMPLETED', 'FAILED', 'EXPIRED')
-        """)
+            """)
     int deleteOldExports(@Param("cutoffTime") Instant cutoffTime);
 
     /**
@@ -110,7 +110,7 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SET e.status = 'EXPIRED'
         WHERE e.status = 'COMPLETED'
         AND e.downloadExpiresAt < :now
-        """)
+            """)
     int markExpiredDownloads(@Param("now") Instant now);
 
     /**
@@ -120,9 +120,9 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
         SELECT e FROM AuditLogExportRequest e
         WHERE e.organizationId = :organizationId
         ORDER BY e.createdAt DESC
-        """)
+            """)
     Page<AuditLogExportRequest> findByOrganizationId(
-        @Param("organizationId") UUID organizationId, Pageable pageable);
+            @Param("organizationId") UUID organizationId, Pageable pageable);
 
     /**
      * Get export statistics for an organization.
@@ -132,14 +132,13 @@ public interface AuditLogExportRepository extends JpaRepository<AuditLogExportRe
             COUNT(e) as totalExports,
             COUNT(CASE WHEN e.status = 'COMPLETED' THEN 1 END) as completedExports,
             COUNT(CASE WHEN e.status = 'FAILED' THEN 1 END) as failedExports,
-            AVG(CASE WHEN e.completedAt IS NOT NULL AND e.startedAt IS NOT NULL
-                THEN EXTRACT(EPOCH FROM (e.completedAt - e.startedAt)) END) as avgProcessingTimeSeconds
+            0.0 as avgProcessingTimeSeconds
         FROM AuditLogExportRequest e
         WHERE e.organizationId = :organizationId
         AND e.createdAt >= :since
-        """)
+            """)
     ExportStatistics getExportStatistics(@Param("organizationId") UUID organizationId,
-                                       @Param("since") Instant since);
+                                           @Param("since") Instant since);
 
     /**
      * Export statistics projection.

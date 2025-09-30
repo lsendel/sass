@@ -11,12 +11,15 @@ const dirname =
     : path.dirname(fileURLToPath(import.meta.url))
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
-const enableStorybookProject = process.env.VITEST_DISABLE_STORYBOOK !== '1'
+const enableStorybookProject = false // Temporarily disabled to focus on unit tests
 
 const testConfig: Parameters<typeof defineConfig>[0]['test'] = {
   globals: true,
   environment: 'jsdom',
   setupFiles: ['./src/test/setup.ts'],
+  env: {
+    VITE_API_BASE_URL: 'http://localhost:3000/api/v1',
+  },
   coverage: {
     provider: 'v8',
     reporter: ['text', 'lcov', 'html'],

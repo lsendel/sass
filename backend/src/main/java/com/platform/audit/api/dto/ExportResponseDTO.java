@@ -6,7 +6,7 @@ import java.time.Instant;
 /**
  * Response DTO for audit log export requests.
  */
-public class ExportResponseDTO {
+public final class ExportResponseDTO {
     private String exportId;
     private String status;
     private String downloadUrl;
@@ -22,10 +22,10 @@ public class ExportResponseDTO {
     private String message;
 
     // Default constructor
-    public ExportResponseDTO() {}
+    public ExportResponseDTO() { }
 
     // Constructor with required fields
-    public ExportResponseDTO(String exportId, String status) {
+    public ExportResponseDTO(final String exportId, final String status) {
         this.exportId = exportId;
         this.status = status;
         this.requestedAt = Instant.now();
@@ -36,7 +36,7 @@ public class ExportResponseDTO {
         return exportId;
     }
 
-    public void setExportId(String exportId) {
+    public void setExportId(final String exportId) {
         this.exportId = exportId;
     }
 
@@ -44,7 +44,7 @@ public class ExportResponseDTO {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(final String status) {
         this.status = status;
     }
 
@@ -52,7 +52,7 @@ public class ExportResponseDTO {
         return downloadUrl;
     }
 
-    public void setDownloadUrl(String downloadUrl) {
+    public void setDownloadUrl(final String downloadUrl) {
         this.downloadUrl = downloadUrl;
     }
 
@@ -60,7 +60,7 @@ public class ExportResponseDTO {
         return requestedAt;
     }
 
-    public void setRequestedAt(Instant requestedAt) {
+    public void setRequestedAt(final Instant requestedAt) {
         this.requestedAt = requestedAt;
     }
 
@@ -68,7 +68,7 @@ public class ExportResponseDTO {
         return completedAt;
     }
 
-    public void setCompletedAt(Instant completedAt) {
+    public void setCompletedAt(final Instant completedAt) {
         this.completedAt = completedAt;
     }
 
@@ -76,7 +76,7 @@ public class ExportResponseDTO {
         return totalRecords;
     }
 
-    public void setTotalRecords(Long totalRecords) {
+    public void setTotalRecords(final Long totalRecords) {
         this.totalRecords = totalRecords;
     }
 
@@ -84,7 +84,7 @@ public class ExportResponseDTO {
         return format;
     }
 
-    public void setFormat(String format) {
+    public void setFormat(final String format) {
         this.format = format;
     }
 
@@ -92,7 +92,7 @@ public class ExportResponseDTO {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 }

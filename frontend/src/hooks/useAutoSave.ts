@@ -13,7 +13,7 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
   const [status, setStatus] = useState<AutoSaveStatus>('idle')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState<Error | null>(null)
-  const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<any>(null)
   const lastSavedRef = useRef<string | null>(null)
   const initialDataRef = useRef<string | null>(null)
 

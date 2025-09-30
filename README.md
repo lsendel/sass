@@ -1,6 +1,7 @@
 # 🚀 Payment Platform - Spring Boot Modulith
 
 [![CI/CD Status](https://github.com/payment-platform/sass/workflows/Enhanced%20CI/CD%20Pipeline/badge.svg)](https://github.com/payment-platform/sass/actions)
+[![Constitutional Compliance](https://github.com/payment-platform/sass/workflows/Constitutional%20Compliance%20Check/badge.svg)](https://github.com/payment-platform/sass/actions)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=payment-platform_sass&metric=alert_status)](https://sonarcloud.io/dashboard?id=payment-platform_sass)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=payment-platform_sass&metric=coverage)](https://sonarcloud.io/dashboard?id=payment-platform_sass)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=payment-platform_sass&metric=security_rating)](https://sonarcloud.io/dashboard?id=payment-platform_sass)

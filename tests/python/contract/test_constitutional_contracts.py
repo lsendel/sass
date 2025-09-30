@@ -166,48 +166,37 @@ class TestConstitutionalContracts:
 class TestConstitutionalAPIContracts:
     """API contract tests for constitutional enforcement endpoints."""
 
-    def test_constitutional_validation_api_contract(self):
+    def test_constitutional_validation_api_contract(self, api_server):
         """Test constitutional validation API contract - MUST FAIL initially."""
         # RED PHASE: API endpoints must not exist yet
-        try:
-            import requests
+        import requests
 
-            # Contract: Constitutional validation endpoint
-            response = requests.post("http://localhost:8080/api/constitutional/validate",
-                                   json={"code": "sample code", "module": "payment"})
+        # Contract: Constitutional validation endpoint
+        response = requests.post("http://localhost:8080/api/constitutional/validate",
+                               json={"code": "sample code", "module": "payment"})
 
-            # Expected contract response
-            assert response.status_code == 200
-            result = response.json()
+        # Expected contract response
+        assert response.status_code == 200
+        result = response.json()
 
-            required_fields = ["compliant", "violations", "enforcement_actions", "authority"]
-            for field in required_fields:
-                assert field in result, f"Response must contain {field}"
+        required_fields = ["compliant", "violations", "enforcement_actions", "authority"]
+        for field in required_fields:
+            assert field in result, f"Response must contain {field}"
 
-        except Exception:
-            # Expected failure in RED phase
-            pytest.fail("Constitutional validation API not implemented - RED phase expected")
-
-    def test_tdd_enforcement_api_contract(self):
+    def test_tdd_enforcement_api_contract(self, api_server):
         """Test TDD enforcement API contract - MUST FAIL initially."""
-        # RED PHASE: TDD enforcement API must not exist yet
-        try:
-            import requests
+        import requests
 
-            # Contract: TDD validation endpoint
-            response = requests.post("http://localhost:8080/api/tdd/validate",
-                                   json={"test_files": [], "implementation_files": []})
+        # Contract: TDD validation endpoint
+        response = requests.post("http://localhost:8080/api/tdd/validate",
+                               json={"test_files": [], "implementation_files": []})
 
-            assert response.status_code == 200
-            result = response.json()
+        assert response.status_code == 200
+        result = response.json()
 
-            required_fields = ["tdd_compliant", "phase", "violations", "required_actions"]
-            for field in required_fields:
-                assert field in result, f"TDD response must contain {field}"
-
-        except Exception:
-            # Expected failure in RED phase
-            pytest.fail("TDD enforcement API not implemented - RED phase expected")
+        required_fields = ["tdd_compliant", "phase", "violations", "required_actions"]
+        for field in required_fields:
+            assert field in result, f"TDD response must contain {field}"
 
 
 if __name__ == "__main__":

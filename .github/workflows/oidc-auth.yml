@@ -1,0 +1,59 @@
+name: OIDC Authentication
+
+on:
+  workflow_call:
+    inputs:
+      cloud-platform:
+        required: true
+        type: string
+        description: 'Cloud platform to authenticate with (aws, azure, gcp)'
+    outputs:
+      token:
+        description: "Authentication token for the cloud platform"
+        value: ${{ jobs.authenticate.outputs.token }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  authenticate:
+    runs-on: ubuntu-latest
+    outputs:
+      token: ${{ steps.auth.outputs.token }}
+    
+    steps:
+    - name: Configure AWS Credentials
+      if: inputs.cloud-platform == 'aws'
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        role-session-name: GithubActions-${{ github.run_id }}
+        
+    - name: Azure Login
+      if: inputs.cloud-platform == 'azure'
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
+    - name: Authenticate to Google Cloud
+      if: inputs.cloud-platform == 'gcp'
+      uses: google-github-actions/auth@v1
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        
+    - name: Generate Token
+      id: auth
+      run: |
+        if [[ "${{ inputs.cloud-platform }}" == "aws" ]]; then
+          TOKEN=$(aws sts get-caller-identity --query 'Account' --output text)
+        elif [[ "${{ inputs.cloud-platform }}" == "azure" ]]; then
+          TOKEN=$(az account show --query id -o tsv)
+        elif [[ "${{ inputs.cloud-platform }}" == "gcp" ]]; then
+          TOKEN=$(gcloud auth print-identity-token)
+        fi
+        echo "token=${TOKEN}" >> $GITHUB_OUTPUT

@@ -20,9 +20,9 @@ import org.slf4j.LoggerFactory;
 @Converter
 public class AuditDetailsConverter implements AttributeConverter<Map<String, Object>, String> {
 
-  private static final Logger logger = LoggerFactory.getLogger(AuditDetailsConverter.class);
-  private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final TypeReference<Map<String, Object>> typeRef = new TypeReference<>() {};
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuditDetailsConverter.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> TYPE_REF = new TypeReference<>() { };
 
   /**
    * Converts a map of audit event details into a JSON string for database persistence.
@@ -31,19 +31,19 @@ public class AuditDetailsConverter implements AttributeConverter<Map<String, Obj
    * @return A JSON string representation of the map. Returns an empty JSON object "{}" if the
    *     input is null, empty, or if a serialization error occurs.
    */
-  @Override
-  public String convertToDatabaseColumn(Map<String, Object> attribute) {
-    if (attribute == null || attribute.isEmpty()) {
-      return "{}";
-    }
+    @Override
+    public String convertToDatabaseColumn(final Map<String, Object> attribute) {
+        if (attribute == null || attribute.isEmpty()) {
+            return "{}";
+        }
 
-    try {
-      return objectMapper.writeValueAsString(attribute);
-    } catch (JsonProcessingException e) {
-      logger.error("Error converting audit details to JSON", e);
-      return "{}";
+        try {
+            return OBJECT_MAPPER.writeValueAsString(attribute);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Error converting audit details to JSON", e);
+            return "{}";
+        }
     }
-  }
 
   /**
    * Converts a JSON string from the database into a map of audit event details.
@@ -52,17 +52,17 @@ public class AuditDetailsConverter implements AttributeConverter<Map<String, Obj
    * @return A {@code Map<String, Object>} representing the audit details. Returns an empty map
    *     if the input is null, empty, or if a deserialization error occurs.
    */
-  @Override
-  public Map<String, Object> convertToEntityAttribute(String dbData) {
-    if (dbData == null || dbData.trim().isEmpty()) {
-      return Map.of();
-    }
+    @Override
+    public Map<String, Object> convertToEntityAttribute(final String dbData) {
+        if (dbData == null || dbData.trim().isEmpty()) {
+            return Map.of();
+        }
 
-    try {
-      return objectMapper.readValue(dbData, typeRef);
-    } catch (JsonProcessingException e) {
-      logger.error("Error converting JSON to audit details", e);
-      return Map.of();
+        try {
+            return OBJECT_MAPPER.readValue(dbData, TYPE_REF);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Error converting JSON to audit details", e);
+            return Map.of();
+        }
     }
-  }
 }

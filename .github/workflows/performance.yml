@@ -1,0 +1,71 @@
+name: Performance Monitoring
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:
+
+jobs:
+  performance-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install Lighthouse
+      run: npm install -g lighthouse
+
+    - name: Run Lighthouse CI
+      run: |
+        lighthouse https://your-production-url.com \
+          --output html --output json \
+          --output-path ./lighthouse-report.html
+
+    - name: Run k6 Load Tests
+      uses: grafana/k6-action@v0.3.0
+      with:
+        filename: performance/load-tests.js
+
+    - name: Run Backend Performance Tests
+      run: |
+        cd backend
+        ./gradlew performanceTest
+
+    - name: Run Frontend Performance Tests
+      run: |
+        cd frontend
+        npm run test:performance
+
+    - name: Analyze Bundle Size
+      run: |
+        cd frontend
+        npm run analyze-bundle
+
+    - name: Check API Response Times
+      run: |
+        cd tests/performance
+        ./check-api-performance.sh
+
+    - name: Upload Performance Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-reports
+        path: |
+          lighthouse-report.html
+          backend/build/reports/performance/
+          frontend/performance-report/
+          tests/performance/results/
+
+    - name: Notify on Performance Regression
+      if: failure()
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        channel-id: 'performance-alerts'
+        slack-message: "⚠️ Performance regression detected! Check the latest performance report."
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

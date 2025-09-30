@@ -15,7 +15,12 @@ import java.util.UUID;
 @Service
 public class AuditLogPermissionService {
 
-    private static final Logger log = LoggerFactory.getLogger(AuditLogPermissionService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AuditLogPermissionService.class);
+
+    private static final int ADMIN_EXPORT_LIMIT = 100000;
+    private static final int REGULAR_EXPORT_LIMIT = 10000;
+    private static final int RETENTION_DAYS_FULL = 365;
+    private static final int RETENTION_DAYS_LIMITED = 90;
 
     // For now, we'll use simple permission logic
     // In a real implementation, this would integrate with the user/role service
@@ -26,8 +31,8 @@ public class AuditLogPermissionService {
      * @param userId the user to check permissions for
      * @return user's audit permissions
      */
-    public UserAuditPermissions getUserAuditPermissions(UUID userId) {
-        // TODO: Implement actual permission checking
+    public UserAuditPermissions getUserAuditPermissions(final UUID userId) {
+        // FIXME: Implement actual permission checking
         // This would typically:
         // 1. Query user service to get user's organization and roles
         // 2. Check role permissions against audit log viewing capabilities
@@ -50,7 +55,7 @@ public class AuditLogPermissionService {
      * @param auditEvent the audit event to check
      * @return true if user can view the entry
      */
-    public boolean canViewAuditEntry(UUID userId, AuditEvent auditEvent) {
+    public boolean canViewAuditEntry(final UUID userId, final AuditEvent auditEvent) {
         var permissions = getUserAuditPermissions(userId);
 
         // Basic tenant isolation
@@ -78,7 +83,7 @@ public class AuditLogPermissionService {
      * @param userId the user requesting export
      * @return true if user can export
      */
-    public boolean canExportAuditLogs(UUID userId) {
+    public boolean canExportAuditLogs(final UUID userId) {
         var permissions = getUserAuditPermissions(userId);
         return permissions.canViewAuditLogs(); // Basic export permission same as view
     }
@@ -89,13 +94,13 @@ public class AuditLogPermissionService {
      * @param userId the user requesting export
      * @return maximum export limit
      */
-    public int getExportLimit(UUID userId) {
+    public int getExportLimit(final UUID userId) {
         var permissions = getUserAuditPermissions(userId);
 
         if (permissions.canViewSystemActions()) {
-            return 100000; // Admin users can export more
+            return ADMIN_EXPORT_LIMIT; // Admin users can export more
         } else {
-            return 10000;  // Regular users have lower limit
+            return REGULAR_EXPORT_LIMIT;  // Regular users have lower limit
         }
     }
 
@@ -105,7 +110,7 @@ public class AuditLogPermissionService {
      * @param userId the user to check
      * @return true if user can view sensitive data
      */
-    public boolean canViewSensitiveFields(UUID userId) {
+    public boolean canViewSensitiveFields(final UUID userId) {
         return getUserAuditPermissions(userId).canViewSensitiveData();
     }
 
@@ -115,7 +120,7 @@ public class AuditLogPermissionService {
      * @param userId the user to check
      * @return true if user can view technical data
      */
-    public boolean canViewTechnicalFields(UUID userId) {
+    public boolean canViewTechnicalFields(final UUID userId) {
         return getUserAuditPermissions(userId).canViewTechnicalData();
     }
 
@@ -126,13 +131,13 @@ public class AuditLogPermissionService {
      * @param userId the user to check
      * @return maximum days back the user can query
      */
-    public int getQueryDateRangeLimit(UUID userId) {
+    public int getQueryDateRangeLimit(final UUID userId) {
         var permissions = getUserAuditPermissions(userId);
 
         if (permissions.canViewSystemActions()) {
-            return 365 * 2; // Admins can query 2 years back
+            return RETENTION_DAYS_FULL * 2; // Admins can query 2 years back
         } else {
-            return 90;      // Regular users limited to 90 days
+            return RETENTION_DAYS_LIMITED;      // Regular users limited to 90 days
         }
     }
 
@@ -157,7 +162,7 @@ public class AuditLogPermissionService {
         /**
          * Factory method for basic user permissions (view only).
          */
-        public static UserAuditPermissions basicUser(UUID organizationId) {
+        public static UserAuditPermissions basicUser(final UUID organizationId) {
             return new UserAuditPermissions(
                 organizationId,
                 true,   // Can view basic audit logs
@@ -170,7 +175,7 @@ public class AuditLogPermissionService {
         /**
          * Factory method for admin permissions (full access).
          */
-        public static UserAuditPermissions admin(UUID organizationId) {
+        public static UserAuditPermissions admin(final UUID organizationId) {
             return new UserAuditPermissions(
                 organizationId,
                 true,   // Can view audit logs
@@ -183,7 +188,7 @@ public class AuditLogPermissionService {
         /**
          * Factory method for compliance officer permissions.
          */
-        public static UserAuditPermissions complianceOfficer(UUID organizationId) {
+        public static UserAuditPermissions complianceOfficer(final UUID organizationId) {
             return new UserAuditPermissions(
                 organizationId,
                 true,   // Can view audit logs

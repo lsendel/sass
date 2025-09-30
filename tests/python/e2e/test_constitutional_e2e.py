@@ -239,7 +239,7 @@ class TestConstitutionalE2E:
         """Execute module boundary validation - will fail until implemented."""
         from src.architecture.module_boundary_validator import ModuleBoundaryValidator
         validator = ModuleBoundaryValidator()
-        return validator.validate_boundaries(feature_request)
+        return validator.validate_module_boundaries(feature_request)
 
     def _execute_deployment_readiness_check(self, feature_request: Dict[str, Any]) -> Dict[str, Any]:
         """Execute deployment readiness check - will fail until implemented."""

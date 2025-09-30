@@ -1,6 +1,15 @@
 package com.platform.audit.internal;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -14,14 +23,14 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "audit_export_requests",
-       indexes = {
-           @Index(name = "idx_audit_export_user", columnList = "user_id"),
-           @Index(name = "idx_audit_export_status", columnList = "status"),
-           @Index(name = "idx_audit_export_created", columnList = "created_at"),
-           @Index(name = "idx_audit_export_token", columnList = "download_token")
+        indexes = {
+                @Index(name = "idx_audit_export_user", columnList = "user_id"),
+                @Index(name = "idx_audit_export_status", columnList = "status"),
+                @Index(name = "idx_audit_export_created", columnList = "created_at"),
+                @Index(name = "idx_audit_export_token", columnList = "download_token")
        })
 @EntityListeners(AuditingEntityListener.class)
-public class AuditLogExportRequest {
+public final class AuditLogExportRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -51,7 +60,7 @@ public class AuditLogExportRequest {
     @Column(name = "search_term")
     private String searchTerm;
 
-    @Column(name = "action_types", columnDefinition = "TEXT")
+    @Column(name = "action_types", length = 4000)
     private String actionTypes;
 
     @Column(name = "total_records")
@@ -78,7 +87,7 @@ public class AuditLogExportRequest {
     @Column(name = "max_downloads")
     private Integer maxDownloads = 5;
 
-    @Column(name = "error_message", columnDefinition = "TEXT")
+    @Column(name = "error_message", length = 4000)
     private String errorMessage;
 
     @CreatedDate
@@ -96,9 +105,9 @@ public class AuditLogExportRequest {
     private Instant completedAt;
 
     // Constructors
-    public AuditLogExportRequest() {}
+    public AuditLogExportRequest() { }
 
-    public AuditLogExportRequest(UUID userId, UUID organizationId, ExportFormat format) {
+    public AuditLogExportRequest(final UUID userId, final UUID organizationId, final ExportFormat format) {
         this.userId = userId;
         this.organizationId = organizationId;
         this.format = format;
@@ -106,74 +115,164 @@ public class AuditLogExportRequest {
     }
 
     // Getters and Setters
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() {
+        return id;
+    }
+    public void setId(final UUID id) {
+        this.id = id;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public UUID getUserId() {
+        return userId;
+    }
+    public void setUserId(final UUID userId) {
+        this.userId = userId;
+    }
 
-    public UUID getOrganizationId() { return organizationId; }
-    public void setOrganizationId(UUID organizationId) { this.organizationId = organizationId; }
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+    public void setOrganizationId(final UUID organizationId) {
+        this.organizationId = organizationId;
+    }
 
-    public ExportFormat getFormat() { return format; }
-    public void setFormat(ExportFormat format) { this.format = format; }
+    public ExportFormat getFormat() {
+        return format;
+    }
+    public void setFormat(final ExportFormat format) {
+        this.format = format;
+    }
 
-    public ExportStatus getStatus() { return status; }
-    public void setStatus(ExportStatus status) { this.status = status; }
+    public ExportStatus getStatus() {
+        return status;
+    }
+    public void setStatus(ExportStatus status) {
+        this.status = status;
+    }
 
-    public Instant getDateFrom() { return dateFrom; }
-    public void setDateFrom(Instant dateFrom) { this.dateFrom = dateFrom; }
+    public Instant getDateFrom() {
+        return dateFrom;
+    }
+    public void setDateFrom(Instant dateFrom) {
+        this.dateFrom = dateFrom;
+    }
 
-    public Instant getDateTo() { return dateTo; }
-    public void setDateTo(Instant dateTo) { this.dateTo = dateTo; }
+    public Instant getDateTo() {
+        return dateTo;
+    }
+    public void setDateTo(Instant dateTo) {
+        this.dateTo = dateTo;
+    }
 
-    public String getSearchTerm() { return searchTerm; }
-    public void setSearchTerm(String searchTerm) { this.searchTerm = searchTerm; }
+    public String getSearchTerm() {
+        return searchTerm;
+    }
+    public void setSearchTerm(String searchTerm) {
+        this.searchTerm = searchTerm;
+    }
 
-    public String getActionTypes() { return actionTypes; }
-    public void setActionTypes(String actionTypes) { this.actionTypes = actionTypes; }
+    public String getActionTypes() {
+        return actionTypes;
+    }
+    public void setActionTypes(String actionTypes) {
+        this.actionTypes = actionTypes;
+    }
 
-    public Long getTotalRecords() { return totalRecords; }
-    public void setTotalRecords(Long totalRecords) { this.totalRecords = totalRecords; }
+    public Long getTotalRecords() {
+        return totalRecords;
+    }
+    public void setTotalRecords(Long totalRecords) {
+        this.totalRecords = totalRecords;
+    }
 
-    public Long getProcessedRecords() { return processedRecords; }
-    public void setProcessedRecords(Long processedRecords) { this.processedRecords = processedRecords; }
+    public Long getProcessedRecords() {
+        return processedRecords;
+    }
+    public void setProcessedRecords(Long processedRecords) {
+        this.processedRecords = processedRecords;
+    }
 
-    public String getFilePath() { return filePath; }
-    public void setFilePath(String filePath) { this.filePath = filePath; }
+    public String getFilePath() {
+        return filePath;
+    }
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
 
-    public Long getFileSizeBytes() { return fileSizeBytes; }
-    public void setFileSizeBytes(Long fileSizeBytes) { this.fileSizeBytes = fileSizeBytes; }
+    public Long getFileSizeBytes() {
+        return fileSizeBytes;
+    }
+    public void setFileSizeBytes(Long fileSizeBytes) {
+        this.fileSizeBytes = fileSizeBytes;
+    }
 
     // Alias for getFileSizeBytes for compatibility
-    public Long getFileSize() { return fileSizeBytes; }
+    public Long getFileSize() {
+        return fileSizeBytes;
+    }
 
-    public String getDownloadToken() { return downloadToken; }
-    public void setDownloadToken(String downloadToken) { this.downloadToken = downloadToken; }
+    public String getDownloadToken() {
+        return downloadToken;
+    }
+    public void setDownloadToken(String downloadToken) {
+        this.downloadToken = downloadToken;
+    }
 
-    public Instant getDownloadExpiresAt() { return downloadExpiresAt; }
-    public void setDownloadExpiresAt(Instant downloadExpiresAt) { this.downloadExpiresAt = downloadExpiresAt; }
+    public Instant getDownloadExpiresAt() {
+        return downloadExpiresAt;
+    }
+    public void setDownloadExpiresAt(Instant downloadExpiresAt) {
+        this.downloadExpiresAt = downloadExpiresAt;
+    }
 
-    public Integer getDownloadCount() { return downloadCount; }
-    public void setDownloadCount(Integer downloadCount) { this.downloadCount = downloadCount; }
+    public Integer getDownloadCount() {
+        return downloadCount;
+    }
+    public void setDownloadCount(Integer downloadCount) {
+        this.downloadCount = downloadCount;
+    }
 
-    public Integer getMaxDownloads() { return maxDownloads; }
-    public void setMaxDownloads(Integer maxDownloads) { this.maxDownloads = maxDownloads; }
+    public Integer getMaxDownloads() {
+        return maxDownloads;
+    }
+    public void setMaxDownloads(Integer maxDownloads) {
+        this.maxDownloads = maxDownloads;
+    }
 
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
 
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 
-    public Instant getStartedAt() { return startedAt; }
-    public void setStartedAt(Instant startedAt) { this.startedAt = startedAt; }
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+    public void setStartedAt(Instant startedAt) {
+        this.startedAt = startedAt;
+    }
 
-    public Instant getCompletedAt() { return completedAt; }
-    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+    public void setCompletedAt(Instant completedAt) {
+        this.completedAt = completedAt;
+    }
 
     // Business methods
     public void markAsStarted() {
@@ -236,8 +335,13 @@ public class AuditLogExportRequest {
             this.fileExtension = fileExtension;
         }
 
-        public String getMimeType() { return mimeType; }
-        public String getFileExtension() { return fileExtension; }
+        public String getMimeType() {
+            return mimeType;
+        }
+
+        public String getFileExtension() {
+            return fileExtension;
+        }
     }
 
     /**

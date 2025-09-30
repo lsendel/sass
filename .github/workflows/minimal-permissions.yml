@@ -1,0 +1,61 @@
+name: Minimal Permissions
+
+on:
+  workflow_call:
+    inputs:
+      workflow-name:
+        required: true
+        type: string
+        description: 'Name of the workflow requesting permissions'
+
+permissions: {}  # Start with zero permissions
+
+jobs:
+  grant-permissions:
+    runs-on: ubuntu-latest
+    outputs:
+      permissions: ${{ steps.get-permissions.outputs.permissions }}
+      
+    steps:
+    - name: Determine Required Permissions
+      id: get-permissions
+      run: |
+        case "${{ inputs.workflow-name }}" in
+          "build")
+            echo 'permissions={"contents":"read","packages":"write"}' >> $GITHUB_OUTPUT
+            ;;
+          "test")
+            echo 'permissions={"contents":"read","checks":"write","pull-requests":"write"}' >> $GITHUB_OUTPUT
+            ;;
+          "deploy")
+            echo 'permissions={"contents":"read","deployments":"write","environments":"read"}' >> $GITHUB_OUTPUT
+            ;;
+          "security-scan")
+            echo 'permissions={"contents":"read","security-events":"write"}' >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo 'permissions={"contents":"read"}' >> $GITHUB_OUTPUT
+            ;;
+        esac
+        
+    - name: Verify Permissions
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const permissions = JSON.parse('${{ steps.get-permissions.outputs.permissions }}')
+          console.log('Granted permissions:', permissions)
+          // Verify against allowed permissions list
+          const allowedPermissions = [
+            'contents',
+            'packages',
+            'deployments',
+            'checks',
+            'pull-requests',
+            'security-events',
+            'environments'
+          ]
+          for (const perm of Object.keys(permissions)) {
+            if (!allowedPermissions.includes(perm)) {
+              throw new Error(`Permission ${perm} is not in the allowed list`)
+            }
+          }

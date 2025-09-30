@@ -542,3 +542,9 @@ export const {
   useGetNotificationsQuery,
   useMarkNotificationAsReadMutation,
 } = projectManagementApi;
+
+// Compatibility aliases for components
+export const useGetProjectsQuery = useGetWorkspaceProjectsQuery;
+export const useGetTasksQuery = useGetProjectTasksQuery;
+export const useGetDashboardStatsQuery = useGetDashboardOverviewQuery;
+export const useSearchQuery = useSearchAllQuery;

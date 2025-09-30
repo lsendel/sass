@@ -36,12 +36,12 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         WHERE ae.organizationId = :organizationId
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         ORDER BY ae.createdAt DESC
-        """)
+                """)
     Page<AuditEvent> findUserAccessibleLogs(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        Pageable pageable);
+                @Param("organizationId") UUID organizationId,
+                @Param("userId") UUID userId,
+                @Param("includeSystemActions") boolean includeSystemActions,
+                Pageable pageable);
 
     /**
      * Find audit logs with date range filtering.
@@ -60,14 +60,14 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         AND ae.createdAt BETWEEN :startDate AND :endDate
         ORDER BY ae.createdAt DESC
-        """)
+                """)
     Page<AuditEvent> findUserAccessibleLogsInDateRange(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("startDate") Instant startDate,
-        @Param("endDate") Instant endDate,
-        Pageable pageable);
+                @Param("organizationId") UUID organizationId,
+                @Param("userId") UUID userId,
+                @Param("includeSystemActions") boolean includeSystemActions,
+                @Param("startDate") Instant startDate,
+                @Param("endDate") Instant endDate,
+                Pageable pageable);
 
     /**
      * Find audit logs with action type filtering.
@@ -85,13 +85,13 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         AND ae.action IN :actionTypes
         ORDER BY ae.createdAt DESC
-        """)
+            """)
     Page<AuditEvent> findUserAccessibleLogsByActions(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("actionTypes") List<String> actionTypes,
-        Pageable pageable);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions,
+            @Param("actionTypes") List<String> actionTypes,
+            Pageable pageable);
 
     /**
      * Find audit logs with resource type filtering.
@@ -109,13 +109,13 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         AND ae.resourceType IN :resourceTypes
         ORDER BY ae.createdAt DESC
-        """)
+            """)
     Page<AuditEvent> findUserAccessibleLogsByResourceTypes(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("resourceTypes") List<String> resourceTypes,
-        Pageable pageable);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions,
+            @Param("resourceTypes") List<String> resourceTypes,
+            Pageable pageable);
 
     /**
      * Comprehensive search with multiple filters.
@@ -144,17 +144,17 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (:startDate IS NULL OR ae.createdAt >= :startDate)
         AND (:endDate IS NULL OR ae.createdAt <= :endDate)
         ORDER BY ae.createdAt DESC
-        """)
+            """)
     Page<AuditEvent> findUserAccessibleLogsWithFilters(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("searchText") String searchText,
-        @Param("actionTypes") List<String> actionTypes,
-        @Param("resourceTypes") List<String> resourceTypes,
-        @Param("startDate") Instant startDate,
-        @Param("endDate") Instant endDate,
-        Pageable pageable);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions,
+            @Param("searchText") String searchText,
+            @Param("actionTypes") List<String> actionTypes,
+            @Param("resourceTypes") List<String> resourceTypes,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
+            Pageable pageable);
 
     /**
      * Find a specific audit log entry that the user has permission to view.
@@ -170,12 +170,12 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         WHERE ae.id = :id
         AND ae.organizationId = :organizationId
         AND (ae.actorId = :userId OR :includeSystemActions = true)
-        """)
+            """)
     Optional<AuditEvent> findUserAccessibleLogById(
-        @Param("id") UUID id,
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions);
+            @Param("id") UUID id,
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions);
 
     /**
      * Count total accessible logs for a user.
@@ -189,11 +189,11 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         SELECT COUNT(ae) FROM AuditEvent ae
         WHERE ae.organizationId = :organizationId
         AND (ae.actorId = :userId OR :includeSystemActions = true)
-        """)
+            """)
     long countUserAccessibleLogs(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions);
 
     /**
      * Count accessible logs with filters applied.
@@ -220,16 +220,16 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (:resourceTypes IS NULL OR ae.resourceType IN :resourceTypes)
         AND (:startDate IS NULL OR ae.createdAt >= :startDate)
         AND (:endDate IS NULL OR ae.createdAt <= :endDate)
-        """)
+            """)
     long countUserAccessibleLogsWithFilters(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("searchText") String searchText,
-        @Param("actionTypes") List<String> actionTypes,
-        @Param("resourceTypes") List<String> resourceTypes,
-        @Param("startDate") Instant startDate,
-        @Param("endDate") Instant endDate);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions,
+            @Param("searchText") String searchText,
+            @Param("actionTypes") List<String> actionTypes,
+            @Param("resourceTypes") List<String> resourceTypes,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate);
 
     /**
      * Get distinct action types available to the user.
@@ -244,11 +244,11 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         WHERE ae.organizationId = :organizationId
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         ORDER BY ae.action
-        """)
+            """)
     List<String> findDistinctActionTypesForUser(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions);
 
     /**
      * Get distinct resource types available to the user.
@@ -264,11 +264,11 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         AND ae.resourceType IS NOT NULL
         ORDER BY ae.resourceType
-        """)
+            """)
     List<String> findDistinctResourceTypesForUser(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions);
 
     /**
      * Find recent activity for the user (last 24 hours).
@@ -286,13 +286,13 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         AND ae.createdAt >= :since
         ORDER BY ae.createdAt DESC
-        """)
+            """)
     Page<AuditEvent> findRecentActivityForUser(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("since") Instant since,
-        Pageable pageable);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions,
+            @Param("since") Instant since,
+            Pageable pageable);
 
     /**
      * Find logs by correlation ID that the user can access.
@@ -310,12 +310,12 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND (ae.actorId = :userId OR :includeSystemActions = true)
         AND ae.correlationId = :correlationId
         ORDER BY ae.createdAt ASC
-        """)
+            """)
     List<AuditEvent> findUserAccessibleLogsByCorrelationId(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("includeSystemActions") boolean includeSystemActions,
-        @Param("correlationId") String correlationId);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("includeSystemActions") boolean includeSystemActions,
+            @Param("correlationId") String correlationId);
 
     /**
      * Security-focused query to find login/logout events for the user.
@@ -333,12 +333,12 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND ae.action IN ('user.login', 'user.logout', 'auth.failed', 'auth.locked')
         AND ae.createdAt >= :since
         ORDER BY ae.createdAt DESC
-        """)
+            """)
     Page<AuditEvent> findAuthenticationEventsForUser(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("since") Instant since,
-        Pageable pageable);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("since") Instant since,
+            Pageable pageable);
 
     /**
      * Find data access events for compliance reporting.
@@ -358,11 +358,11 @@ public interface AuditLogViewRepository extends JpaRepository<AuditEvent, UUID> 
         AND ae.action IN ('data.read', 'data.created', 'data.updated', 'data.deleted', 'data.exported')
         AND ae.createdAt BETWEEN :startDate AND :endDate
         ORDER BY ae.createdAt DESC
-        """)
+            """)
     Page<AuditEvent> findDataAccessEventsForUser(
-        @Param("organizationId") UUID organizationId,
-        @Param("userId") UUID userId,
-        @Param("startDate") Instant startDate,
-        @Param("endDate") Instant endDate,
-        Pageable pageable);
+            @Param("organizationId") UUID organizationId,
+            @Param("userId") UUID userId,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate,
+            Pageable pageable);
 }

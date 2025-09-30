@@ -142,7 +142,8 @@ class TestConstitutionalCompliance:
         assert architect_agent.exists(), "Spring Boot Modulith Architect must exist"
 
         if architect_agent.exists():
-            content = content_lower = content.read_text().lower()
+            content = architect_agent.read_text()
+            content_lower = content.lower()
 
             # Verify module boundary enforcement
             boundary_keywords = [
@@ -255,7 +256,7 @@ class TestConstitutionalCompliance:
         const_agent = self.agents_dir / "development/constitutional-enforcement-agent.md"
 
         if const_agent.exists():
-            content = content.read_text().lower()
+            content = const_agent.read_text().lower()
 
             # Check for violation detection capabilities
             detection_keywords = [

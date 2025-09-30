@@ -9,19 +9,19 @@ import java.util.UUID;
  * Used internally by audit log services to build filtered queries.
  */
 public record AuditLogFilter(
-    UUID organizationId,
-    UUID userId,
-    Instant dateFrom,
-    Instant dateTo,
-    String search,
-    List<String> actionTypes,
-    List<String> resourceTypes,
-    List<String> actorEmails,
-    Boolean includeSystemActions,
-    Integer pageNumber,
-    Integer pageSize,
-    String sortField,
-    String sortDirection
+        UUID organizationId,
+        UUID userId,
+        Instant dateFrom,
+        Instant dateTo,
+        String search,
+        List<String> actionTypes,
+        List<String> resourceTypes,
+        List<String> actorEmails,
+        Boolean includeSystemActions,
+        Integer pageNumber,
+        Integer pageSize,
+        String sortField,
+        String sortDirection
 ) {
 
     public AuditLogFilter {

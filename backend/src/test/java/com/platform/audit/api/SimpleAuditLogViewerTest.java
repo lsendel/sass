@@ -16,8 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * before implementation (RED phase), proving the TDD cycle works.
  */
 @SpringBootTest(
-    classes = com.platform.AuditApplication.class,
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+        classes = com.platform.AuditApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @TestPropertySource(properties = {
     "spring.profiles.active=test",
@@ -32,7 +32,7 @@ class SimpleAuditLogViewerTest {
     private TestRestTemplate restTemplate = new TestRestTemplate();
 
     @Test
-    void verifyTDD_RED_Phase_AuditLogsEndpoint() {
+    void verifyTddRedPhaseAuditLogsEndpoint() {
         // This test MUST FAIL initially - endpoint should return 404 until implemented
         String url = "http://localhost:" + port + "/api/audit/logs";
 
@@ -40,11 +40,11 @@ class SimpleAuditLogViewerTest {
 
         // In TDD RED phase, we expect 404 because the endpoint is not implemented
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode(),
-            "Expected 404 for unimplemented audit logs endpoint (TDD RED phase)");
+                "Expected 404 for unimplemented audit logs endpoint (TDD RED phase)");
     }
 
     @Test
-    void verifyTDD_RED_Phase_ExportEndpoint() {
+    void verifyTddRedPhaseExportEndpoint() {
         // This test MUST FAIL initially - export endpoint should return 404 until implemented
         String url = "http://localhost:" + port + "/api/audit/export";
 
@@ -52,6 +52,6 @@ class SimpleAuditLogViewerTest {
 
         // In TDD RED phase, we expect 404 because the export endpoint is not implemented
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode(),
-            "Expected 404 for unimplemented audit export endpoint (TDD RED phase)");
+                "Expected 404 for unimplemented audit export endpoint (TDD RED phase)");
     }
 }

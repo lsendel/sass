@@ -202,6 +202,25 @@ test-all: ## Run comprehensive test suite (all systems)
 	cd tools && python3 -m pytest ../tests/python/
 	@echo "✅ Comprehensive test suite completed"
 
+.PHONY: test-workflows test-usability test-evidence
+test-workflows: ## Run comprehensive workflow validation with evidence collection
+	@echo "🔍 Running comprehensive workflow validation with evidence collection..."
+	@echo "📸 Evidence will be saved to test-results/comprehensive-validation-*"
+	cd frontend && npx playwright test tests/e2e/comprehensive-workflow-validation.spec.ts --reporter=html
+	@echo "✅ Workflow validation complete - check test-results for evidence"
+
+test-usability: ## Run usability and accessibility tests
+	@echo "♿ Running usability and accessibility validation..."
+	cd frontend && npx playwright test tests/e2e/comprehensive-workflow-validation.spec.ts --grep="usability|accessibility"
+	@echo "✅ Usability validation complete"
+
+test-evidence: ## Run all tests and collect evidence (screenshots, videos, traces)
+	@echo "📸 Running tests with full evidence collection..."
+	cd frontend && npx playwright test --trace on --video on --screenshot on
+	@echo "📊 Generating test report..."
+	cd frontend && npx playwright show-report
+	@echo "✅ Evidence collection complete"
+
 # Build commands
 .PHONY: build build-backend build-frontend build-all
 build: build-backend build-frontend ## Build both backend and frontend for production

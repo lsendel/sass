@@ -40,20 +40,21 @@ class TestConstitutionalIntegration:
             coordination_agent = TaskCoordinationAgent()
 
             # Test: Constitutional agent can override other agents
-            violation_detected = constitutional_agent.detect_violation({
+            violation_result = constitutional_agent.detect_violation({
                 "agent": "tdd_compliance",
                 "action": "allow_implementation_without_tests",
                 "context": {"module": "payment", "files": ["payment_service.py"]}
             })
 
-            assert violation_detected is True, "Constitutional agent must detect TDD violations"
+            assert violation_result["violations_detected"] is True, "Constitutional agent must detect TDD violations"
+            assert any(v["type"] == "TDD_VIOLATION" for v in violation_result["violations"]), "Must detect TDD violation type"
 
             # Test: Constitutional agent can block non-compliant actions
-            enforcement_result = constitutional_agent.enforce_compliance(
-                agent_id="tdd_compliance",
-                action="block_implementation",
-                reason="No failing tests found"
-            )
+            enforcement_result = constitutional_agent.enforce_constitutional_compliance({
+                "agent": "tdd_compliance",
+                "action": "block_implementation",
+                "reason": "No failing tests found"
+            })
 
             assert enforcement_result["action"] == "BLOCKED", "Must block non-compliant implementation"
             assert enforcement_result["authority"] == "SUPREME", "Must exercise supreme authority"
@@ -118,7 +119,7 @@ class TestConstitutionalIntegration:
             assert hierarchy_validation["all_phases_present"] is True, "All test phases must be present"
 
             # Integration: Implementation gate blocks without tests
-            gate_result = impl_gate.validate_implementation_readiness({
+            gate_result = impl_gate.validate_implementation_attempt({
                 "module": "payment",
                 "feature": "retry_logic",
                 "test_files": [],  # No tests - should be blocked
@@ -164,7 +165,7 @@ class TestConstitutionalIntegration:
             })
 
             assert direct_call_validation["allowed"] is False, "Direct service calls must be blocked"
-            assert "CONSTITUTIONAL_VIOLATION" in direct_call_validation["violations"], "Must detect constitutional violation"
+            assert any(v["type"] == "CONSTITUTIONAL_VIOLATION" for v in direct_call_validation["violations"]), "Must detect constitutional violation"
 
         except ImportError:
             # Expected failure in RED phase

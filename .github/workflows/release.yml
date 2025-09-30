@@ -1,0 +1,84 @@
+name: Release Management
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate Release Notes
+      id: generate_notes
+      uses: release-drafter/release-drafter@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build Backend
+      run: |
+        cd backend
+        ./gradlew build -x test
+
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+
+    - name: Build Documentation
+      run: |
+        cd docs
+        npm ci
+        npm run build
+
+    - name: Generate Changelog
+      id: changelog
+      uses: mikepenz/release-changelog-builder-action@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        body: |
+          ${{ steps.changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+        files: |
+          backend/build/libs/*.jar
+          frontend/dist/**
+          docs/build/**
+
+    - name: Create Docker Images
+      run: |
+        docker build -t payment-platform/sass-backend:${{ github.ref_name }} backend/
+        docker build -t payment-platform/sass-frontend:${{ github.ref_name }} frontend/
+
+    - name: Push to Docker Hub
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        docker push payment-platform/sass-backend:${{ github.ref_name }}
+        docker push payment-platform/sass-frontend:${{ github.ref_name }}
+
+    - name: Update Documentation
+      run: |
+        cd docs
+        npm ci
+        npm run deploy
+
+    - name: Notify Team
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        channel-id: 'releases'
+        slack-message: "New release ${{ github.ref_name }} has been published! 🚀\nCheck out the release notes: ${{ steps.generate_notes.outputs.html_url }}"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

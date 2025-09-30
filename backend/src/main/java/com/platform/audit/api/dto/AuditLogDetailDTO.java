@@ -10,45 +10,18 @@ public record AuditLogDetailDTO(
     String id,
     Instant timestamp,
     String actorName,
-    String actorId,
-    String actorType,
     String actionType,
-    String actionDescription,
-    String resourceType,
-    String resourceName,
-    String resourceId,
-    String outcome,
-    String sensitivity,
-    String ipAddress,
-    String userAgent,
-    String correlationId,
-    Map<String, Object> additionalData
+    String description,
+    Map<String, Object> details
 ) {
-    public static AuditLogDetailDTO fromBasicEntry(
-        AuditLogEntryDTO basicEntry,
-        String actorId,
-        String resourceId,
-        String ipAddress,
-        String userAgent,
-        Map<String, Object> additionalData
-    ) {
+    public static AuditLogDetailDTO fromAuditEvent(com.platform.audit.internal.AuditEvent event, AuditLogEntryDTO entry) {
         return new AuditLogDetailDTO(
-            basicEntry.id(),
-            basicEntry.timestamp(),
-            basicEntry.actorName(),
-            actorId,
-            basicEntry.actorType(),
-            basicEntry.actionType(),
-            basicEntry.actionDescription(),
-            basicEntry.resourceType(),
-            basicEntry.resourceName(),
-            resourceId,
-            basicEntry.outcome(),
-            basicEntry.sensitivity(),
-            ipAddress,
-            userAgent,
-            null, // correlationId
-            additionalData
+            event.getId().toString(),
+            event.getCreatedAt(),
+            entry.actorName(),
+            event.getAction(),
+            "Action: " + event.getAction() + " on " + event.getResourceType(), // Generate description from action
+            event.getDetails() // Use actual event details
         );
     }
 }

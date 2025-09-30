@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { TIME_INTERVALS } from '@/constants/appConstants'
 
 export interface RealTimeOptions {
   enabled?: boolean
@@ -22,10 +23,10 @@ export const useRealTimeUpdates = (
   options: RealTimeOptions = {}
 ): RealTimeUpdatesReturn => {
   const {
-    interval = 30000,
+    interval = TIME_INTERVALS.REAL_TIME_UPDATE_INTERVAL,
     enabled = true,
     pauseWhenInactive = true,
-    pauseAfterInactivity = 300000,
+    pauseAfterInactivity = TIME_INTERVALS.INACTIVITY_PAUSE_THRESHOLD,
   } = options
 
   const [isActive, setIsActive] = useState(false)

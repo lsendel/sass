@@ -1,0 +1,86 @@
+name: Dependency Caching
+
+on:
+  workflow_call:
+    inputs:
+      cache-type:
+        required: true
+        type: string
+        description: 'Type of dependencies to cache (npm, gradle, pip, cargo)'
+      cache-key-prefix:
+        required: false
+        type: string
+        default: 'deps'
+      paths:
+        required: false
+        type: string
+        description: 'Paths to cache, as JSON array'
+
+jobs:
+  cache-dependencies:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+      
+    steps:
+    - name: Setup Cache Paths
+      id: setup-cache
+      run: |
+        case "${{ inputs.cache-type }}" in
+          "npm")
+            if [ -z "${{ inputs.paths }}" ]; then
+              echo "paths=['**/node_modules', '**/.npm', '**/.next/cache']" >> $GITHUB_OUTPUT
+            else
+              echo "paths=${{ inputs.paths }}" >> $GITHUB_OUTPUT
+            fi
+            echo "hash_files=package-lock.json" >> $GITHUB_OUTPUT
+            ;;
+          "gradle")
+            if [ -z "${{ inputs.paths }}" ]; then
+              echo "paths=['~/.gradle/caches', '~/.gradle/wrapper']" >> $GITHUB_OUTPUT
+            else
+              echo "paths=${{ inputs.paths }}" >> $GITHUB_OUTPUT
+            fi
+            echo "hash_files=**/*.gradle*, .gradle/gradle.properties" >> $GITHUB_OUTPUT
+            ;;
+          "pip")
+            if [ -z "${{ inputs.paths }}" ]; then
+              echo "paths=['~/.cache/pip', '.pytest_cache', '**/__pycache__']" >> $GITHUB_OUTPUT
+            else
+              echo "paths=${{ inputs.paths }}" >> $GITHUB_OUTPUT
+            fi
+            echo "hash_files=requirements*.txt,setup.py,pyproject.toml" >> $GITHUB_OUTPUT
+            ;;
+          "cargo")
+            if [ -z "${{ inputs.paths }}" ]; then
+              echo "paths=['~/.cargo/registry', 'target']" >> $GITHUB_OUTPUT
+            else
+              echo "paths=${{ inputs.paths }}" >> $GITHUB_OUTPUT
+            fi
+            echo "hash_files=Cargo.lock" >> $GITHUB_OUTPUT
+            ;;
+        esac
+
+    - name: Generate Cache Key
+      id: cache-key
+      run: |
+        HASH=$(find . -type f -name "${{ steps.setup-cache.outputs.hash_files }}" -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
+        echo "key=${{ inputs.cache-key-prefix }}-${{ inputs.cache-type }}-${HASH}" >> $GITHUB_OUTPUT
+
+    - name: Cache Dependencies
+      uses: actions/cache@v4
+      id: cache
+      with:
+        path: ${{ fromJson(steps.setup-cache.outputs.paths) }}
+        key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ inputs.cache-type }}-
+          
+    - name: Cache Info
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: echo "Cache miss - dependencies will be downloaded"
+
+    - name: Cache Metrics
+      run: |
+        echo "Cache size: $(du -sh ${{ fromJson(steps.setup-cache.outputs.paths)[0] }} 2>/dev/null || echo 'N/A')"
+        echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}"

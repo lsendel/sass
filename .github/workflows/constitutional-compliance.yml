@@ -1,0 +1,220 @@
+name: Constitutional Compliance Check
+
+# Add permissions block at workflow level
+permissions:
+  contents: read
+  issues: write
+  checks: write
+  pull-requests: write
+  security-events: write
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.claude/**'
+      - '.github/workflows/constitutional-compliance.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.claude/**'
+      - '.github/workflows/constitutional-compliance.yml'
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight
+  workflow_dispatch:
+
+# Define reusable environment variables
+env:
+  PYTEST_ADDOPTS: "-v --tb=short"
+  PYTHON_TELEMETRY_DISABLED: 1
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+jobs:
+  constitutional-compliance:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+      fail-fast: false  # Continue with other versions if one fails
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@v2
+      with:
+        egress-policy: audit
+        disable-telemetry: true
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        filter: tree:0  # Enable sparse checkout
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        check-latest: true
+        cache: 'pip'
+        cache-dependency-path: |
+          **/requirements.txt
+          **/requirements-dev.txt
+          pyproject.toml
+          setup.py
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --require-hashes -r requirements-dev.txt
+        if [ -f requirements.txt ]; then
+          python -m pip install --require-hashes -r requirements.txt
+        fi
+
+    - name: Setup project structure
+      run: |
+        # Create required directories if they don't exist
+        mkdir -p .claude/{context,workflows}
+        mkdir -p .claude/agents/{development,testing,security,architecture,devops}
+
+    - name: Run pre-commit hooks
+      uses: pre-commit/action@v3.0.0
+
+    - name: Run constitutional compliance tests
+      run: |
+        pytest tests/python/agent/test_constitutional_compliance.py \
+          --junitxml=test-results/constitutional-compliance.xml \
+          --json-report --json-report-file=test-results/constitutional-report.json \
+          -v
+
+    - name: Run full test suite with coverage
+      run: |
+        pytest --cov=src \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-branch \
+          --cov-fail-under=85
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          test-results/
+          coverage.xml
+          htmlcov/
+        retention-days: 14
+        compression-level: 9
+
+    - name: Publish Test Report
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        junit_files: "test-results/*.xml"
+        json_file: "test-results/constitutional-report.json"
+        check_name: "Constitutional Compliance Test Results"
+        comment_mode: "always"
+        compare_to_earlier_commit: true
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.xml
+        flags: constitutional
+        fail_ci_if_error: true
+        verbose: true
+        
+    - name: Store coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.python-version }}
+        path: htmlcov
+        retention-days: 14
+
+    - name: Check coverage minimum
+      run: |
+        COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(root.attrib['line-rate'])")
+        if (( $(echo "$COVERAGE < 0.85" | bc -l) )); then
+          echo "Coverage ${COVERAGE} is below minimum 0.85"
+          exit 1
+        fi
+
+  notify-violations:
+    needs: constitutional-compliance
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+    - name: Create Issue for Violations
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue = await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🚨 Constitutional Compliance Violation',
+            body: `### Constitutional Compliance Check Failed
+            
+            #### Workflow Information
+            - Run ID: [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            - Triggered by: ${context.actor}
+            - Branch: ${context.ref}
+            
+            #### Constitutional Principles Violated
+            - TDD Compliance (RED-GREEN-Refactor cycle)
+            - Library-First Architecture
+            - Event-Driven Module Communication
+            - Integration Test Dependencies
+            - Security Requirements
+            
+            #### Required Actions
+            1. Review the [workflow logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            2. Fix identified violations
+            3. Update tests to ensure compliance
+            4. Re-run the compliance check
+            
+            #### Resources
+            - [Project Constitution](./.claude/context/project-constitution.md)
+            - [Development Guidelines](./CONTRIBUTING.md)
+            - [Architecture Overview](./ARCHITECTURE.md)
+            
+            > **Note**: Constitutional compliance is non-negotiable. All violations must be resolved before merging.`,
+            labels: ['constitutional-violation', 'high-priority', 'needs-review']
+          });
+          
+          // Add PR comment if this is a pull request
+          if (context.payload.pull_request) {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `⚠️ **Constitutional Compliance Check Failed**
+              
+              See issue #${issue.data.number} for details and required actions.
+              
+              This PR cannot be merged until all constitutional violations are resolved.`
+            });
+          }
+
+    - name: Notify Team
+      if: failure()
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        channel-id: 'constitutional-compliance'
+        slack-message: |
+          🚨 *Constitutional Compliance Violation Detected*
+          
+          *Workflow:* ${{ github.workflow }}
+          *Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>
+          *Branch:* ${{ github.ref_name }}
+          *Triggered by:* ${{ github.actor }}
+          
+          Please review and fix the violations ASAP.
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
