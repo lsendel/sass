@@ -46,29 +46,113 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Validate Version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.]+)?$ ]]; then
+          echo "Error: Invalid version format. Must follow semantic versioning"
+          exit 1
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
         body: |
+          ## Release v${{ env.VERSION }}
+          
           ${{ steps.changelog.outputs.changelog }}
+          
+          ## Artifacts
+          - Backend JAR
+          - Frontend distribution
+          - Documentation
+          
+          ## Docker Images
+          - `payment-platform/sass-backend:${{ env.VERSION }}`
+          - `payment-platform/sass-frontend:${{ env.VERSION }}`
+          
+          ## Deployment Instructions
+          Please follow the deployment guide for updating production.
         draft: false
         prerelease: false
         files: |
           backend/build/libs/*.jar
           frontend/dist/**
           docs/build/**
+        fail_on_unmatched_files: true
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Create Docker Images
       run: |
-        docker build -t payment-platform/sass-backend:${{ github.ref_name }} backend/
-        docker build -t payment-platform/sass-frontend:${{ github.ref_name }} frontend/
+        # Build backend with multi-stage build and caching
+        docker buildx build \
+          --cache-from type=gha,scope=backend \
+          --cache-to type=gha,mode=max,scope=backend \
+          --tag payment-platform/sass-backend:${{ env.VERSION }} \
+          --tag payment-platform/sass-backend:latest \
+          --build-arg VERSION=${{ env.VERSION }} \
+          --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+          --build-arg VCS_REF=${{ github.sha }} \
+          backend/
+
+        # Build frontend with multi-stage build and caching
+        docker buildx build \
+          --cache-from type=gha,scope=frontend \
+          --cache-to type=gha,mode=max,scope=frontend \
+          --tag payment-platform/sass-frontend:${{ env.VERSION }} \
+          --tag payment-platform/sass-frontend:latest \
+          --build-arg VERSION=${{ env.VERSION }} \
+          --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+          --build-arg VCS_REF=${{ github.sha }} \
+          frontend/
+
+    - name: Scan Docker Images
+      uses: aquasecurity/trivy-action@0.17.0
+      with:
+        image-ref: 'payment-platform/sass-backend:${{ env.VERSION }}'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Validate Release Artifacts
+      run: |
+        # Verify backend JAR
+        if ! [ -f backend/build/libs/*.jar ]; then
+          echo "Error: Backend JAR not found"
+          exit 1
+        fi
+
+        # Verify frontend dist
+        if ! [ -d frontend/dist ]; then
+          echo "Error: Frontend distribution not found"
+          exit 1
+        fi
+
+        # Verify documentation
+        if ! [ -d docs/build ]; then
+          echo "Error: Documentation not found"
+          exit 1
+        fi
 
     - name: Push to Docker Hub
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-        docker push payment-platform/sass-backend:${{ github.ref_name }}
-        docker push payment-platform/sass-frontend:${{ github.ref_name }}
+        
+        # Push backend images
+        docker push payment-platform/sass-backend:${{ env.VERSION }}
+        docker push payment-platform/sass-backend:latest
+        
+        # Push frontend images
+        docker push payment-platform/sass-frontend:${{ env.VERSION }}
+        docker push payment-platform/sass-frontend:latest
+        
+        echo "Successfully pushed all Docker images"
 
     - name: Update Documentation
       run: |
