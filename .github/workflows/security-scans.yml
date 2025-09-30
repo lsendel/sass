@@ -120,13 +120,13 @@ jobs:
 
     # CodeQL Analysis
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: python, javascript, java
         queries: security-extended,security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
     # SLSA Verification
     - name: Verify SLSA provenance

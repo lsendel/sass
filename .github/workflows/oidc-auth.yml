@@ -49,11 +49,22 @@ jobs:
     - name: Generate Token
       id: auth
       run: |
+        set -e
         if [[ "${{ inputs.cloud-platform }}" == "aws" ]]; then
-          TOKEN=$(aws sts get-caller-identity --query 'Account' --output text)
+          TOKEN=$(aws sts get-caller-identity --query 'Account' --output text) || exit 1
         elif [[ "${{ inputs.cloud-platform }}" == "azure" ]]; then
-          TOKEN=$(az account show --query id -o tsv)
+          TOKEN=$(az account show --query id -o tsv) || exit 1
         elif [[ "${{ inputs.cloud-platform }}" == "gcp" ]]; then
-          TOKEN=$(gcloud auth print-identity-token)
+          TOKEN=$(gcloud auth print-identity-token) || exit 1
+        else
+          echo "Error: Unsupported cloud platform ${{ inputs.cloud-platform }}"
+          exit 1
         fi
+        
+        if [ -z "$TOKEN" ]; then
+          echo "Error: Failed to generate token"
+          exit 1
+        fi
+        
+        echo "Generated token for ${{ inputs.cloud-platform }}"
         echo "token=${TOKEN}" >> $GITHUB_OUTPUT

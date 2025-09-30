@@ -77,11 +77,41 @@ jobs:
 
       - name: Blue-Green deployment
         run: |
+          # Deploy green environment
+          echo "Deploying green environment..."
           envsubst < k8s/production/deployment-green.yaml | kubectl apply -f -
-          kubectl rollout status deployment/payment-platform-green -n production --timeout=600s
-          ./scripts/smoke-tests.sh production-green
+          
+          # Wait for deployment and monitor
+          echo "Waiting for green deployment to be ready..."
+          if ! kubectl rollout status deployment/payment-platform-green -n production --timeout=600s; then
+            echo "Green deployment failed. Rolling back..."
+            kubectl rollout undo deployment/payment-platform-green -n production
+            exit 1
+          fi
+          
+          # Run smoke tests
+          echo "Running smoke tests..."
+          if ! ./scripts/smoke-tests.sh production-green; then
+            echo "Smoke tests failed. Rolling back..."
+            kubectl rollout undo deployment/payment-platform-green -n production
+            exit 1
+          fi
+          
+          # Switch traffic
+          echo "Switching traffic to green deployment..."
           kubectl patch service payment-platform -n production -p '{"spec":{"selector":{"version":"green"}}}'
-          sleep 30
+          
+          # Monitor for 5 minutes
+          echo "Monitoring deployment for 5 minutes..."
+          ./scripts/monitor-deployment.sh 300 || {
+            echo "Deployment monitoring failed. Rolling back..."
+            kubectl patch service payment-platform -n production -p '{"spec":{"selector":{"version":"blue"}}}'
+            kubectl rollout undo deployment/payment-platform-green -n production
+            exit 1
+          }
+          
+          # Scale down blue deployment
+          echo "Scaling down blue deployment..."
           kubectl scale deployment payment-platform-blue --replicas=1 -n production
 
       - name: Create release

@@ -1,0 +1,150 @@
+name: Frontend API Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-api-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    name: API Tests with Evidence Collection
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run API tests
+        working-directory: frontend
+        run: npm run test src/test/api/
+        env:
+          CI: true
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: |
+            frontend/test-results/
+            frontend/test-evidence/
+          retention-days: 30
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_number }}
+          path: frontend/coverage/
+          retention-days: 30
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend-api
+          name: frontend-api-tests
+          fail_ci_if_error: false
+
+      - name: Parse test results
+        if: always()
+        id: test-results
+        working-directory: frontend
+        run: |
+          if [ -f test-evidence/*/test-summary.json ]; then
+            SUMMARY=$(cat test-evidence/*/test-summary.json | jq -r '
+              "total=\(.summary.total)\n" +
+              "passed=\(.summary.passed)\n" +
+              "failed=\(.summary.failed)\n" +
+              "skipped=\(.summary.skipped)\n" +
+              "duration=\(.duration)\n" +
+              "pass_rate=\((.summary.passed / .summary.total * 100) | floor)"
+            ')
+            echo "$SUMMARY" >> $GITHUB_OUTPUT
+          else
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=0" >> $GITHUB_OUTPUT
+            echo "pass_rate=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const total = '${{ steps.test-results.outputs.total }}' || '0';
+            const passed = '${{ steps.test-results.outputs.passed }}' || '0';
+            const failed = '${{ steps.test-results.outputs.failed }}' || '0';
+            const skipped = '${{ steps.test-results.outputs.skipped }}' || '0';
+            const passRate = '${{ steps.test-results.outputs.pass_rate }}' || '0';
+            const duration = '${{ steps.test-results.outputs.duration }}' || '0';
+
+            const emoji = passRate >= 90 ? '🟢' : passRate >= 70 ? '🟡' : '🔴';
+            const status = passRate >= 90 ? 'Excellent' : passRate >= 70 ? 'Good' : 'Needs Attention';
+
+            const body = `## ${emoji} Frontend API Test Results
+
+| Metric | Value |
+|--------|-------|
+| **Total Tests** | ${total} |
+| **Passed** | ✅ ${passed} |
+| **Failed** | ❌ ${failed} |
+| **Skipped** | ⏭️ ${skipped} |
+| **Pass Rate** | **${passRate}%** |
+| **Duration** | ${(duration / 1000).toFixed(2)}s |
+| **Status** | ${status} |
+
+### 📊 Test Evidence
+- [View HTML Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+- [Download Test Evidence](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+- [Coverage Report](https://codecov.io/gh/${{ github.repository }}/pull/${{ github.event.pull_request.number }})
+
+### 📋 Details
+- **Branch:** \`${context.ref}\`
+- **Commit:** \`${context.sha.substring(0, 7)}\`
+- **Run:** [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+${failed > 0 ? '⚠️ **Action Required:** Some tests are failing. Please review the test results and fix failing tests before merging.' : '✅ All tests passing! Great work!'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Check test results
+        if: always()
+        run: |
+          if [ "${{ steps.test-results.outputs.pass_rate }}" -lt "70" ]; then
+            echo "❌ Test pass rate below 70% threshold"
+            exit 1
+          fi
+          echo "✅ Test pass rate meets 70% threshold"
