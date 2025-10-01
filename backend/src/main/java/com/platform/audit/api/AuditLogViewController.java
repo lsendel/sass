@@ -4,6 +4,7 @@ import com.platform.audit.api.dto.AuditLogEntryDTO;
 import com.platform.audit.api.dto.AuditLogExportRequestDTO;
 import com.platform.audit.api.dto.AuditLogResponseDTO;
 import com.platform.audit.api.dto.ExportStatusResponseDTO;
+import com.platform.audit.api.dto.ValidatedRequest.ValidationResult;
 import com.platform.audit.internal.AuditLogExportRequest;
 import com.platform.audit.internal.AuditLogExportService;
 import com.platform.audit.internal.AuditLogFilter;
@@ -223,7 +224,7 @@ public class AuditLogViewController {
             );
 
             // Request export
-            var exportResponse = auditLogExportService.requestExport(userId, format, filter);
+            var exportResponse = auditLogExportService.requestExport(format.name(), userId);
 
             LOG.info("Created export request: {} for user: {}", exportResponse.getExportId(), userId);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(exportResponse);
@@ -257,28 +258,11 @@ public class AuditLogViewController {
                     .body(createErrorResponse("USER_NOT_AUTHENTICATED", "User authentication required"));
             }
 
-            var statusOpt = auditLogExportService.getExportStatus(userId, exportId);
-
-            if (statusOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            var status = statusOpt.get();
-
-            // Convert to DTO
-            ExportStatusResponseDTO response = new ExportStatusResponseDTO(
-                status.exportId().toString(),  // exportId
-                status.status().toString(),    // status
-                (int) Math.round(status.progressPercentage()),   // progress - cast to int
-                status.createdAt(),           // requestedAt
-                status.completedAt(),         // completedAt
-                status.downloadToken(),       // downloadUrl
-                status.totalRecords() != null ? status.totalRecords() : 0L, // totalRecords
-                status.errorMessage()         // errorMessage
-            );
+            var status = auditLogExportService.getExportStatus(exportId.toString());
 
             LOG.debug("Retrieved export status for ID: {} and user: {}", exportId, userId);
-            return ResponseEntity.ok(response);
+            // Status is already an ExportStatusResponseDTO, return it directly
+            return ResponseEntity.ok(status);
 
         } catch (SecurityException e) {
             LOG.warn("Security violation accessing export status {}: {}", exportId, e.getMessage());
@@ -299,20 +283,18 @@ public class AuditLogViewController {
         LOG.debug("Processing download request for token: {}", token);
 
         try {
-            var downloadOpt = auditLogExportService.getExportDownload(token);
+            var download = auditLogExportService.getExportDownload(token);
 
-            if (downloadOpt.isEmpty()) {
+            if (download == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .<Object>body(createErrorResponse("DOWNLOAD_NOT_FOUND", "Download not found or expired"));
             }
-
-            var download = downloadOpt.get();
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType(download.mimeType()));
             headers.setContentDispositionFormData("attachment", download.filename());
 
-            if (download.fileSize() != null) {
+            if (download.fileSize() > 0) {
                 headers.setContentLength(download.fileSize());
             }
 
@@ -345,28 +327,28 @@ public class AuditLogViewController {
     private ValidatedRequest validateGetLogsRequest(int size, String dateFrom, String dateTo) {
         // Validate page size
         var sizeValidation = validator.validatePageSize(size);
-        if (!sizeValidation.valid()) {
+        if (!sizeValidation.isValid()) {
             return new ValidatedRequest(sizeValidation, null, null);
         }
 
         // Parse and validate dates
         var fromResult = validator.parseDate(dateFrom, "dateFrom");
-        if (!fromResult.validation().valid()) {
+        if (!fromResult.validation().isValid()) {
             return new ValidatedRequest(fromResult.validation(), null, null);
         }
 
         var toResult = validator.parseDate(dateTo, "dateTo");
-        if (!toResult.validation().valid()) {
+        if (!toResult.validation().isValid()) {
             return new ValidatedRequest(toResult.validation(), null, null);
         }
 
         // Validate date range
         var rangeValidation = validator.validateDateRange(fromResult.date(), toResult.date());
-        if (!rangeValidation.valid()) {
+        if (!rangeValidation.isValid()) {
             return new ValidatedRequest(rangeValidation, null, null);
         }
 
-        return new ValidatedRequest(AuditRequestValidator.ValidationResult.success(), fromResult.date(), toResult.date());
+        return new ValidatedRequest(ValidationResult.valid(), fromResult.date(), toResult.date());
     }
 
     private ResponseEntity<?> createUnauthorizedResponse() {
@@ -410,12 +392,12 @@ public class AuditLogViewController {
      * Record for validated request parameters.
      */
     private record ValidatedRequest(
-        AuditRequestValidator.ValidationResult validation,
+        ValidationResult validation,
         Instant dateFrom,
         Instant dateTo
     ) {
         public boolean valid() {
-            return validation.valid();
+            return validation.isValid();
         }
 
         public String errorCode() {

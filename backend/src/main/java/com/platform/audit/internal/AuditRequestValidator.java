@@ -1,92 +1,64 @@
 package com.platform.audit.internal;
 
-import org.springframework.stereotype.Component;
+import com.platform.audit.api.dto.ValidatedRequest;
+import com.platform.audit.api.dto.ValidatedRequest.ValidationResult;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 
-import static com.platform.audit.internal.AuditConstants.ERROR_INVALID_DATE_FORMAT;
-import static com.platform.audit.internal.AuditConstants.ERROR_INVALID_DATE_RANGE;
-import static com.platform.audit.internal.AuditConstants.ERROR_INVALID_FORMAT;
-import static com.platform.audit.internal.AuditConstants.ERROR_INVALID_PAGE_SIZE;
-import static com.platform.audit.internal.AuditConstants.MAX_PAGE_SIZE;
-import static com.platform.audit.internal.AuditConstants.MSG_INVALID_DATE_FROM;
-import static com.platform.audit.internal.AuditConstants.MSG_INVALID_DATE_RANGE;
-import static com.platform.audit.internal.AuditConstants.MSG_INVALID_DATE_TO;
-import static com.platform.audit.internal.AuditConstants.MSG_PAGE_SIZE_EXCEEDED;
-
 /**
- * Validator for audit log request parameters.
- * Centralizes validation logic to maintain consistency and reduce controller complexity.
+ * Service for validating audit log requests.
+ * Performs input validation and converts requests to validated objects.
  */
-@Component
-public class AuditRequestValidator {
+@Service
+public final class AuditRequestValidator {
 
-    /**
-     * Validation result containing error information if validation fails.
-     */
-    public record ValidationResult(boolean valid, String errorCode, String errorMessage) {
-        public static ValidationResult success() {
-            return new ValidationResult(true, null, null);
-        }
+    private static final int MAX_PAGE_SIZE = 1000;
 
-        public static ValidationResult invalid(final String errorCode, final String errorMessage) {
-            return new ValidationResult(false, errorCode, errorMessage);
-        }
+    public ValidatedRequest validateDateRange(final String dateFrom, final String dateTo) {
+        return ValidatedRequest.of(dateFrom, dateTo);
     }
 
-    /**
-     * Validate page size parameter.
-     */
+    public ValidatedRequest validateSearchRequest(final String dateFrom, final String dateTo, final String searchTerm) {
+        return ValidatedRequest.of(dateFrom, dateTo, searchTerm);
+    }
+
     public ValidationResult validatePageSize(final int size) {
+        if (size <= 0) {
+            return ValidationResult.failure("INVALID_PAGE_SIZE", "Page size must be positive");
+        }
         if (size > MAX_PAGE_SIZE) {
-            return ValidationResult.invalid(ERROR_INVALID_PAGE_SIZE, MSG_PAGE_SIZE_EXCEEDED);
+            return ValidationResult.failure("PAGE_SIZE_TOO_LARGE",
+                "Page size cannot exceed " + MAX_PAGE_SIZE);
         }
-        return ValidationResult.success();
+        return ValidationResult.valid();
     }
 
-    /**
-     * Parse and validate date parameter.
-     */
-    public ParsedDateResult parseDate(final String dateStr, final String fieldName) {
-        if (dateStr == null) {
-            return new ParsedDateResult(null, ValidationResult.success());
-        }
-
-        try {
-            Instant instant = Instant.parse(dateStr);
-            return new ParsedDateResult(instant, ValidationResult.success());
-        } catch (DateTimeParseException e) {
-            String errorCode = "dateFrom".equals(fieldName) ? ERROR_INVALID_DATE_FORMAT : ERROR_INVALID_DATE_FORMAT;
-            String errorMsg = "dateFrom".equals(fieldName) ? MSG_INVALID_DATE_FROM : MSG_INVALID_DATE_TO;
-            return new ParsedDateResult(null, ValidationResult.invalid(errorCode, errorMsg));
-        }
-    }
-
-    /**
-     * Validate date range.
-     */
     public ValidationResult validateDateRange(final Instant dateFrom, final Instant dateTo) {
+        if (dateFrom == null && dateTo == null) {
+            return ValidationResult.valid();
+        }
         if (dateFrom != null && dateTo != null && dateFrom.isAfter(dateTo)) {
-            return ValidationResult.invalid(ERROR_INVALID_DATE_RANGE, MSG_INVALID_DATE_RANGE);
+            return ValidationResult.failure("INVALID_DATE_RANGE",
+                "Date from must be before date to");
         }
-        return ValidationResult.success();
+        return ValidationResult.valid();
     }
 
-    /**
-     * Validate export format.
-     */
-    public ValidationResult validateExportFormat(final String formatStr) {
+    public ParsedDateResult parseDate(final String dateStr, final String fieldName) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return new ParsedDateResult(null, ValidationResult.valid());
+        }
         try {
-            AuditLogExportRequest.ExportFormat.valueOf(formatStr);
-            return ValidationResult.success();
-        } catch (IllegalArgumentException e) {
-            return ValidationResult.invalid(ERROR_INVALID_FORMAT, "Invalid export format: " + formatStr);
+            Instant parsed = Instant.parse(dateStr);
+            return new ParsedDateResult(parsed, ValidationResult.valid());
+        } catch (DateTimeParseException e) {
+            return new ParsedDateResult(null,
+                ValidationResult.failure("INVALID_DATE_FORMAT",
+                    "Invalid date format for " + fieldName));
         }
     }
 
-    /**
-     * Result of date parsing operation.
-     */
-    public record ParsedDateResult(Instant date, ValidationResult validation) { }
+    public record ParsedDateResult(Instant date, ValidationResult validation) {}
 }

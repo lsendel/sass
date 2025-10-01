@@ -1,6 +1,7 @@
 package com.platform.audit.api;
 
 import com.platform.audit.api.dto.AuditLogExportRequestDTO;
+import com.platform.audit.api.dto.ValidationResult;
 import com.platform.audit.internal.AuditRequestValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,32 +25,32 @@ import static com.platform.audit.internal.AuditConstants.MSG_USER_AUTH_REQUIRED;
 @Component
 public final class AuditControllerHelper {
 
-    public AuditRequestValidator.ValidationResult validateExportRequest(final AuditLogExportRequestDTO exportRequest) {
+    public ValidationResult validateExportRequest(final AuditLogExportRequestDTO exportRequest) {
         // Validate format
         try {
             com.platform.audit.internal.AuditLogExportRequest.ExportFormat.valueOf(exportRequest.format());
         } catch (IllegalArgumentException e) {
-            return AuditRequestValidator.ValidationResult.invalid("INVALID_FORMAT",
+            return ValidationResult.failure("INVALID_FORMAT",
                 "Invalid export format: " + exportRequest.format());
         }
 
         // Validate date range
         if (exportRequest.dateFrom() != null && exportRequest.dateTo() != null
                 && exportRequest.dateFrom().isAfter(exportRequest.dateTo())) {
-            return AuditRequestValidator.ValidationResult.invalid("INVALID_DATE_RANGE", "Date range is invalid");
+            return ValidationResult.failure("INVALID_DATE_RANGE", "Date range is invalid");
         }
 
         // Validate search text length
         if (exportRequest.search() != null && exportRequest.search().length() > 1000) {
-            return AuditRequestValidator.ValidationResult.invalid("SEARCH_TOO_LONG", "Search text too long");
+            return ValidationResult.failure("SEARCH_TOO_LONG", "Search text too long");
         }
 
-        return AuditRequestValidator.ValidationResult.success();
+        return ValidationResult.success();
     }
 
-    public ResponseEntity<?> createValidationErrorResponse(final AuditRequestValidator.ValidationResult validationResult) {
+    public ResponseEntity<?> createValidationErrorResponse(final ValidationResult validationResult) {
         return ResponseEntity.badRequest()
-            .body(createErrorResponse(validationResult.errorCode(), validationResult.errorMessage()));
+            .body(createErrorResponse(validationResult.getErrorCode(), validationResult.getFirstError()));
     }
 
     public ResponseEntity<?> createUnauthorizedResponse() {

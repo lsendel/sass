@@ -1,125 +1,55 @@
 package com.platform.audit.internal;
 
+import com.platform.audit.api.dto.ExportResponseDTO;
+import com.platform.audit.api.dto.ExportStatusResponseDTO;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
+
+import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Minimal implementation of audit log export service for TDD GREEN phase.
- * Provides basic structure that contract tests expect.
+ * Service for handling audit log export operations.
  */
 @Service
-public class AuditLogExportService {
-    
-    // Use the same enum as the entity for consistency
-    public enum ExportFormat {
-        CSV, JSON, PDF
+public final class AuditLogExportService {
+
+    public ExportResponseDTO requestExport(final String format, final UUID userId) {
+        // Basic mock implementation for startup
+        ExportResponseDTO response = new ExportResponseDTO(
+                UUID.randomUUID().toString(),
+                "PENDING"
+        );
+        response.setFormat("CSV");
+        return response;
     }
 
-    public static class ExportStatus {
-        private final UUID exportId;
-        private final String status;
-        private final double progressPercentage;
-        private final java.time.Instant createdAt;
-        private final java.time.Instant completedAt;
-        private final String downloadToken;
-        private final Long totalRecords;
-        private final String errorMessage;
-
-        public ExportStatus(final UUID exportId, final String status, final double progressPercentage,
-                          final java.time.Instant createdAt, final java.time.Instant completedAt,
-                          final String downloadToken, final Long totalRecords, final String errorMessage) {
-            this.exportId = exportId;
-            this.status = status;
-            this.progressPercentage = progressPercentage;
-            this.createdAt = createdAt;
-            this.completedAt = completedAt;
-            this.downloadToken = downloadToken;
-            this.totalRecords = totalRecords;
-            this.errorMessage = errorMessage;
-        }
-
-        public UUID exportId() { return exportId; }
-        public String status() { return status; }
-        public double progressPercentage() { return progressPercentage; }
-        public java.time.Instant createdAt() { return createdAt; }
-        public java.time.Instant completedAt() { return completedAt; }
-        public String downloadToken() { return downloadToken; }
-        public Long totalRecords() { return totalRecords; }
-        public String errorMessage() { return errorMessage; }
-    }
-
-    public static class ExportDownload {
-        private final String mimeType;
-        private final String filename;
-        private final Long fileSize;
-        private final org.springframework.core.io.Resource resource;
-
-        public ExportDownload(final String mimeType, final String filename, final Long fileSize, final org.springframework.core.io.Resource resource) {
-            this.mimeType = mimeType;
-            this.filename = filename;
-            this.fileSize = fileSize;
-            this.resource = resource;
-        }
-
-        public String mimeType() { return mimeType; }
-        public String filename() { return filename; }
-        public Long fileSize() { return fileSize; }
-        public org.springframework.core.io.Resource resource() { return resource; }
-    }
-
-    public static class ExportResponse {
-        private final UUID exportId;
-        private final String status;
-        private final String downloadUrl;
-        private final java.time.Instant requestedAt;
-        private final java.time.Instant estimatedCompletion;
-
-        public ExportResponse(UUID exportId, String status, String downloadUrl,
-                            java.time.Instant requestedAt, java.time.Instant estimatedCompletion) {
-            this.exportId = exportId;
-            this.status = status;
-            this.downloadUrl = downloadUrl;
-            this.requestedAt = requestedAt;
-            this.estimatedCompletion = estimatedCompletion;
-        }
-
-        public UUID getExportId() { return exportId; }
-        public UUID exportId() { return exportId; }
-        public String status() { return status; }
-        public String downloadUrl() { return downloadUrl; }
-        public java.time.Instant requestedAt() { return requestedAt; }
-        public java.time.Instant estimatedCompletion() { return estimatedCompletion; }
-    }
-
-    public ExportResponse requestExport(final UUID userId, final com.platform.audit.internal.AuditLogExportRequest.ExportFormat format, final AuditLogFilter filter) {
-        // Minimal implementation - return success response
-        UUID exportId = UUID.randomUUID();
-        return new ExportResponse(
-            exportId,
-            "ACCEPTED",
-            null,
-            java.time.Instant.now(),
-            java.time.Instant.now().plusSeconds(30)
+    public ExportStatusResponseDTO getExportStatus(final String exportId) {
+        // Basic mock implementation for startup
+        return new ExportStatusResponseDTO(
+                "sample-export-id",
+                "COMPLETED",
+                100,
+                Instant.parse("2025-10-01T12:00:00Z"),
+                Instant.parse("2025-10-01T12:30:00Z"),
+                "/api/audit/export/sample-token/download",
+                5000L,
+                null
         );
     }
 
-    public Optional<ExportStatus> getExportStatus(final UUID userId, final UUID exportId) {
-        // Minimal implementation - return fake completed status
-        return Optional.of(new ExportStatus(
-            exportId,
-            "COMPLETED",
-            100.0,
-            java.time.Instant.now().minusSeconds(30),
-            java.time.Instant.now(),
-            UUID.randomUUID().toString(),
-            0L,
-            null
-        ));
+    public ExportDownloadResponse getExportDownload(final String token) {
+        // Basic mock implementation for startup
+        return new ExportDownloadResponse(
+                "application/csv",
+                "audit_export.csv",
+                1024L,
+                null // Would be a Resource in real implementation
+        );
     }
 
-    public Optional<ExportDownload> getExportDownload(final String token) {
-        // Minimal implementation - return empty result
-        return Optional.empty();
+    /**
+     * Simple export download response record.
+     */
+    public record ExportDownloadResponse(String mimeType, String filename, long fileSize, Object resource) {
     }
 }
