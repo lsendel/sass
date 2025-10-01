@@ -1,5 +1,5 @@
 package com.platform.audit.api;
-import com.platform.config.TestBeanConfiguration;
+import com.platform.config.AuditTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@Import(TestBeanConfiguration.class)
+@Import(AuditTestConfiguration.class)
 @ActiveProfiles("test")
 @Transactional
 class AuditExportStatusContractTest {
