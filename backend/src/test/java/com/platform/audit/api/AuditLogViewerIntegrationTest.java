@@ -1,12 +1,12 @@
 package com.platform.audit.api;
 
 import com.platform.config.AuditTestConfiguration;
+import com.platform.config.WithMockUserPrincipal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,7 +27,12 @@ class AuditLogViewerIntegrationTest {
     private MockMvc mockMvc;
 
     @Test
-    @WithMockUser(username = "22222222-2222-2222-2222-222222222222", roles = "USER")
+    @WithMockUserPrincipal(
+            userId = "22222222-2222-2222-2222-222222222222",
+            organizationId = "11111111-1111-1111-1111-111111111111",
+            username = "testuser",
+            roles = {"USER"}
+    )
     void auditLogEndpointShouldExist() throws Exception {
         // This test verifies our endpoints exist and return responses
         mockMvc.perform(get("/api/audit/logs"))
@@ -35,7 +40,12 @@ class AuditLogViewerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "22222222-2222-2222-2222-222222222222", roles = "USER")
+    @WithMockUserPrincipal(
+            userId = "22222222-2222-2222-2222-222222222222",
+            organizationId = "11111111-1111-1111-1111-111111111111",
+            username = "testuser",
+            roles = {"USER"}
+    )
     void auditLogDetailEndpointShouldExist() throws Exception {
         // Test the detail endpoint
         String testId = "11111111-1111-1111-1111-111111111111";

@@ -11,24 +11,19 @@ import com.platform.audit.internal.AuditLogPermissionService;
 import com.platform.audit.internal.AuditRequestValidator;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
-
-import static org.mockito.Mockito.mock;
 
 /**
  * Test configuration that provides mocked beans for testing.
+ * Extends BaseTestConfiguration to inherit common infrastructure beans.
  * This configuration is activated when running tests to ensure
  * all required dependencies are available in the test context.
  */
 @TestConfiguration
 @Profile("test")
 @TestPropertySource("classpath:application-test.yml")
-public class TestBeanConfiguration {
+public class TestBeanConfiguration extends BaseTestConfiguration {
 
     @MockBean
     private AuditEventRepository auditEventRepository;
@@ -56,27 +51,4 @@ public class TestBeanConfiguration {
 
     @MockBean
     private AuditRequestValidator auditRequestValidator;
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * Provides a mock RedisConnectionFactory for tests.
-     * Since Redis is disabled in test configuration, we provide a mock to satisfy dependencies.
-     */
-    @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        return mock(RedisConnectionFactory.class);
-    }
-
-    /**
-     * Provides a simple CacheManager for tests.
-     * Uses ConcurrentMapCacheManager for in-memory caching.
-     */
-    @Bean
-    public org.springframework.cache.CacheManager cacheManager() {
-        return new org.springframework.cache.concurrent.ConcurrentMapCacheManager();
-    }
 }

@@ -17,7 +17,7 @@ import java.time.Instant;
  * @since 1.0.0
  */
 @Service
-public final class AuthenticationService {
+public class AuthenticationService {
 
         private static final int MAX_LOGIN_ATTEMPTS = 5;
         private static final long LOCK_DURATION_MINUTES = 30;
