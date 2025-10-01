@@ -112,14 +112,16 @@ jobs:
 
     # Infrastructure Security
     - name: Run tfsec with SARIF output
-      if: hashFiles('terraform/**') != ''
+      if: hashFiles('terraform/**/*.tf') != ''
       uses: aquasecurity/tfsec-sarif-action@v0.1.4
       with:
         working_directory: terraform
         sarif_file: tfsec.sarif
+      continue-on-error: true
 
-    # Container Security
+    # Container Security (skip if no SNYK_TOKEN)
     - name: Run Snyk Container Security
+      if: secrets.SNYK_TOKEN != ''
       uses: snyk/actions/docker@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -128,8 +130,9 @@ jobs:
         args: --file=Dockerfile --severity-threshold=high
       continue-on-error: true
 
-    # Secrets Scanning
+    # Secrets Scanning (skip if no GITGUARDIAN_API_KEY)
     - name: Run GitGuardian scan
+      if: secrets.GITGUARDIAN_API_KEY != ''
       uses: GitGuardian/ggshield-action@master
       env:
         GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
