@@ -8,10 +8,10 @@ import { toast } from 'react-hot-toast';
 import { useCreateTaskMutation } from '../../store/api/projectManagementApi';
 import { TaskStatus } from '../../types/project';
 import { Modal } from '../ui/Modal';
-import { Input } from '../ui/Input';
+import { Input } from '../ui/input';
 import { TextArea } from '../ui/TextArea';
 import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
+import { Button } from '../ui/button';
 import { Badge } from '../ui/Badge';
 
 interface CreateTaskModalProps {

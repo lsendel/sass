@@ -6,9 +6,9 @@ import { Loader2, Save } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { useCreateProjectMutation } from '../../store/api/projectManagementApi';
-import { Button } from '../ui/Button';
+import { Button } from '../ui/button';
 import { Modal } from '../ui/Modal';
-import { Input } from '../ui/Input';
+import { Input } from '../ui/input';
 import { TextArea } from '../ui/TextArea';
 import { Select } from '../ui/Select';
 
@@ -32,15 +32,11 @@ const createProjectSchema = z.object({
     .optional(),
   color: z
     .string()
-    .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid color format')
-    .default('#2563eb'),
+    .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid color format'),
   template: z
-    .string()
-    .optional()
-    .default('default'),
+    .string(),
   privacy: z
-    .enum(['PRIVATE', 'WORKSPACE', 'PUBLIC'])
-    .default('WORKSPACE'),
+    .enum(['PRIVATE', 'WORKSPACE', 'PUBLIC']),
   startDate: z
     .string()
     .optional(),
@@ -140,8 +136,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     try {
       await createProject({
         workspaceId,
-        ...data,
+        name: data.name,
         slug: generateSlug(data.name),
+        description: data.description,
       }).unwrap();
 
       toast.success('Project created successfully!');

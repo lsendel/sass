@@ -1,6 +1,14 @@
 package com.platform.auth;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
+import jakarta.persistence.PreUpdate;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,6 +21,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "auth_users")
 public class User {
+
+    private static final int SECONDS_PER_MINUTE = 60;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -111,7 +121,7 @@ public class User {
         this.failedLoginAttempts++;
         if (this.failedLoginAttempts >= maxAttempts) {
             this.status = UserStatus.LOCKED;
-            this.lockedUntil = Instant.now().plusSeconds(lockDurationMinutes * 60);
+            this.lockedUntil = Instant.now().plusSeconds(lockDurationMinutes * SECONDS_PER_MINUTE);
         }
     }
 

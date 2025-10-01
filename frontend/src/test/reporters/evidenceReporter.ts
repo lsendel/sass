@@ -4,8 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 import type { Reporter, File, Task } from 'vitest';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 interface TestSummary {
   testRunId: string;
   startTime: string;
@@ -162,8 +160,8 @@ export default class EvidenceReporter implements Reporter {
         else if (task.mode === 'skip') skipped++;
       }
 
-      if (task.tasks) {
-        const subCounts = this.countTests(task.tasks);
+      if ('tasks' in task && Array.isArray((task as any).tasks)) {
+        const subCounts = this.countTests((task as any).tasks);
         total += subCounts.total;
         passed += subCounts.passed;
         failed += subCounts.failed;

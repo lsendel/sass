@@ -15,7 +15,7 @@ import { toast } from 'react-hot-toast';
 
 import { useGetTaskQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
 import { Modal } from '../ui/Modal';
-import { Button } from '../ui/Button';
+import { Button } from '../ui/button';
 import { Badge } from '../ui/Badge';
 import { Avatar } from '../ui/Avatar';
 import { LoadingSpinner } from '../ui/LoadingSpinner';

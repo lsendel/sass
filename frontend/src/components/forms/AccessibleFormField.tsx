@@ -145,9 +145,9 @@ export const EmailField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   autoComplete?: string
-}> = ({ placeholder = "you@example.com", autoComplete = "email", ...props }) => (
+}> = ({ placeholder = "you@example.com", autoComplete = "email", helpText, ...props }) => (
   <AccessibleFormField
-    helpText="We'll never share your email with anyone else"
+    helpText={helpText || "We'll never share your email with anyone else"}
     {...props}
   >
     <input
@@ -170,13 +170,14 @@ export const PasswordField: React.FC<Omit<AccessibleFormFieldProps, 'children'> 
   placeholder = "Enter your password",
   autoComplete = "current-password",
   showToggle = false,
+  helpText,
   ...props
 }) => {
   const [showPassword, setShowPassword] = React.useState(false)
 
   return (
     <AccessibleFormField
-      helpText="Password must be at least 8 characters long"
+      helpText={helpText || "Password must be at least 8 characters long"}
       {...props}
     >
       <div className="relative">

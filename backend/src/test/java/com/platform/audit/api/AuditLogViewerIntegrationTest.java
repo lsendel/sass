@@ -3,7 +3,7 @@ package com.platform.audit.api;
 import com.platform.config.AuditTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Uses Spring Boot test with H2 in-memory database.
  */
 @SpringBootTest
-@AutoConfigureWebMvc
+@AutoConfigureMockMvc
 @Import({AuditTestConfiguration.class, com.platform.config.TestSecurityConfig.class})
 @ActiveProfiles("integration-test")
 class AuditLogViewerIntegrationTest {

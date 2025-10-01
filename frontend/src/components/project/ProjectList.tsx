@@ -4,9 +4,9 @@ import { Plus, Calendar, Users, ArrowRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 import { useGetProjectsQuery } from '../../store/api/projectManagementApi';
-import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import LoadingSpinner from '../ui/LoadingSpinner';
 import { EmptyState } from '../ui/EmptyState';
 
 import { CreateProjectModal } from './CreateProjectModal';
@@ -30,12 +30,12 @@ interface ProjectListProps {
  */
 export const ProjectList: React.FC<ProjectListProps> = ({ workspaceId }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { 
-    data: projects, 
-    error, 
+  const {
+    data: projectsResponse,
+    error,
     isLoading,
-    refetch 
-  } = useGetProjectsQuery(workspaceId);
+    refetch
+  } = useGetProjectsQuery({ workspaceId });
 
   const handleProjectCreated = () => {
     setIsCreateModalOpen(false);
@@ -68,6 +68,8 @@ export const ProjectList: React.FC<ProjectListProps> = ({ workspaceId }) => {
       </Card>
     );
   }
+
+  const projects = projectsResponse?.content || [];
 
   if (!projects || projects.length === 0) {
     return (

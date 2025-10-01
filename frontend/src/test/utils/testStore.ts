@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import type { Api, Middleware, Reducer } from '@reduxjs/toolkit/query/react';
+import type { Api } from '@reduxjs/toolkit/query/react';
+import type { Middleware, Reducer } from '@reduxjs/toolkit';
 
 import authReducer from '../../store/slices/authSlice';
 import type { RootState } from '../../store';
@@ -89,15 +90,19 @@ export const createAuthenticatedApiTestStore = <
   const defaultUser = user || {
     id: 'test-user-1',
     email: 'test@example.com',
-    name: 'Test User',
-    role: 'USER',
+    role: 'USER' as const,
+    emailVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   return createApiTestStore(api, {
     auth: {
       user: defaultUser,
       isAuthenticated: true,
-      token: user?.token,
+      token: (user?.token as string) || null,
+      isLoading: false,
+      error: null,
     },
   });
 };

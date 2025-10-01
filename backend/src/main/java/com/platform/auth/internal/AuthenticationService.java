@@ -17,82 +17,82 @@ import java.time.Instant;
  * @since 1.0.0
  */
 @Service
-public class AuthenticationService {
+public final class AuthenticationService {
 
-    private static final int MAX_LOGIN_ATTEMPTS = 5;
-    private static final long LOCK_DURATION_MINUTES = 30;
+        private static final int MAX_LOGIN_ATTEMPTS = 5;
+        private static final long LOCK_DURATION_MINUTES = 30;
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final OpaqueTokenService tokenService;
-    private final ApplicationEventPublisher eventPublisher;
+        private final UserRepository userRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final OpaqueTokenService tokenService;
+        private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * Constructor with dependency injection.
-     */
-    public AuthenticationService(
-            final UserRepository userRepository,
-            final PasswordEncoder passwordEncoder,
-            final OpaqueTokenService tokenService,
-            final ApplicationEventPublisher eventPublisher) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.tokenService = tokenService;
-        this.eventPublisher = eventPublisher;
-    }
-
-    /**
-     * Authenticates a user with email and password.
-     * Generates an opaque token on successful authentication.
-     *
-     * @param email the user's email
-     * @param password the user's password (plain text)
-     * @return an opaque authentication token
-     * @throws ValidationException if credentials are invalid or account is locked
-     */
-    @Transactional
-    public String authenticate(final String email, final String password) {
-        final User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new ValidationException("Invalid credentials"));
-
-        // Check if account is locked
-        if (user.isLocked()) {
-            throw new ValidationException(
-                "Account is temporarily locked. Please try again later."
-            );
+        /**
+         * Constructor with dependency injection.
+         */
+        public AuthenticationService(
+                final UserRepository userRepository,
+                final PasswordEncoder passwordEncoder,
+                final OpaqueTokenService tokenService,
+                final ApplicationEventPublisher eventPublisher) {
+                this.userRepository = userRepository;
+                this.passwordEncoder = passwordEncoder;
+                this.tokenService = tokenService;
+                this.eventPublisher = eventPublisher;
         }
 
-        // Check if account is active
-        if (!user.isActive() && user.getStatus() != User.UserStatus.PENDING_VERIFICATION) {
-            throw new ValidationException("Account is not active");
+        /**
+         * Authenticates a user with email and password.
+         * Generates an opaque token on successful authentication.
+         *
+         * @param email the user's email
+         * @param password the user's password (plain text)
+         * @return an opaque authentication token
+         * @throws ValidationException if credentials are invalid or account is locked
+         */
+        @Transactional
+        public String authenticate(final String email, final String password) {
+                final User user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new ValidationException("Invalid credentials"));
+
+                // Check if account is locked
+                if (user.isLocked()) {
+                        throw new ValidationException(
+                                "Account is temporarily locked. Please try again later."
+                        );
+                }
+
+                // Check if account is active
+                if (!user.isActive() && user.getStatus() != User.UserStatus.PENDING_VERIFICATION) {
+                        throw new ValidationException("Account is not active");
+                }
+
+                // Verify password
+                if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+                        handleFailedLogin(user);
+                        throw new ValidationException("Invalid credentials");
+                }
+
+                // Auto-verify on first successful login if pending
+                if (user.getStatus() == User.UserStatus.PENDING_VERIFICATION) {
+                        user.verify();
+                }
+
+                // Reset failed attempts on successful login
+                resetFailedAttempts(user);
+
+                // Generate token
+                final String token = tokenService.generateToken(user);
+
+                // Publish authentication event for audit logging
+                eventPublisher.publishEvent(new UserAuthenticatedEvent(
+                        user.getId(),
+                        user.getEmail(),
+                        Instant.now()
+                ));
+
+                return token;
         }
-
-        // Verify password
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            handleFailedLogin(user);
-            throw new ValidationException("Invalid credentials");
-        }
-
-        // Auto-verify on first successful login if pending
-        if (user.getStatus() == User.UserStatus.PENDING_VERIFICATION) {
-            user.verify();
-        }
-
-        // Reset failed attempts on successful login
-        resetFailedAttempts(user);
-
-        // Generate token
-        final String token = tokenService.generateToken(user);
-
-        // Publish authentication event for audit logging
-        eventPublisher.publishEvent(new UserAuthenticatedEvent(
-            user.getId(),
-            user.getEmail(),
-            Instant.now()
-        ));
-
-        return token;
-    }
 
     /**
      * Revokes a user's authentication token (logout).

@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { useGetProjectQuery } from '../../store/api/projectManagementApi';
 import { KanbanBoard } from '../../components/task/KanbanBoard';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/Badge';
 
 /**

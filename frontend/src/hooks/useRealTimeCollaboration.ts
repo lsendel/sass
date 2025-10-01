@@ -88,7 +88,6 @@ export function usePresence(): {
   updateCursor: (position: { x: number; y: number }) => void
   setStatus: (status: PresenceData['status']) => void
   isConnected: boolean
-}
 } {
   const [onlineUsers, setOnlineUsers] = useState<PresenceData[]>([])
   const [currentUser, setCurrentUser] = useState<PresenceData | null>(null)
@@ -269,7 +268,7 @@ export function useCollaborativeCursors(): {
 } {
   const [cursors, setCursors] = useState<any[]>([])
   const { onlineUsers, updateCursor: updatePresenceCursor } = usePresence()
-  const throttleRef = useRef<NodeJS.Timeout>()
+  const throttleRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Generate colors for users
   const getUserColor = useCallback((userId: string): string => {

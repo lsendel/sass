@@ -45,6 +45,10 @@ spring:
     console:
       enabled: false
 
+  # Allow bean definition overriding for test configurations
+  main:
+    allow-bean-definition-overriding: true
+
 # Server Configuration
 server:
   port: 0

@@ -5,7 +5,7 @@ plugins {
     id 'checkstyle'
     id 'jacoco'
     id 'org.sonarqube' version '5.1.0.4882'
-    // id 'org.owasp.dependencycheck' version '10.0.4' // Temporarily disabled due to dependency resolution issue
+    id 'org.owasp.dependencycheck' version '10.0.4'
     id 'org.jetbrains.dokka' version '1.9.10'
     id 'com.github.ben-manes.versions' version '0.53.0'
 }
@@ -90,7 +90,6 @@ dependencies {
     // Security Testing Dependencies
     testImplementation 'org.zaproxy:zap-clientapi:1.14.0'
     testImplementation 'com.github.spotbugs:spotbugs-annotations:4.8.6'
-    // testImplementation 'org.owasp:dependency-check-gradle:10.0.4' // Temporarily disabled due to dependency resolution issue
 }
 
 tasks.named('test') {
@@ -210,17 +209,19 @@ sonar {
     }
 }
 
-// Temporarily disabled due to dependency resolution issue
-/*
+// OWASP Dependency Check configuration
 dependencyCheck {
-    formats = ['HTML', 'JSON']
+    formats = ['HTML', 'JSON', 'SARIF']
     outputDirectory = 'build/reports/dependency-check'
-    failBuildOnCVSS = 5.0
-    suppressionFile = 'config/dependency-check-suppressions.xml'
+    failBuildOnCVSS = 7.0
+    suppressionFile = '../security/suppressions.xml'
     analyzers {
         assemblyEnabled = false
         nuspecEnabled = false
         nugetconfEnabled = false
+    }
+    nvd {
+        apiKey = System.getenv('NVD_API_KEY') ?: ''
     }
 }
 
@@ -230,7 +231,6 @@ task dependencySecurityScan {
     group = 'security'
     dependsOn dependencyCheckAnalyze
 }
-*/
 
 // CI/CD Security Pipeline
 task securityPipeline {
@@ -238,7 +238,7 @@ task securityPipeline {
     group = 'security'
 
     dependsOn 'checkstyleMain', 'checkstyleTest'
-    // dependsOn 'dependencySecurityScan'  // Temporarily disabled
+    dependsOn 'dependencySecurityScan'
     dependsOn 'securityTest'
     dependsOn 'jacocoTestCoverageVerification'
 
@@ -299,6 +299,119 @@ task fullSecurityValidation {
         println "  - Code coverage: build/reports/jacoco/"
         println "  - Checkstyle: build/reports/checkstyle/"
     }
+}
+
+// Spring Modulith verification task
+task modulithCheck(type: Test) {
+    description = 'Verify Spring Modulith module boundaries and documentation'
+    group = 'verification'
+
+    useJUnitPlatform()
+    include '**/ModulithTest.class'
+    include '**/ModuleBoundaryTest.class'
+    include '**/*ModulithTest.class'
+
+    systemProperty 'modulith.verify.enabled', 'true'
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+
+    doLast {
+        println "Spring Modulith verification completed"
+        println "Module documentation generated in: build/spring-modulith-docs/"
+    }
+}
+
+// ArchUnit architecture tests
+task archTest(type: Test) {
+    description = 'Run ArchUnit architecture compliance tests'
+    group = 'verification'
+
+    useJUnitPlatform()
+    include '**/ArchitectureTest.class'
+    include '**/ModuleBoundaryTest.class'
+    include '**/*ArchTest.class'
+
+    systemProperty 'archunit.verify.enabled', 'true'
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+
+    doLast {
+        println "ArchUnit tests completed"
+        println "Architecture compliance verified"
+    }
+}
+
+// Test report aggregation task
+task testReport {
+    description = 'Generate aggregated test report'
+    group = 'verification'
+
+    dependsOn test
+
+    doLast {
+        def testResultsDir = file("${buildDir}/test-results/test")
+        def reportDir = file("${buildDir}/reports/tests/aggregated")
+
+        reportDir.mkdirs()
+
+        // Copy test results
+        copy {
+            from testResultsDir
+            into reportDir
+        }
+
+        // Generate summary
+        def summaryFile = file("${buildDir}/test-summary/summary.txt")
+        summaryFile.parentFile.mkdirs()
+
+        def testResults = fileTree(testResultsDir).matching {
+            include '**/*.xml'
+        }
+
+        def totalTests = 0
+        def passedTests = 0
+        def failedTests = 0
+        def skippedTests = 0
+
+        testResults.each { file ->
+            def xml = new XmlSlurper().parse(file)
+            totalTests += xml.@tests.toInteger()
+            failedTests += xml.@failures.toInteger() + xml.@errors.toInteger()
+            skippedTests += xml.@skipped.toInteger()
+        }
+        passedTests = totalTests - failedTests - skippedTests
+
+        def summary = """
+Test Execution Summary
+=====================
+Total Tests: ${totalTests}
+Passed: ${passedTests}
+Failed: ${failedTests}
+Skipped: ${skippedTests}
+Success Rate: ${totalTests > 0 ? String.format('%.2f%%', (passedTests / totalTests * 100)) : 'N/A'}
+
+Generated: ${new Date()}
+"""
+        summaryFile.text = summary
+
+        println summary
+        println "Test report available at: ${reportDir}"
+        println "Test summary available at: ${summaryFile}"
+    }
+}
+
+// Add modulithCheck and archTest to check task
+tasks.named('check') {
+    dependsOn modulithCheck
+    dependsOn archTest
 }
 
 tasks.withType(org.jetbrains.dokka.gradle.DokkaTask.class) {

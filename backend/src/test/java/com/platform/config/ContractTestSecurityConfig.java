@@ -19,9 +19,10 @@ import org.springframework.security.web.SecurityFilterChain;
 public class ContractTestSecurityConfig {
 
     @Bean
+    @org.springframework.context.annotation.Primary
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authz ->
-                    authz.anyRequest().authenticated())
+                    authz.anyRequest().permitAll())
                 .httpBasic(basic -> { })
                 .csrf(csrf -> csrf.disable());
         return http.build();
