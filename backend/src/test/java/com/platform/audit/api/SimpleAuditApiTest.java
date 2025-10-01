@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Simple test to verify our test infrastructure works.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
+    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration"
+})
 @ActiveProfiles("test")
 @Import(TestBeanConfiguration.class)
 class SimpleAuditApiTest {

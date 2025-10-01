@@ -13,9 +13,12 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Test configuration that provides mocked beans for testing.
@@ -57,5 +60,14 @@ public class TestBeanConfiguration {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Provides a mock RedisConnectionFactory for tests.
+     * Since Redis is disabled in test configuration, we provide a mock to satisfy dependencies.
+     */
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        return mock(RedisConnectionFactory.class);
     }
 }
