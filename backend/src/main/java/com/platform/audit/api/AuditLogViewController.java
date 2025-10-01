@@ -168,20 +168,8 @@ public class AuditLogViewController {
      * Get current authenticated user ID.
      */
     private UUID getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-
-        // TODO: Extract user ID from authentication principal
-        // This is a placeholder implementation
-        String principal = authentication.getName();
-        try {
-            return UUID.fromString(principal);
-        } catch (IllegalArgumentException e) {
-            LOG.warn("Could not parse user ID from authentication principal: {}", principal);
-            return null;
-        }
+        return com.platform.shared.security.SecurityUtils.getCurrentUserId()
+                .orElse(null);
     }
 
     /**

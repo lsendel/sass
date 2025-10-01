@@ -11,11 +11,11 @@ import jakarta.validation.constraints.NotBlank;
  * @since 1.0.0
  */
 public record LoginRequest(
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    String email,
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        String email,
 
-    @NotBlank(message = "Password is required")
-    String password
+        @NotBlank(message = "Password is required")
+        String password
 ) {
 }

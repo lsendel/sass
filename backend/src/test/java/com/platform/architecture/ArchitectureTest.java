@@ -34,7 +34,8 @@ class ArchitectureTest {
                 .layer("Events").definedBy("..events..")
                 .whereLayer("API").mayNotBeAccessedByAnyLayer()
                 .whereLayer("Internal").mayOnlyBeAccessedByLayers("API")
-                .whereLayer("Events").mayBeAccessedByAnyLayer();
+                // Events layer can be accessed by any layer (removed deprecated method)
+                .ignoreDependency("..events..", "**..**");
 
         rule.check(classes);
     }

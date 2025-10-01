@@ -1,7 +1,10 @@
 package com.platform.audit.internal;
 
+import com.platform.user.UserProfile;
+import com.platform.user.internal.UserProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -22,30 +25,69 @@ public class AuditLogPermissionService {
     private static final int RETENTION_DAYS_FULL = 365;
     private static final int RETENTION_DAYS_LIMITED = 90;
 
-    // For now, we'll use simple permission logic
-    // In a real implementation, this would integrate with the user/role service
+    private final UserProfileService userProfileService;
+
+    public AuditLogPermissionService(final UserProfileService userProfileService) {
+        this.userProfileService = userProfileService;
+    }
 
     /**
      * Get audit permissions for a user.
+     * Results are cached for improved performance.
      *
      * @param userId the user to check permissions for
      * @return user's audit permissions
      */
+    @Cacheable(value = "auditPermissions", key = "#userId")
     public UserAuditPermissions getUserAuditPermissions(final UUID userId) {
-        // FIXME: Implement actual permission checking
-        // This would typically:
-        // 1. Query user service to get user's organization and roles
-        // 2. Check role permissions against audit log viewing capabilities
-        // 3. Determine data sensitivity levels user can access
+        LOG.debug("Computing audit permissions for user: {}", userId);
 
-        // For TDD approach, returning basic permissions to make tests pass
-        return new UserAuditPermissions(
-            generateOrganizationId(userId), // User's organization
-            true,  // canViewAuditLogs - basic permission
-            false, // canViewSystemActions - admin only
-            false, // canViewSensitiveData - admin/security role only
-            false  // canViewTechnicalData - admin/security role only
-        );
+        try {
+            // Query user service to get user's organization and roles
+            final UserProfile userProfile = userProfileService.findById(userId);
+            final UUID organizationId = userProfile.getOrganization().getId();
+            final UserProfile.UserRole userRole = userProfile.getRole();
+
+            // Map role to permissions
+            return mapRoleToPermissions(organizationId, userRole);
+
+        } catch (Exception e) {
+            LOG.error("Error fetching user profile for permission check: {}", userId, e);
+            // Fall back to minimal permissions on error
+            return UserAuditPermissions.basicUser(UUID.randomUUID());
+        }
+    }
+
+    /**
+     * Map user role to audit permissions.
+     *
+     * @param organizationId the user's organization
+     * @param role the user's role
+     * @return mapped permissions
+     */
+    private UserAuditPermissions mapRoleToPermissions(
+            final UUID organizationId,
+            final UserProfile.UserRole role) {
+
+        return switch (role) {
+            case OWNER, ADMIN ->
+                    // Admins and owners have full audit access
+                    UserAuditPermissions.admin(organizationId);
+
+            case MEMBER ->
+                    // Regular members can view basic logs
+                    UserAuditPermissions.basicUser(organizationId);
+
+            case GUEST ->
+                    // Guests have minimal access
+                    new UserAuditPermissions(
+                            organizationId,
+                            false,  // Cannot view audit logs
+                            false,  // Cannot view system actions
+                            false,  // Cannot view sensitive data
+                            false   // Cannot view technical data
+                    );
+        };
     }
 
     /**
@@ -141,13 +183,6 @@ public class AuditLogPermissionService {
         }
     }
 
-    // Helper method to generate organization ID for testing
-    // In real implementation, this would be retrieved from user service
-    private UUID generateOrganizationId(UUID userId) {
-        // For testing, derive organization from user ID
-        // In production, this would come from user lookup
-        return UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
-    }
 
     /**
      * Record class representing comprehensive user audit permissions.

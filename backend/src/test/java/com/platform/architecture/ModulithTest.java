@@ -36,7 +36,8 @@ class ModulithTest {
         modules.forEach(module -> {
             System.out.println("Module: " + module.getName());
             System.out.println("  Base Package: " + module.getBasePackage());
-            System.out.println("  Dependencies: " + module.getDependencies());
+            // Dependencies require ApplicationModules parameter in newer versions
+            System.out.println("  Dependencies: " + module.getDependencies(modules));
         });
     }
 }

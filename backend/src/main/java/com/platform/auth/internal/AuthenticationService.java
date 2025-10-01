@@ -94,35 +94,35 @@ public final class AuthenticationService {
                 return token;
         }
 
-    /**
-     * Revokes a user's authentication token (logout).
-     *
-     * @param token the token to revoke
-     */
-    @Transactional(readOnly = true)
-    public void revokeToken(final String token) {
-        tokenService.revokeToken(token);
-    }
-
-    /**
-     * Handles a failed login attempt by incrementing counter and locking if necessary.
-     *
-     * @param user the user who failed to authenticate
-     */
-    private void handleFailedLogin(final User user) {
-        user.recordFailedLogin(MAX_LOGIN_ATTEMPTS, LOCK_DURATION_MINUTES);
-        userRepository.save(user);
-    }
-
-    /**
-     * Resets failed login attempts after successful authentication.
-     *
-     * @param user the user who successfully authenticated
-     */
-    private void resetFailedAttempts(final User user) {
-        if (user.getFailedLoginAttempts() > 0) {
-            user.resetFailedAttempts();
-            userRepository.save(user);
+        /**
+         * Revokes a user's authentication token (logout).
+         *
+         * @param token the token to revoke
+         */
+        @Transactional(readOnly = true)
+        public void revokeToken(final String token) {
+                tokenService.revokeToken(token);
         }
-    }
+
+        /**
+         * Handles a failed login attempt by incrementing counter and locking if necessary.
+         *
+         * @param user the user who failed to authenticate
+         */
+        private void handleFailedLogin(final User user) {
+                user.recordFailedLogin(MAX_LOGIN_ATTEMPTS, LOCK_DURATION_MINUTES);
+                userRepository.save(user);
+        }
+
+        /**
+         * Resets failed login attempts after successful authentication.
+         *
+         * @param user the user who successfully authenticated
+         */
+        private void resetFailedAttempts(final User user) {
+                if (user.getFailedLoginAttempts() > 0) {
+                        user.resetFailedAttempts();
+                        userRepository.save(user);
+                }
+        }
 }

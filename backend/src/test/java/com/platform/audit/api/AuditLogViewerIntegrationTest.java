@@ -27,7 +27,7 @@ class AuditLogViewerIntegrationTest {
     private MockMvc mockMvc;
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(username = "22222222-2222-2222-2222-222222222222", roles = "USER")
     void auditLogEndpointShouldExist() throws Exception {
         // This test verifies our endpoints exist and return responses
         mockMvc.perform(get("/api/audit/logs"))
@@ -35,7 +35,7 @@ class AuditLogViewerIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(username = "22222222-2222-2222-2222-222222222222", roles = "USER")
     void auditLogDetailEndpointShouldExist() throws Exception {
         // Test the detail endpoint
         String testId = "11111111-1111-1111-1111-111111111111";

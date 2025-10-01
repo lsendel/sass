@@ -40,12 +40,18 @@ public class AuditTestConfiguration {
         // Configure default validation results to avoid NullPointerException
         AuditRequestValidator.ValidationResult validResult =
             new AuditRequestValidator.ValidationResult(true, null, null);
+        AuditRequestValidator.ParsedDateResult parsedDateResult =
+            new AuditRequestValidator.ParsedDateResult(null, validResult);
+
         Mockito.when(validator.validatePageSize(Mockito.anyInt()))
             .thenReturn(validResult);
         Mockito.when(validator.validateDateRange(Mockito.any(), Mockito.any()))
             .thenReturn(validResult);
         Mockito.when(validator.validateExportFormat(Mockito.anyString()))
             .thenReturn(validResult);
+        Mockito.when(validator.parseDate(Mockito.anyString(), Mockito.anyString()))
+            .thenReturn(parsedDateResult);
+
         return validator;
     }
 
