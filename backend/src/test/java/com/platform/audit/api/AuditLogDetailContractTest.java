@@ -1,13 +1,15 @@
 package com.platform.audit.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.config.TestBeanConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,12 +26,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * CRITICAL: These tests MUST FAIL initially as part of TDD RED phase.
  * Implementation should only be created after these tests are written and failing.
  */
-@SpringBootTest
-@AutoConfigureWebMvc
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@Import(TestBeanConfiguration.class)
+@ActiveProfiles("test")
 @Transactional
 class AuditLogDetailContractTest {
 

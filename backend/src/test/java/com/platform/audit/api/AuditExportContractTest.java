@@ -3,8 +3,7 @@ package com.platform.audit.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -20,10 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * TDD GREEN PHASE: These tests validate the controller behavior.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = AuditLogViewController.class)
 @Import(TestConfig.class)
-@ActiveProfiles("test-slice")
+@ActiveProfiles("test")
 class AuditExportContractTest {
 
     private static final int MAX_SEARCH_TEXT_LENGTH = 300;
