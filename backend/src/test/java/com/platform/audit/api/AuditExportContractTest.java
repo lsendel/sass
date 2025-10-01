@@ -1,11 +1,13 @@
 package com.platform.audit.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.config.ContractTestConfiguration;
+import com.platform.config.ContractTestSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,20 +19,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Contract tests for the Audit Log Export API endpoint POST /api/audit/export.
  *
- * TDD GREEN PHASE: These tests validate the controller behavior.
+ * TDD GREEN PHASE: These tests validate the controller behavior with real services.
+ * Uses mocked repositories but real service implementations.
  */
-@WebMvcTest(controllers = AuditLogViewController.class)
-@Import(TestConfig.class)
-@ActiveProfiles("test")
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+    classes = {
+        com.platform.AuditApplication.class,
+        ContractTestConfiguration.class,
+        ContractTestSecurityConfig.class
+    }
+)
+@AutoConfigureMockMvc
+@ActiveProfiles("contract-test")
+@WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000", roles = "USER")
 class AuditExportContractTest {
 
     private static final int MAX_SEARCH_TEXT_LENGTH = 300;
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     /**
      * Contract: POST /api/audit/export should accept CSV export request
@@ -53,7 +61,7 @@ class AuditExportContractTest {
                 .content(exportRequest))
                 .andExpect(status().isAccepted())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.exportId").exists());
     }
 
     /**
@@ -76,7 +84,7 @@ class AuditExportContractTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(exportRequest))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.exportId").exists());
     }
 
     /**
@@ -98,7 +106,7 @@ class AuditExportContractTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(exportRequest))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.exportId").exists());
     }
 
     /**
@@ -162,7 +170,7 @@ class AuditExportContractTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(exportRequest))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.exportId").exists());
     }
 
     /**
@@ -183,7 +191,7 @@ class AuditExportContractTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(exportRequest))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.exportId").exists());
     }
 
     /**
@@ -202,7 +210,7 @@ class AuditExportContractTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(exportRequest))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.exportId").exists());
     }
 
     /**

@@ -1,6 +1,5 @@
 package com.platform.audit.api;
 
-import com.platform.audit.api.dto.AuditLogDetailDTO;
 import com.platform.audit.api.dto.AuditLogEntryDTO;
 import com.platform.audit.api.dto.AuditLogExportRequestDTO;
 import com.platform.audit.api.dto.AuditLogResponseDTO;

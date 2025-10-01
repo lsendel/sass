@@ -1,6 +1,4 @@
 package com.platform.audit.api;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.config.TestBeanConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +34,6 @@ class AuditExportStatusContractTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     private static final UUID SAMPLE_EXPORT_ID = UUID.fromString("660e8400-e29b-41d4-a716-446655440000");
 
