@@ -49,8 +49,9 @@ export class EvidenceCollector {
         status: response.status(),
         statusText: response.statusText(),
         headers: response.headers(),
-        fromCache: response.fromCache(),
-        fromServiceWorker: response.fromServiceWorker(),
+        // Note: fromCache and fromServiceWorker methods don't exist in current Playwright version
+        // fromCache: response.fromCache(),
+        // fromServiceWorker: response.fromServiceWorker(),
       })
     })
 

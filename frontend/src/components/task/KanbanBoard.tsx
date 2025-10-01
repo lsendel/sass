@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Plus, MoreHorizontal, Filter } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
 import { useGetTasksQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
 import { Task, TaskStatus } from '../../types/project';
+import { Button } from '../ui/Button';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+
 import { TaskCard } from './TaskCard';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskDetailModal } from './TaskDetailModal';
-import { Button } from '../ui/Button';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { Plus, MoreHorizontal, Filter } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface KanbanBoardProps {
   projectId: string;
@@ -22,7 +24,7 @@ interface Column {
   tasks: Task[];
 }
 
-const DEFAULT_COLUMNS: Omit<Column, 'tasks'>[] = [
+const DEFAULT_COLUMNS: Array<Omit<Column, 'tasks'>> = [
   { id: 'TODO', title: 'To Do', color: 'bg-gray-100' },
   { id: 'IN_PROGRESS', title: 'In Progress', color: 'bg-blue-100' },
   { id: 'REVIEW', title: 'Review', color: 'bg-yellow-100' },

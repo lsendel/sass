@@ -1,5 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+// API base URL configuration
+// Note: Audit API is at /api/audit (not /api/v1/audit like other APIs)
+const API_BASE_URL = import.meta.env.VITE_AUDIT_API_BASE_URL || 'http://localhost:3000';
+
 // Types for the audit log API
 export interface AuditLogEntry {
   id: string;
@@ -71,7 +75,7 @@ export interface ExportStatusResponse extends ExportResponse {
 export const auditApi = createApi({
   reducerPath: 'auditApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api/audit',
+    baseUrl: `${API_BASE_URL}/api/audit`,
     credentials: 'include', // Include session cookies
   }),
   tagTypes: ['AuditLog', 'Export'],

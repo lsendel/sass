@@ -1,6 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
+
 import type { AuditLogResponse, AuditLogEntry } from '../../store/api/auditApi';
 
 interface AuditLogTableProps {

@@ -1,32 +1,56 @@
 import { chromium, FullConfig } from '@playwright/test'
 
 /**
+ * Wait for server to be available
+ */
+async function waitForServer(url: string, timeout: number) {
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      const response = await fetch(url)
+      if (response.ok || response.status < 500) {
+        console.log('✅ Server is ready!')
+        return
+      }
+    } catch (error) {
+      // Server not ready yet, continue waiting
+    }
+
+    // Wait 1 second before next attempt
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+
+  throw new Error(`Server at ${url} did not become available within ${timeout}ms`)
+}
+
+/**
  * Global setup for Playwright tests
  * Runs once before all tests across all workers
  */
 
 async function globalSetup(config: FullConfig) {
   const { baseURL } = config.projects[0].use
+  const targetURL = baseURL ?? 'http://localhost:3000'
 
   console.log('🚀 Starting global setup...')
+  console.log(`📍 Target URL: ${targetURL}`)
+
+  // Wait for server to be available before launching browser
+  console.log('⏳ Waiting for server to be ready...')
+  await waitForServer(targetURL, 60000) // Wait up to 60 seconds for server
 
   // Launch browser for setup
   const browser = await chromium.launch()
   const page = await browser.newPage()
 
   try {
-    // Wait for the app to be ready
-    console.log('⏳ Waiting for application to be ready...')
-    await page.goto(baseURL ?? 'http://localhost:3000')
+    // Navigate to the app
+    console.log('⏳ Navigating to application...')
+    await page.goto(targetURL, { waitUntil: 'domcontentloaded', timeout: 30000 })
 
-    // Wait for app to load
-    await page.waitForSelector('[data-testid="app-ready"]', {
-      timeout: 30000,
-      state: 'attached'
-    }).catch(() => {
-      // If app-ready selector doesn't exist, just wait for body
-      return page.waitForSelector('body')
-    })
+    // Wait for app to load - just check for body tag
+    await page.waitForSelector('body', { timeout: 10000 })
 
     // Set up test data if needed
     console.log('📊 Setting up test data...')

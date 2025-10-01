@@ -37,8 +37,8 @@ export const test = base.extend<MyFixtures>({
     // Set up enhanced evidence collection
     const collector = await withEvidenceCollection(page, testInfo)
 
-    // Take initial screenshot
-    await collector.takeStepScreenshot('test-start', { fullPage: true })
+    // Don't take initial screenshot here - let tests control when to capture
+    // This prevents white/blank page screenshots before content loads
 
     // Provide collector to test
     await use(collector)

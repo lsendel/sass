@@ -252,7 +252,7 @@ export interface InviteUserRequest {
 export interface SearchRequest {
   query: string;
   filters?: {
-    type?: ('project' | 'task' | 'user' | 'file')[];
+    type?: Array<'project' | 'task' | 'user' | 'file'>;
     projectId?: string;
     assigneeId?: string;
     status?: TaskStatus[];

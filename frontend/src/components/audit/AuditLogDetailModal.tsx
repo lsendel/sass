@@ -1,6 +1,7 @@
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/20/solid';
 import { format } from 'date-fns';
+
 import { useGetAuditLogDetailQuery } from '../../store/api/auditApi';
 // import type { AuditLogDetail } from '../../store/api/auditApi';
 

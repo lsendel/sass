@@ -1,9 +1,10 @@
 import React from 'react';
+import { Clock, MessageSquare, Paperclip, Calendar } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
+
 import { Task } from '../../types/project';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
-import { Clock, MessageSquare, Paperclip, Calendar } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
 
 interface TaskCardProps {
   task: Task;

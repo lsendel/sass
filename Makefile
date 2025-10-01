@@ -24,10 +24,29 @@ help: ## Show this help message
 	@echo "  stop                Stop all running processes"
 	@echo ""
 	@echo "🧪 Testing:"
-	@echo "  test                Run all tests"
-	@echo "  test-backend        Run Java tests"
-	@echo "  test-frontend       Run React tests"
-	@echo "  test-all            Run comprehensive test suite"
+	@echo "  test                Run all tests (backend + frontend + python)"
+	@echo "  test-quick          Quick test suite (unit tests only)"
+	@echo "  test-all            Comprehensive test suite (all test types)"
+	@echo "  test-ci             CI test suite (with quality checks)"
+	@echo ""
+	@echo "  Backend Tests:"
+	@echo "    test-backend            All backend tests"
+	@echo "    test-backend-unit       Unit tests only"
+	@echo "    test-backend-contract   Contract tests only"
+	@echo "    test-backend-integration Integration tests only"
+	@echo ""
+	@echo "  Frontend Tests:"
+	@echo "    test-frontend           Unit + integration tests"
+	@echo "    test-frontend-unit      Unit tests only"
+	@echo "    test-frontend-api       API tests only"
+	@echo "    test-frontend-e2e       E2E tests with Playwright"
+	@echo "    test-frontend-e2e-ui    E2E tests (interactive UI)"
+	@echo "    test-frontend-coverage  Tests with coverage report"
+	@echo ""
+	@echo "  Reports & Evidence:"
+	@echo "    test-report            Open all test reports"
+	@echo "    test-coverage-report   Open coverage reports"
+	@echo "    test-evidence          Collect evidence (screenshots, videos)"
 	@echo ""
 	@echo "🏗️  Building:"
 	@echo "  build               Build for production"
@@ -173,36 +192,128 @@ stop-all: stop ## Alias for stop command
 
 # Testing commands
 .PHONY: test test-backend test-frontend test-python test-all
+
+# Main test command - runs all basic tests
 test: test-backend test-frontend test-python ## Run all tests (backend + frontend + python)
 	@echo "✅ All tests completed"
 
+# Backend testing
 test-backend: ## Run backend tests (unit + integration)
 	@echo "🧪 Running backend tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test
 
-test-frontend: ## Run frontend tests (unit + e2e)
-	@echo "🧪 Running frontend tests..."
-	cd frontend && npm run test
+test-backend-contract: ## Run backend contract tests only
+	@echo "📋 Running backend contract tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*ContractTest"
 
+test-backend-integration: ## Run backend integration tests only
+	@echo "🔗 Running backend integration tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*IntegrationTest"
+
+test-backend-unit: ## Run backend unit tests only
+	@echo "🧪 Running backend unit tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*UnitTest"
+
+# Frontend testing - comprehensive
+.PHONY: test-frontend test-frontend-unit test-frontend-api test-frontend-integration test-frontend-e2e
+test-frontend: ## Run frontend tests (unit + integration)
+	@echo "🧪 Running frontend tests..."
+	cd frontend && npm run test:unit
+
+test-frontend-unit: ## Run frontend unit tests only
+	@echo "🧪 Running frontend unit tests..."
+	cd frontend && npm run test:unit
+
+test-frontend-api: ## Run frontend API tests
+	@echo "🔌 Running frontend API tests..."
+	cd frontend && npm run test:api
+
+test-frontend-integration: ## Run frontend integration tests
+	@echo "🔗 Running frontend integration tests..."
+	cd frontend && npm run test:integration
+
+test-frontend-e2e: ## Run frontend E2E tests with Playwright
+	@echo "🎭 Running frontend E2E tests..."
+	cd frontend && npm run test:e2e
+
+test-frontend-e2e-ui: ## Run frontend E2E tests with interactive UI
+	@echo "🎭 Running frontend E2E tests in UI mode..."
+	cd frontend && npm run test:e2e:ui
+
+test-frontend-e2e-headed: ## Run frontend E2E tests in headed mode (visible browser)
+	@echo "🎭 Running frontend E2E tests in headed mode..."
+	cd frontend && npm run test:e2e:headed
+
+test-frontend-e2e-debug: ## Debug frontend E2E tests
+	@echo "🐛 Debugging frontend E2E tests..."
+	cd frontend && npm run test:e2e:debug
+
+test-frontend-watch: ## Run frontend tests in watch mode
+	@echo "👀 Running frontend tests in watch mode..."
+	cd frontend && npm run test:watch
+
+test-frontend-coverage: ## Run frontend tests with coverage report
+	@echo "📊 Running frontend tests with coverage..."
+	cd frontend && npm run test:coverage
+	@echo "📈 Coverage report generated in frontend/coverage/"
+
+test-frontend-all: test-frontend-unit test-frontend-integration test-frontend-e2e ## Run all frontend tests (unit + integration + e2e)
+	@echo "✅ All frontend tests completed"
+
+# Python testing
 test-python: ## Run Python constitutional tools tests
 	@echo "🐍 Running Python constitutional tools tests..."
 	cd tools && python3 -m pytest ../tests/python/
 
-test-all: ## Run comprehensive test suite (all systems)
+# Comprehensive test suite
+test-all: ## Run comprehensive test suite (all systems with all test types)
 	@echo "🧪 Running comprehensive test suite..."
-	@echo "Running backend contract tests..."
+	@echo ""
+	@echo "📦 Backend Tests:"
+	@echo "  - Contract tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*ContractTest"
-	@echo "Running backend integration tests..."
+	@echo "  - Integration tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*IntegrationTest"
-	@echo "Running frontend unit tests..."
-	cd frontend && npm run test
-	@echo "Running frontend E2E tests..."
+	@echo "  - Unit tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*UnitTest"
+	@echo ""
+	@echo "🎨 Frontend Tests:"
+	@echo "  - Unit tests..."
+	cd frontend && npm run test:unit
+	@echo "  - API tests..."
+	cd frontend && npm run test:api
+	@echo "  - Integration tests..."
+	cd frontend && npm run test:integration
+	@echo "  - E2E tests..."
 	cd frontend && npm run test:e2e
-	@echo "Running Python constitutional tools tests..."
+	@echo ""
+	@echo "🐍 Python Tests:"
 	cd tools && python3 -m pytest ../tests/python/
+	@echo ""
 	@echo "✅ Comprehensive test suite completed"
 
-.PHONY: test-workflows test-usability test-evidence
+# CI-specific test commands
+.PHONY: test-ci test-frontend-ci test-backend-ci
+test-ci: ## Run tests for CI environment (comprehensive checks)
+	@echo "🤖 Running CI test suite..."
+	@echo "Running backend tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test
+	@echo "Running frontend CI tests..."
+	cd frontend && npm run test:ci
+	@echo "Running Python tests..."
+	cd tools && python3 -m pytest ../tests/python/
+	@echo "✅ CI test suite completed"
+
+test-frontend-ci: ## Run frontend tests for CI (with type checking, linting, and security)
+	@echo "🤖 Running comprehensive frontend CI tests..."
+	cd frontend && npm run test:ci
+
+test-backend-ci: ## Run backend tests for CI
+	@echo "🤖 Running backend CI tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew clean test
+
+# Test reporting and evidence collection
+.PHONY: test-workflows test-usability test-evidence test-report test-coverage-report
 test-workflows: ## Run comprehensive workflow validation with evidence collection
 	@echo "🔍 Running comprehensive workflow validation with evidence collection..."
 	@echo "📸 Evidence will be saved to test-results/comprehensive-validation-*"
@@ -220,6 +331,49 @@ test-evidence: ## Run all tests and collect evidence (screenshots, videos, trace
 	@echo "📊 Generating test report..."
 	cd frontend && npx playwright show-report
 	@echo "✅ Evidence collection complete"
+
+test-report: ## Open all test reports
+	@echo "📊 Opening test reports..."
+	@if [ -f "frontend/test-results/html/index.html" ]; then \
+		open frontend/test-results/html/index.html; \
+	else \
+		echo "⚠️  Unit test report not found. Run 'make test-frontend-coverage' first."; \
+	fi
+	@if [ -f "frontend/test-results/report/index.html" ]; then \
+		open frontend/test-results/report/index.html; \
+	else \
+		echo "⚠️  E2E test report not found. Run 'make test-frontend-e2e' first."; \
+	fi
+
+test-coverage-report: ## Open coverage reports
+	@echo "📈 Opening coverage reports..."
+	@if [ -d "frontend/coverage" ]; then \
+		cd frontend && npm run coverage:open; \
+	else \
+		echo "⚠️  Coverage report not found. Run 'make test-frontend-coverage' first."; \
+	fi
+	@if [ -d "backend/build/reports/jacoco/test/html" ]; then \
+		open backend/build/reports/jacoco/test/html/index.html; \
+	else \
+		echo "⚠️  Backend coverage report not found. Run 'make test-backend' first."; \
+	fi
+
+# Parallel testing (experimental)
+.PHONY: test-parallel test-quick
+test-parallel: ## Run frontend and backend tests in parallel (faster)
+	@echo "🚀 Running tests in parallel..."
+	@$(MAKE) test-backend & \
+	$(MAKE) test-frontend-unit & \
+	wait
+	@echo "✅ Parallel tests completed"
+
+test-quick: ## Quick test: run essential unit tests only (fast)
+	@echo "⚡ Running quick test suite..."
+	@echo "Backend unit tests..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*UnitTest"
+	@echo "Frontend unit tests..."
+	cd frontend && npm run test:unit
+	@echo "✅ Quick test suite completed"
 
 # Build commands
 .PHONY: build build-backend build-frontend build-all
@@ -374,14 +528,9 @@ api-test: ## Test API endpoints
 	@curl -s -H "Origin: http://localhost:3000" http://localhost:$(BACKEND_PORT)/api/v1/auth/methods | python3 -m json.tool || echo "❌ API not responding"
 
 # Quick commands for common workflows
-.PHONY: quick-start quick-test
+.PHONY: quick-start
 quick-start: stop setup dev ## Quick start: clean setup and start development
 	@echo "🚀 Quick start complete!"
-
-quick-test: ## Quick test: run essential tests only
-	@echo "⚡ Running quick test suite..."
-	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*UnitTest"
-	cd frontend && npm run test -- --run
 
 # Git commands (existing)
 .PHONY: git-clean-lock git-clean-lock-force

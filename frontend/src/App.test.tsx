@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
+
 import { store } from './store';
 
 // Mock the App component to avoid complex setup

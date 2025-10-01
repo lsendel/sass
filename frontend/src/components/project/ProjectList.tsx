@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Calendar, Users, ArrowRight } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+
 import { useGetProjectsQuery } from '../../store/api/projectManagementApi';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { EmptyState } from '../ui/EmptyState';
+
 import { CreateProjectModal } from './CreateProjectModal';
-import { Plus, Calendar, Users, ArrowRight } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 
 interface ProjectListProps {
   workspaceId: string;

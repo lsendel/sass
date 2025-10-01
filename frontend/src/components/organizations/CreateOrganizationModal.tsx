@@ -75,9 +75,9 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
           const parsedDraft = JSON.parse(draft)
           // Only load draft if it's less than 24 hours old
           if (Date.now() - parsedDraft.timestamp < 86400000) {
-            setValue('name', parsedDraft.name || '')
-            setValue('slug', parsedDraft.slug || '')
-            setValue('description', parsedDraft.description || '')
+            setValue('name', parsedDraft.name ?? '')
+            setValue('slug', parsedDraft.slug ?? '')
+            setValue('description', parsedDraft.description ?? '')
             toast.success('Draft restored from your last session')
           } else {
             localStorage.removeItem('createOrganizationDraft')
@@ -120,7 +120,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
     } catch (err) {
       const parsed = parseApiError(err)
       logger.error('Failed to create organization:', parsed)
-      toast.error(parsed.message || 'Failed to create organization')
+      toast.error(parsed.message ?? 'Failed to create organization')
     }
   }
 
@@ -266,7 +266,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
                     />
                     <div className="mt-1 text-right">
                       <span className="text-xs text-gray-500">
-                        {watchedDescription?.length || 0}/200
+                        {watchedDescription?.length ?? 0}/200
                       </span>
                     </div>
                   </div>

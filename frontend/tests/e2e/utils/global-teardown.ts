@@ -10,28 +10,34 @@ async function globalTeardown(config: FullConfig) {
 
   console.log('🧹 Starting global teardown...')
 
-  // Launch browser for cleanup
-  const browser = await chromium.launch()
-  const page = await browser.newPage()
-
   try {
-    await page.goto(baseURL ?? 'http://localhost:3000')
-
-    // Clean up test data
-    console.log('🗑️ Cleaning up test data...')
-    await cleanupTestData(page)
-
-    // Generate test artifacts
+    // Generate test artifacts (doesn't require server)
     console.log('📊 Generating test artifacts...')
     await generateTestArtifacts()
+
+    // Try to clean up test data if server is still running
+    try {
+      const browser = await chromium.launch()
+      const page = await browser.newPage()
+
+      try {
+        await page.goto(baseURL ?? 'http://localhost:3000', { timeout: 5000 })
+        console.log('🗑️ Cleaning up test data...')
+        await cleanupTestData(page)
+      } catch (error) {
+        console.log('⏭️ Skipping data cleanup (server not available)')
+      } finally {
+        await browser.close()
+      }
+    } catch (error) {
+      console.log('⏭️ Skipping browser cleanup (browser launch failed)')
+    }
 
     console.log('✅ Global teardown completed successfully')
 
   } catch (error) {
     console.error('❌ Global teardown failed:', error)
     // Don't throw error to avoid masking test failures
-  } finally {
-    await browser.close()
   }
 }
 

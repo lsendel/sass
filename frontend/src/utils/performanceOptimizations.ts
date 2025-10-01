@@ -3,8 +3,8 @@ import { lazy } from 'react'
 // Performance monitoring and optimization utilities
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor
-  private metrics: Map<string, number> = new Map()
-  private observers: Map<string, PerformanceObserver> = new Map()
+  private metrics = new Map<string, number>()
+  private observers = new Map<string, PerformanceObserver>()
 
   public static getInstance(): PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
@@ -279,7 +279,7 @@ export interface OptimizedImageProps {
 export const createOptimizedImageSrc = (
   src: string,
   width?: number,
-  quality: number = 75
+  quality = 75
 ): string => {
   if (!src.startsWith('http') || src.includes('?')) return src
 

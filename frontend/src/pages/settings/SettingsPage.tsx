@@ -16,7 +16,6 @@ import {
   useGetCurrentUserQuery,
   useUpdateProfileMutation,
 } from '../../store/api/userApi'
-
 import { LoadingCard, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
 import { parseApiError } from '../../utils/apiError'

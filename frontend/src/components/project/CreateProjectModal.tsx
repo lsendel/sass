@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Loader2, Save } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
 import { useCreateProjectMutation } from '../../store/api/projectManagementApi';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
 import { Select } from '../ui/Select';
-import { ColorPicker } from '../ui/ColorPicker';
-import { X, Loader2, Save } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -153,7 +153,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       reset();
       onProjectCreated();
     } catch (error: any) {
-      const errorMessage = error?.data?.message || 'Failed to create project';
+      const errorMessage = error?.data?.message ?? 'Failed to create project';
       toast.error(errorMessage);
     }
   };

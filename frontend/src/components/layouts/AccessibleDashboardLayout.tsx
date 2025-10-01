@@ -261,7 +261,7 @@ const AccessibleDashboardLayout: React.FC = () => {
                   </div>
                   {user && (
                     <div className="flex items-center space-x-3">
-                      <span className="text-sm text-gray-700">{user.firstName || user.email}</span>
+                      <span className="text-sm text-gray-700">{user.firstName ?? user.email}</span>
                       <UserCircleIcon className="h-8 w-8 text-gray-500" aria-hidden="true" />
                     </div>
                   )}
@@ -317,10 +317,12 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   onLogout,
   currentPath,
   user,
-  isMobile: _isMobile = false,
+  isMobile: _isMobile = false, // Reserved for future mobile optimizations
   navRef,
   onNavigate
 }) => {
+  // Suppress unused variable warning - reserved for future use
+  void _isMobile;
   return (
     <>
       {/* Logo */}
@@ -340,7 +342,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
         id="navigation"
         className="flex-1 flex flex-col overflow-y-auto px-3 py-3"
         aria-label="Main navigation"
-        ref={navRef as React.RefObject<HTMLElement>}
+        ref={navRef}
       >
         <ul className="flex-1 space-y-1" role="list">
           {navigation.map((item, index) => {
@@ -388,15 +390,15 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
         <div className="flex items-center w-full p-2 rounded-lg hover:bg-gray-50 transition-colors">
           <Avatar className="h-7 w-7">
             <AvatarFallback className="bg-gray-500 text-white text-xs">
-              {user?.name?.charAt(0) || 'U'}
+              {user?.name?.charAt(0) ?? 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="ml-2 flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-900 truncate">
-              {user?.name || 'Demo User'}
+              {user?.name ?? 'Demo User'}
             </p>
             <p className="text-xs text-gray-600 truncate">
-              {user?.email || 'demo@example.com'}
+              {user?.email ?? 'demo@example.com'}
             </p>
           </div>
           <Button

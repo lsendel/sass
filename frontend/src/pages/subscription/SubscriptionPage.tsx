@@ -18,8 +18,6 @@ import {
 import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay, EmptyState } from '../../components/ui/ErrorStates'
 import UpgradePlanModal from '../../components/subscription/UpgradePlanModal'
-
-
 import PageHeader from '../../components/ui/PageHeader'
 import StatsCard from '../../components/ui/StatsCard'
 

@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Loader2, Plus, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
 import { useCreateTaskMutation } from '../../store/api/projectManagementApi';
 import { TaskStatus } from '../../types/project';
 import { Modal } from '../ui/Modal';
@@ -10,8 +13,6 @@ import { TextArea } from '../ui/TextArea';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { Loader2, Plus, X } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface CreateTaskModalProps {
   isOpen: boolean;

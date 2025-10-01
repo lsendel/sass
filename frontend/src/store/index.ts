@@ -27,6 +27,13 @@ export const store = configureStore({
           'persist/PAUSE',
           'persist/PURGE',
           'persist/REGISTER',
+          // Ignore Blob objects in audit export actions
+          'auditApi/executeMutation/fulfilled',
+          'auditApi/executeMutation/rejected',
+        ],
+        ignoredPaths: [
+          // Ignore Blob objects stored in audit API mutations
+          'auditApi.mutations',
         ],
       },
     })

@@ -25,8 +25,8 @@ interface OfflineQueueDB extends DBSchema {
 export class OfflineQueue {
   private db: IDBPDatabase<OfflineQueueDB> | null = null
   private isOnline: boolean = navigator.onLine
-  private syncInProgress: boolean = false
-  private listeners: Set<(online: boolean) => void> = new Set()
+  private syncInProgress = false
+  private listeners = new Set<(online: boolean) => void>()
 
   constructor() {
     this.init()
@@ -82,7 +82,7 @@ export class OfflineQueue {
   public async queueRequest(
     url: string,
     options: RequestInit,
-    maxRetries: number = 3
+    maxRetries = 3
   ): Promise<string> {
     if (!this.db) await this.init()
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+
 import { VALIDATION_MESSAGES, UI_LIMITS } from '@/constants/appConstants'
 
 // Base validation schemas
@@ -109,7 +110,7 @@ export class ValidationUtils {
   static async validateAsync<T>(
     schema: z.ZodSchema<T>, 
     data: unknown,
-    customValidators?: AsyncValidator<T>[]
+    customValidators?: Array<AsyncValidator<T>>
   ): Promise<ValidationResult<T>> {
     // First, run synchronous validation
     const syncResult = this.validate(schema, data)
@@ -135,7 +136,7 @@ export class ValidationUtils {
    */
   static createDebouncedValidator<T>(
     schema: z.ZodSchema<T>,
-    delay: number = 300
+    delay = 300
   ): (data: unknown) => Promise<ValidationResult<T>> {
     let timeoutId: number | NodeJS.Timeout | null = null
     

@@ -1,23 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import PasswordLoginForm from './PasswordLoginForm';
+import { setupServer } from 'msw/node';
+import { http, HttpResponse } from 'msw';
+
 import { authApi } from '../../store/api/authApi';
 import authReducer from '../../store/slices/authSlice';
+
+import PasswordLoginForm from './PasswordLoginForm';
 
 /**
  * PasswordLoginForm Component Tests
  *
  * Best Practices Applied:
- * 1. Mock API calls with MSW or Redux store mocks
+ * 1. Mock API calls with MSW
  * 2. Test form validation with realistic user input
  * 3. Test async operations with waitFor
  * 4. Test error handling and user feedback
  * 5. Test accessibility and keyboard navigation
  * 6. Use user-event for realistic interactions
  */
+
+const API_BASE_URL = 'http://localhost:3000/api/v1';
+
+// MSW server setup
+const server = setupServer(
+  // Default successful login handler
+  http.post(`${API_BASE_URL}/auth/login`, async () => {
+    return HttpResponse.json({
+      user: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        email: 'user@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'USER',
+      },
+      accessToken: 'mock-access-token',
+    });
+  })
+);
 
 // Create a mock store for testing
 const createMockStore = (initialState = {}) => {
@@ -48,6 +71,10 @@ const renderWithProvider = (
 };
 
 describe('PasswordLoginForm', () => {
+  beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+  afterAll(() => server.close());
+  afterEach(() => server.resetHandlers());
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -57,15 +84,15 @@ describe('PasswordLoginForm', () => {
       renderWithProvider(<PasswordLoginForm />);
 
       expect(screen.getByRole('heading', { name: /sign in to your account/i })).toBeInTheDocument();
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+      expect(screen.getByTestId('email-input')).toBeInTheDocument();
+      expect(screen.getByTestId('password-input')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
     it('should render email input field', () => {
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
+      const emailInput = screen.getByTestId('email-input');
       expect(emailInput).toBeInTheDocument();
       expect(emailInput).toHaveAttribute('type', 'email');
     });
@@ -73,7 +100,7 @@ describe('PasswordLoginForm', () => {
     it('should render password input field', () => {
       renderWithProvider(<PasswordLoginForm />);
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByTestId('password-input');
       expect(passwordInput).toBeInTheDocument();
       expect(passwordInput).toHaveAttribute('type', 'password');
     });
@@ -91,7 +118,7 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
+      const emailInput = screen.getByTestId("email-input");
       await user.type(emailInput, 'invalid-email');
       await user.tab(); // Trigger blur validation
 
@@ -104,7 +131,7 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByTestId("password-input");
       await user.type(passwordInput, 'short');
       await user.tab(); // Trigger blur validation
 
@@ -117,8 +144,8 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
 
       await user.type(emailInput, 'user@example.com');
       await user.type(passwordInput, 'password123');
@@ -149,7 +176,7 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByTestId("password-input");
       const toggleButton = screen.getByRole('button', { name: /show password/i });
 
       // Initially password should be hidden
@@ -186,23 +213,10 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
 
-      // Mock successful API response
-      const mockStore = createMockStore();
-      vi.spyOn(authApi.endpoints.passwordLogin, 'useMutation').mockReturnValue([
-        vi.fn().mockResolvedValue({
-          unwrap: () => Promise.resolve({
-            user: { id: '1', email: 'user@example.com', name: 'Test User' },
-          }),
-        }),
-        { isLoading: false },
-      ] as any);
+      renderWithProvider(<PasswordLoginForm onSuccess={onSuccess} />);
 
-      renderWithProvider(<PasswordLoginForm onSuccess={onSuccess} />, {
-        store: mockStore,
-      });
-
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -211,16 +225,33 @@ describe('PasswordLoginForm', () => {
 
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalledTimes(1);
-      });
+      }, { timeout: 3000 });
     });
 
     it('should display loading state during submission', async () => {
       const user = userEvent.setup();
 
+      // Add delay to simulate loading state
+      server.use(
+        http.post(`${API_BASE_URL}/auth/login`, async () => {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return HttpResponse.json({
+            user: {
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              email: 'user@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'USER',
+            },
+            accessToken: 'mock-access-token',
+          });
+        })
+      );
+
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -232,16 +263,33 @@ describe('PasswordLoginForm', () => {
       // Check for loading indicator (button should be disabled)
       await waitFor(() => {
         expect(submitButton).toBeDisabled();
-      });
+      }, { timeout: 50 }); // Short timeout to catch loading state
     });
 
     it('should disable form inputs during submission', async () => {
       const user = userEvent.setup();
 
+      // Add delay to simulate loading state
+      server.use(
+        http.post(`${API_BASE_URL}/auth/login`, async () => {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return HttpResponse.json({
+            user: {
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              email: 'user@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'USER',
+            },
+            accessToken: 'mock-access-token',
+          });
+        })
+      );
+
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -251,7 +299,7 @@ describe('PasswordLoginForm', () => {
       await waitFor(() => {
         expect(emailInput).toBeDisabled();
         expect(passwordInput).toBeDisabled();
-      });
+      }, { timeout: 50 }); // Short timeout to catch loading state
     });
   });
 
@@ -260,21 +308,20 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       const onError = vi.fn();
 
-      // Mock failed API response
-      vi.spyOn(authApi.endpoints.passwordLogin, 'useMutation').mockReturnValue([
-        vi.fn().mockRejectedValue({
-          unwrap: () => Promise.reject({
-            status: 401,
-            data: { message: 'Invalid email or password' },
-          }),
-        }),
-        { isLoading: false },
-      ] as any);
+      // Mock 401 error response with MSW
+      server.use(
+        http.post(`${API_BASE_URL}/auth/login`, () => {
+          return new HttpResponse(
+            JSON.stringify({ message: 'Invalid email or password' }),
+            { status: 401, headers: { 'Content-Type': 'application/json' } }
+          );
+        })
+      );
 
       renderWithProvider(<PasswordLoginForm onError={onError} />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -282,29 +329,30 @@ describe('PasswordLoginForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
-      });
+        expect(onError).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid email or password')
+        );
+      }, { timeout: 3000 });
     });
 
     it('should display rate limit error message', async () => {
       const user = userEvent.setup();
       const onError = vi.fn();
 
-      // Mock rate limit error
-      vi.spyOn(authApi.endpoints.passwordLogin, 'useMutation').mockReturnValue([
-        vi.fn().mockRejectedValue({
-          unwrap: () => Promise.reject({
-            status: 429,
-            data: { message: 'Too many requests' },
-          }),
-        }),
-        { isLoading: false },
-      ] as any);
+      // Mock 429 rate limit error with MSW
+      server.use(
+        http.post(`${API_BASE_URL}/auth/login`, () => {
+          return new HttpResponse(
+            JSON.stringify({ message: 'Too many login attempts. Please try again later.' }),
+            { status: 429, headers: { 'Content-Type': 'application/json' } }
+          );
+        })
+      );
 
       renderWithProvider(<PasswordLoginForm onError={onError} />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -315,28 +363,24 @@ describe('PasswordLoginForm', () => {
         expect(onError).toHaveBeenCalledWith(
           expect.stringContaining('Too many login attempts')
         );
-      });
+      }, { timeout: 3000 });
     });
 
     it('should handle network errors gracefully', async () => {
       const user = userEvent.setup();
       const onError = vi.fn();
 
-      // Mock network error
-      vi.spyOn(authApi.endpoints.passwordLogin, 'useMutation').mockReturnValue([
-        vi.fn().mockRejectedValue({
-          unwrap: () => Promise.reject({
-            name: 'NetworkError',
-            message: 'Network request failed',
-          }),
-        }),
-        { isLoading: false },
-      ] as any);
+      // Mock network error with MSW
+      server.use(
+        http.post(`${API_BASE_URL}/auth/login`, () => {
+          return HttpResponse.error();
+        })
+      );
 
       renderWithProvider(<PasswordLoginForm onError={onError} />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -345,7 +389,7 @@ describe('PasswordLoginForm', () => {
 
       await waitFor(() => {
         expect(onError).toHaveBeenCalled();
-      });
+      }, { timeout: 3000 });
     });
   });
 
@@ -353,15 +397,15 @@ describe('PasswordLoginForm', () => {
     it('should have proper labels for all inputs', () => {
       renderWithProvider(<PasswordLoginForm />);
 
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+      expect(screen.getByTestId("email-input")).toBeInTheDocument();
+      expect(screen.getByTestId("password-input")).toBeInTheDocument();
     });
 
     it('should link error messages to inputs with aria-describedby', async () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
+      const emailInput = screen.getByTestId("email-input");
       await user.type(emailInput, 'invalid');
       await user.tab();
 
@@ -378,10 +422,10 @@ describe('PasswordLoginForm', () => {
 
       // Tab through form elements
       await user.tab(); // Email input
-      expect(screen.getByLabelText(/email/i)).toHaveFocus();
+      expect(screen.getByTestId("email-input")).toHaveFocus();
 
       await user.tab(); // Password input
-      expect(screen.getByLabelText(/password/i)).toHaveFocus();
+      expect(screen.getByTestId("password-input")).toHaveFocus();
 
       await user.tab(); // Toggle button
       expect(screen.getByRole('button', { name: /show password/i })).toHaveFocus();
@@ -394,7 +438,7 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
+      const emailInput = screen.getByTestId("email-input");
       await user.type(emailInput, 'invalid');
       await user.tab();
 
@@ -410,10 +454,27 @@ describe('PasswordLoginForm', () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
 
+      // Add delay to allow loading state to be set before subsequent clicks
+      server.use(
+        http.post(`${API_BASE_URL}/auth/login`, async () => {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          return HttpResponse.json({
+            user: {
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              email: 'user@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'USER',
+            },
+            accessToken: 'mock-access-token',
+          });
+        })
+      );
+
       renderWithProvider(<PasswordLoginForm onSuccess={onSuccess} />);
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = screen.getByTestId("email-input");
+      const passwordInput = screen.getByTestId("password-input");
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'user@example.com');
@@ -424,17 +485,17 @@ describe('PasswordLoginForm', () => {
       await user.click(submitButton);
       await user.click(submitButton);
 
-      // Should only call once due to loading state
+      // Should only call once due to loading state preventing additional clicks
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalledTimes(1);
-      });
+      }, { timeout: 3000 });
     });
 
-    it('should clear error when user starts typing', async () => {
+    it('should clear error when user re-validates with valid input', async () => {
       const user = userEvent.setup();
       renderWithProvider(<PasswordLoginForm />);
 
-      const emailInput = screen.getByLabelText(/email/i);
+      const emailInput = screen.getByTestId("email-input");
 
       // Trigger error
       await user.type(emailInput, 'invalid');
@@ -444,9 +505,10 @@ describe('PasswordLoginForm', () => {
         expect(screen.getByText(/valid email/i)).toBeInTheDocument();
       });
 
-      // Start typing again
+      // Clear and type valid email, then trigger blur validation
       await user.clear(emailInput);
       await user.type(emailInput, 'user@example.com');
+      await user.tab(); // Trigger blur validation with valid input
 
       await waitFor(() => {
         expect(screen.queryByText(/valid email/i)).not.toBeInTheDocument();

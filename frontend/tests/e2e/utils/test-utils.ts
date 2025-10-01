@@ -216,7 +216,10 @@ export async function performDemoLogin(
   } = options
 
   if (startUrl) {
-    await page.goto(startUrl)
+    await page.goto(startUrl, { waitUntil: 'networkidle' })
+    // Wait for React hydration
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(500)
   }
 
   const emailInput = page.locator('[data-testid="email-input"]')

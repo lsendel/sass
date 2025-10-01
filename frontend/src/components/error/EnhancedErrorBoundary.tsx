@@ -66,7 +66,7 @@ class ErrorReportingService {
 }
 
 export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  private retryTimeouts: (number | NodeJS.Timeout)[] = [];
+  private retryTimeouts: Array<number | NodeJS.Timeout> = [];
 
   constructor(props: ErrorBoundaryProps) {
     super(props);

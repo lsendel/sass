@@ -126,7 +126,7 @@ const DashboardLayout: React.FC = () => {
                     <span className="text-sm text-gray-700">
                       {user.firstName && user.lastName
                         ? `${user.firstName} ${user.lastName}`
-                        : user.firstName || user.lastName || 'User'}
+                        : user.firstName ?? user.lastName ?? 'User'}
                     </span>
                     <UserCircleIcon className="h-8 w-8 text-gray-500" />
                   </div>
@@ -158,6 +158,8 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   user,
   isMobile: _isMobile = false, // Future mobile optimization
 }) => {
+  // Suppress unused variable warning - reserved for future use
+  void _isMobile;
   return (
     <>
       {/* Logo */}
@@ -212,17 +214,17 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
         <div className="flex items-center w-full p-2 rounded-lg hover:bg-gray-50 transition-colors">
           <Avatar className="h-7 w-7">
             <AvatarFallback className="bg-gray-500 text-white text-xs">
-              {user?.firstName?.charAt(0) || user?.lastName?.charAt(0) || 'U'}
+              {user?.firstName?.charAt(0) ?? user?.lastName?.charAt(0) ?? 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="ml-2 flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-900 truncate">
               {user?.firstName && user?.lastName
                 ? `${user.firstName} ${user.lastName}`
-                : user?.firstName || user?.lastName || 'Demo User'}
+                : user?.firstName ?? user?.lastName ?? 'Demo User'}
             </p>
             <p className="text-xs text-gray-600 truncate">
-              {user?.email || 'demo@example.com'}
+              {user?.email ?? 'demo@example.com'}
             </p>
           </div>
           <Button

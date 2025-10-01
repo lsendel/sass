@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+
 import { TIME_INTERVALS } from '@/constants/appConstants'
 
 export interface RealTimeOptions {

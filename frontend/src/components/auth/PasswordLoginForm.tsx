@@ -65,7 +65,9 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
         return
       }
       if (parsed.status === 401) {
-        setError('password', { message: 'Invalid email or password' })
+        const msg = parsed.message || 'Invalid email or password'
+        onError?.(msg)
+        setError('password', { message: msg })
         return
       }
       // Try to map backend message to field when possible
@@ -110,6 +112,8 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
               id="email"
               data-testid="email-input"
               autoComplete="email"
+              disabled={isLoading}
+              aria-describedby={errors.email ? 'email-error' : undefined}
               className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm ${
                 errors.email
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
@@ -118,7 +122,12 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
               placeholder="you@example.com"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600" data-testid="email-error">
+              <p
+                id="email-error"
+                className="mt-1 text-sm text-red-600"
+                data-testid="email-error"
+                role="alert"
+              >
                 {errors.email.message}
               </p>
             )}
@@ -140,6 +149,8 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
               id="password"
               data-testid="password-input"
               autoComplete="current-password"
+              disabled={isLoading}
+              aria-describedby={errors.password ? 'password-error' : undefined}
               className={`appearance-none block w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm ${
                 errors.password
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
@@ -160,7 +171,12 @@ const PasswordLoginForm: React.FC<PasswordLoginFormProps> = ({
               )}
             </button>
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600" data-testid="password-error">
+              <p
+                id="password-error"
+                className="mt-1 text-sm text-red-600"
+                data-testid="password-error"
+                role="alert"
+              >
                 {errors.password.message}
               </p>
             )}

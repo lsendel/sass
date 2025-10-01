@@ -1,10 +1,5 @@
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
-import { useGetProjectQuery } from '../../store/api/projectManagementApi';
-import { KanbanBoard } from '../../components/task/KanbanBoard';
-import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { 
   Settings, 
   Users, 
@@ -16,6 +11,12 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+
+import { useGetProjectQuery } from '../../store/api/projectManagementApi';
+import { KanbanBoard } from '../../components/task/KanbanBoard';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 
 /**
  * ProjectPage Component

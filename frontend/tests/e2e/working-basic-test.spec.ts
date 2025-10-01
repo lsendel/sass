@@ -38,12 +38,25 @@ async function analyzeNavigationElements(page: Page, evidenceCollector: Evidence
 
 test.describe('Basic Working Test', () => {
   test('should load the application and handle authentication', async ({ page, evidenceCollector }) => {
-    await page.goto('/')
+    // Navigate to the app
+    await page.goto('/', { waitUntil: 'networkidle' })
+
+    // Take screenshot after page loads
+    await evidenceCollector.takeStepScreenshot('page-loaded', { fullPage: true })
 
     console.log('Initial URL:', page.url())
 
+    // Wait for body to be visible
+    await expect(page.locator('body')).toBeVisible({ timeout: 10000 })
+
+    // Check if we're on login page
     if (page.url().includes('/auth/login')) {
       console.log('✅ Correctly redirected to login page')
+
+      // Wait for login form to be visible
+      await page.waitForLoadState('domcontentloaded')
+      await page.waitForTimeout(500) // Small wait for React hydration
+
       await evidenceCollector.takeStepScreenshot('login-page', { fullPage: true })
 
       const loginElements = await Promise.all([
@@ -57,14 +70,26 @@ test.describe('Basic Working Test', () => {
       await evidenceCollector.takeStepScreenshot('app-loaded', { fullPage: true })
     }
 
-    await expect(page.locator('body')).toBeVisible()
-
     console.log('✅ App loaded successfully')
     console.log('Final URL:', page.url())
   })
 
   test('should attempt login and navigate to dashboard', async ({ page, evidenceCollector }) => {
+    // Take screenshot before login attempt
+    await page.goto('/auth/login', { waitUntil: 'networkidle' })
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(500)
+    await evidenceCollector.takeStepScreenshot('before-login', { fullPage: true })
+
+    // Perform login
     await performDemoLogin(page)
+
+    // Take screenshot after successful login
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(500)
+    await evidenceCollector.takeStepScreenshot('after-login-dashboard', { fullPage: true })
+
+    // Verify navigation links
     await verifyNavigationLinks(page, [
       { name: 'Dashboard', href: '/dashboard', testId: 'nav-dashboard' },
       { name: 'Organizations', href: '/organizations', testId: 'nav-organizations' },

@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
+
 import { getCardClasses } from '../../lib/theme';
 import { DASHBOARD_CONSTANTS } from '../../constants/dashboard';
 

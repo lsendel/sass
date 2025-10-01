@@ -1,5 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
+import type { Api, Middleware, Reducer } from '@reduxjs/toolkit/query/react';
+
 import authReducer from '../../store/slices/authSlice';
+import type { RootState } from '../../store';
 
 /**
  * Test Store Utilities
@@ -15,18 +18,20 @@ import authReducer from '../../store/slices/authSlice';
  * @param preloadedState - Optional initial state
  * @returns Configured Redux store for testing
  */
-export const createApiTestStore = (
-  api: any,
-  preloadedState?: any
+export const createApiTestStore = <
+  T extends Api<any, Record<string, any>, string, string>
+>(
+  api: T,
+  preloadedState?: Partial<RootState>
 ) => {
   return configureStore({
     reducer: {
       auth: authReducer,
-      [api.reducerPath]: api.reducer,
+      [api.reducerPath]: api.reducer as Reducer,
     },
     middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(api.middleware),
-    preloadedState,
+      getDefaultMiddleware().concat(api.middleware as Middleware),
+    preloadedState: preloadedState as RootState | undefined,
   });
 };
 
@@ -37,26 +42,28 @@ export const createApiTestStore = (
  * @param preloadedState - Optional initial state
  * @returns Configured Redux store for testing
  */
-export const createMultiApiTestStore = (
-  apis: any[],
-  preloadedState?: any
+export const createMultiApiTestStore = <
+  T extends Api<any, Record<string, any>, string, string>
+>(
+  apis: T[],
+  preloadedState?: Partial<RootState>
 ) => {
-  const reducers: any = {
+  const reducers: Record<string, Reducer> = {
     auth: authReducer,
   };
 
-  const middlewares: any[] = [];
+  const middlewares: Middleware[] = [];
 
   apis.forEach((api) => {
-    reducers[api.reducerPath] = api.reducer;
-    middlewares.push(api.middleware);
+    reducers[api.reducerPath] = api.reducer as Reducer;
+    middlewares.push(api.middleware as Middleware);
   });
 
   return configureStore({
     reducer: reducers,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(...middlewares),
-    preloadedState,
+    preloadedState: preloadedState as RootState | undefined,
   });
 };
 
@@ -67,9 +74,17 @@ export const createMultiApiTestStore = (
  * @param user - User object to pre-populate
  * @returns Configured Redux store with authenticated state
  */
-export const createAuthenticatedApiTestStore = (
-  api: any,
-  user?: any
+export const createAuthenticatedApiTestStore = <
+  T extends Api<any, Record<string, any>, string, string>
+>(
+  api: T,
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    token?: string;
+  }
 ) => {
   const defaultUser = user || {
     id: 'test-user-1',
@@ -82,6 +97,7 @@ export const createAuthenticatedApiTestStore = (
     auth: {
       user: defaultUser,
       isAuthenticated: true,
+      token: user?.token,
     },
   });
 };

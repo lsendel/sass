@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
+
 import { auditApi } from '../../store/api/auditApi';
 import type {
   AuditLogEntry,
@@ -151,17 +152,17 @@ const handlers = [
     return HttpResponse.json(response);
   }),
 
-  // GET /audit/export/:id/download
-  http.get(`${API_BASE_URL}/export/:id/download`, ({ request }) => {
-    const url = new URL(request.url);
-    const token = url.searchParams.get('token');
+  // GET /audit/export//download (empty token)
+  http.get(`${API_BASE_URL}/export//download`, () => {
+    return HttpResponse.json(
+      { message: 'Download token required' },
+      { status: 400 }
+    );
+  }),
 
-    if (!token) {
-      return HttpResponse.json(
-        { message: 'Download token required' },
-        { status: 400 }
-      );
-    }
+  // GET /audit/export/:token/download
+  http.get(`${API_BASE_URL}/export/:token/download`, ({ params }) => {
+    const { token } = params;
 
     if (token === 'invalid-token') {
       return HttpResponse.json(
@@ -170,8 +171,9 @@ const handlers = [
       );
     }
 
-    // Return mock CSV data
-    return new HttpResponse('id,timestamp,action\n1,2025-09-30,LOGIN', {
+    // Return mock CSV blob data
+    const csvData = 'id,timestamp,action\n1,2025-09-30,LOGIN';
+    return new HttpResponse(csvData, {
       headers: {
         'Content-Type': 'text/csv',
         'Content-Disposition': 'attachment; filename="audit-logs.csv"',
@@ -382,7 +384,7 @@ describe('Audit API', () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'CSV',
           filters: {
             dateFrom: '2025-09-01',
@@ -391,7 +393,7 @@ describe('Audit API', () => {
         })
       );
 
-      expect(result.status).toBe('fulfilled');
+      expect(result.error).toBeUndefined();
       expect(result.data).toHaveProperty('exportId');
       expect(result.data).toHaveProperty('status');
       expect(result.data?.status).toBe('PENDING');
@@ -401,12 +403,12 @@ describe('Audit API', () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'JSON',
         })
       );
 
-      expect(result.status).toBe('fulfilled');
+      expect(result.error).toBeUndefined();
       expect(result.data?.exportId).toBeDefined();
     });
 
@@ -414,24 +416,24 @@ describe('Audit API', () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'PDF',
         })
       );
 
-      expect(result.status).toBe('fulfilled');
+      expect(result.error).toBeUndefined();
     });
 
     it('should return 400 for invalid format', async () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'INVALID' as any,
         })
       );
 
-      expect(result.status).toBe('rejected');
+      expect(result.error).toBeDefined();
       expect(result.error).toMatchObject({
         status: 400,
       });
@@ -453,7 +455,7 @@ describe('Audit API', () => {
       );
 
       await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'CSV',
           filters: {
             dateFrom: '2025-09-01',
@@ -474,7 +476,7 @@ describe('Audit API', () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'CSV',
         })
       );
@@ -536,11 +538,14 @@ describe('Audit API', () => {
 
       const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'EXPIRED'];
 
-      for (const status of statuses) {
+      for (let i = 0; i < statuses.length; i++) {
+        const status = statuses[i];
+        const exportId = `export-${i}`;
+
         server.use(
-          http.get(`${API_BASE_URL}/export/:id/status`, () => {
+          http.get(`${API_BASE_URL}/export/${exportId}/status`, () => {
             return HttpResponse.json({
-              exportId: 'export-123',
+              exportId,
               status,
               requestedAt: new Date().toISOString(),
             });
@@ -548,7 +553,7 @@ describe('Audit API', () => {
         );
 
         const result = await store.dispatch(
-          auditApi.endpoints.getExportStatus.initiate('export-123')
+          auditApi.endpoints.getExportStatus.initiate(exportId)
         );
 
         expect(result.data?.status).toBe(status);
@@ -561,26 +566,20 @@ describe('Audit API', () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.downloadExport.initiate({
-          exportId: 'export-123',
-          token: 'download-token-123',
-        })
+        auditApi.endpoints.downloadExport.initiate('download-token-123')
       );
 
-      expect(result.status).toBe('fulfilled');
+      expect(result.error).toBeUndefined();
     });
 
     it('should return 400 for missing token', async () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.downloadExport.initiate({
-          exportId: 'export-123',
-          token: '',
-        })
+        auditApi.endpoints.downloadExport.initiate('')
       );
 
-      expect(result.status).toBe('rejected');
+      expect(result.error).toBeDefined();
       expect(result.error).toMatchObject({
         status: 400,
       });
@@ -590,13 +589,10 @@ describe('Audit API', () => {
       const store = createTestStore();
 
       const result = await store.dispatch(
-        auditApi.endpoints.downloadExport.initiate({
-          exportId: 'export-123',
-          token: 'invalid-token',
-        })
+        auditApi.endpoints.downloadExport.initiate('invalid-token')
       );
 
-      expect(result.status).toBe('rejected');
+      expect(result.error).toBeDefined();
       expect(result.error).toMatchObject({
         status: 403,
       });
@@ -607,13 +603,10 @@ describe('Audit API', () => {
 
       // This would be tested in E2E tests with actual file download
       const result = await store.dispatch(
-        auditApi.endpoints.downloadExport.initiate({
-          exportId: 'export-123',
-          token: 'download-token-123',
-        })
+        auditApi.endpoints.downloadExport.initiate('download-token-123')
       );
 
-      expect(result.status).toBe('fulfilled');
+      expect(result.error).toBeUndefined();
     });
   });
 
@@ -701,7 +694,7 @@ describe('Audit API', () => {
 
       // Initiate export
       await store.dispatch(
-        auditApi.endpoints.exportAuditLogs.initiate({
+        auditApi.endpoints.requestExport.initiate({
           format: 'CSV',
         })
       );

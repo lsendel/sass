@@ -42,39 +42,80 @@ jobs:
         run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_STAGING }}
 
       - name: Deploy to staging
+        id: deploy_staging
         run: |
           # Deploy application
           envsubst < k8s/staging/deployment.yaml | kubectl apply -f -
-          
+
           # Wait for rollout
           echo "Waiting for deployment rollout..."
-          kubectl rollout status deployment/payment-platform -n staging --timeout=300s
-          
+          if ! kubectl rollout status deployment/payment-platform -n staging --timeout=300s; then
+            echo "Deployment rollout failed"
+            kubectl rollout undo deployment/payment-platform -n staging
+            exit 1
+          fi
+
           # Verify pod health
           echo "Verifying pod health..."
-          kubectl wait --for=condition=ready pod -l app=payment-platform -n staging --timeout=300s
-          
+          if ! kubectl wait --for=condition=ready pod -l app=payment-platform -n staging --timeout=300s; then
+            echo "Pod health check failed"
+            kubectl rollout undo deployment/payment-platform -n staging
+            exit 1
+          fi
+
           # Check load balancer health
           echo "Checking load balancer health..."
+          LB_HOSTNAME=""
           for i in {1..30}; do
-            STATUS=$(kubectl get svc payment-platform -n staging -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [ ! -z "$STATUS" ]; then
+            LB_HOSTNAME=$(kubectl get svc payment-platform -n staging -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ ! -z "$LB_HOSTNAME" ]; then
+              echo "Load balancer hostname: $LB_HOSTNAME"
               break
             fi
-            echo "Waiting for load balancer..."
+            echo "Waiting for load balancer... (attempt $i/30)"
             sleep 10
           done
-          
+
+          if [ -z "$LB_HOSTNAME" ]; then
+            echo "Load balancer health check failed - no hostname assigned"
+            kubectl rollout undo deployment/payment-platform -n staging
+            exit 1
+          fi
+
+          # Verify load balancer endpoint health
+          echo "Verifying load balancer endpoint health..."
+          for i in {1..20}; do
+            if curl -sf "http://$LB_HOSTNAME/health" > /dev/null 2>&1; then
+              echo "Load balancer endpoint is healthy"
+              break
+            fi
+            if [ $i -eq 20 ]; then
+              echo "Load balancer endpoint health check failed"
+              kubectl rollout undo deployment/payment-platform -n staging
+              exit 1
+            fi
+            echo "Waiting for load balancer endpoint... (attempt $i/20)"
+            sleep 15
+          done
+
           # Verify application health
           echo "Verifying application health..."
-          ./scripts/verify-deployment.sh staging ${{ github.sha }}
+          if ! ./scripts/verify-deployment.sh staging ${{ github.sha }}; then
+            echo "Application health verification failed"
+            kubectl rollout undo deployment/payment-platform -n staging
+            exit 1
+          fi
         env:
           IMAGE_TAG: ${{ github.sha }}
 
       - name: Run smoke tests
         run: |
           kubectl wait --for=condition=ready pod -l app=payment-platform -n staging --timeout=300s
-          ./scripts/smoke-tests.sh staging
+          if ! ./scripts/smoke-tests.sh staging; then
+            echo "Smoke tests failed - initiating rollback"
+            kubectl rollout undo deployment/payment-platform -n staging
+            exit 1
+          fi
 
   deploy-production:
     name: Deploy to Production
@@ -174,6 +215,52 @@ jobs:
           draft: false
           prerelease: false
 
+  notify-staging:
+    needs: [deploy-staging]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Staging Deployment Status
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'deployments'
+          slack-message: |
+            *Staging Deployment* ${{ needs.deploy-staging.result == 'success' && ':white_check_mark:' || ':x:' }}
+
+            *Environment:* Staging
+            *Status:* ${{ needs.deploy-staging.result == 'success' && 'Success' || 'Failed' }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* ${{ github.sha }}
+            *Triggered by:* ${{ github.actor }}
+
+            <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Create Staging Deployment Record
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "${{ github.sha }}",
+              environment: "staging",
+              auto_merge: false,
+              required_contexts: []
+            });
+
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: "${{ needs.deploy-staging.result == 'success' && 'success' || 'failure' }}",
+              environment_url: "https://staging.example.com",
+              log_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              description: "Staging deployment ${{ needs.deploy-staging.result == 'success' && 'completed successfully' || 'failed' }}"
+            });
+
   notify-deployment:
     needs: [deploy-production]
     if: always()
@@ -185,13 +272,16 @@ jobs:
         with:
           channel-id: 'deployments'
           slack-message: |
-            *Deployment Status Update* :rocket:
-            
+            *Production Deployment* ${{ needs.deploy-production.result == 'success' && ':rocket:' || ':x:' }}
+
             *Environment:* Production
             *Status:* ${{ needs.deploy-production.result == 'success' && ':white_check_mark: Success' || ':x: Failure' }}
             *Version:* v${{ github.run_number }}
             *Commit:* ${{ github.sha }}
-            
+            *Triggered by:* ${{ github.actor }}
+
+            ${{ needs.deploy-production.result == 'failure' && ':warning: *Automatic rollback initiated*' || '' }}
+
             <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Deployment Details>
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

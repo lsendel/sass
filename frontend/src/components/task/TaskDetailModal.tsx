@@ -1,10 +1,4 @@
 import React, { useState } from 'react';
-import { useGetTaskQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
-import { Modal } from '../ui/Modal';
-import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { Avatar } from '../ui/Avatar';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { 
   Calendar, 
   Clock, 
@@ -18,6 +12,13 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'react-hot-toast';
+
+import { useGetTaskQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { Avatar } from '../ui/Avatar';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface TaskDetailModalProps {
   taskId: string;

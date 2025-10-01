@@ -7,6 +7,7 @@
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
+
 import { API_ENDPOINTS } from '@/constants/appConstants'
 
 // Enhanced base query with error handling and auth
@@ -31,7 +32,7 @@ const baseQueryWithAuth: BaseQueryFn<
     },
   })
 
-  let result = await baseQuery(args, api, extraOptions)
+  const result = await baseQuery(args, api, extraOptions)
 
   // Handle auth errors
   if (result.error && result.error.status === 401) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { CalendarIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/20/solid'
+
 import type { AuditLogFilter } from '../../store/api/auditApi';
 
 interface AuditLogFiltersProps {
@@ -108,7 +109,7 @@ export const AuditLogFilters: React.FC<AuditLogFiltersProps> = ({
                 <input
                   type="text"
                   placeholder="Search audit logs..."
-                  value={filters.search || ''}
+                  value={filters.search ?? ''}
                   onChange={(e) => updateFilter('search', e.target.value || undefined)}
                   className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />

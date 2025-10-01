@@ -4,7 +4,7 @@ import React from 'react'
 /**
  * Hook for managing focus trap within a container (useful for modals, dropdowns)
  */
-export const useFocusTrap = (isActive: boolean = false) => {
+export const useFocusTrap = (isActive = false) => {
   const containerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export const useKeyboardNavigation = <T extends HTMLElement = HTMLElement>(
       containerRef.current.querySelectorAll(
         '[data-keyboard-nav]:not([disabled]):not([aria-disabled="true"])'
       )
-    ) as HTMLElement[]
+    )
 
     itemsRef.current = focusableElements
   }, [])

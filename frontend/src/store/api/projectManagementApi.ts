@@ -1,5 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
 import type { RootState } from '../index';
+
+// API base URL configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
 /**
  * RTK Query API for Project Management endpoints.
@@ -206,7 +210,7 @@ export interface UpdateTaskRequest {
 export const projectManagementApi = createApi({
   reducerPath: 'projectManagementApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1',
+    baseUrl: API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       // Add authentication headers if available
       const state = getState() as RootState;

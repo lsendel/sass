@@ -253,7 +253,7 @@ export class WebSocketService extends EventEmitter {
 // Presence management service
 export class PresenceService extends EventEmitter {
   private websocket: WebSocketService
-  private presenceData: Map<string, PresenceData> = new Map()
+  private presenceData = new Map<string, PresenceData>()
   private currentUser: PresenceData | null = null
   private presenceUpdateTimer: NodeJS.Timeout | null = null
 
@@ -370,7 +370,7 @@ export class PresenceService extends EventEmitter {
 // Real-time data synchronization service
 export class RealTimeDataService {
   private websocket: WebSocketService
-  private subscriptions: Map<string, Set<(data: any) => void>> = new Map()
+  private subscriptions = new Map<string, Set<(data: any) => void>>()
 
   constructor(websocket: WebSocketService) {
     this.websocket = websocket
@@ -426,7 +426,7 @@ export class RealTimeDataService {
     }
   }
 
-  public publishUpdate(resource: string, data: any, action: string = 'update'): void {
+  public publishUpdate(resource: string, data: any, action = 'update'): void {
     this.websocket.send({
       type: 'data_update',
       payload: { resource, data, action }

@@ -15,6 +15,7 @@ import {
   MagnifyingGlassIcon,
   CheckIcon,
 } from '@heroicons/react/24/outline'
+
 import { UI_LIMITS } from '@/constants/appConstants'
 
 // Constants for component behavior
