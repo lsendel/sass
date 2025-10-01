@@ -70,4 +70,13 @@ public class TestBeanConfiguration {
     public RedisConnectionFactory redisConnectionFactory() {
         return mock(RedisConnectionFactory.class);
     }
+
+    /**
+     * Provides a simple CacheManager for tests.
+     * Uses ConcurrentMapCacheManager for in-memory caching.
+     */
+    @Bean
+    public org.springframework.cache.CacheManager cacheManager() {
+        return new org.springframework.cache.concurrent.ConcurrentMapCacheManager();
+    }
 }

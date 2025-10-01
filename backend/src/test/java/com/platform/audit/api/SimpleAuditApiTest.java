@@ -5,18 +5,19 @@ import com.platform.fixtures.AuditTestDataFixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Simple test to verify our test infrastructure works.
+ * Spring Security is enabled with proper test configuration.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
-    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration"
-})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
 @Import(TestBeanConfiguration.class)
+@WithMockUser(roles = "USER")
 class SimpleAuditApiTest {
 
     @Test
