@@ -1,8 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bash gradlew clean test --tests \"AuditLogViewerIntegrationTest.auditLogEndpointShouldExist\")",
-      "Bash(bash gradlew clean test --tests \"*IntegrationTest\" --tests \"*TestContainerTest\" --tests \"DatabaseConnectivityTest\")"
+      "Bash(bash gradlew build)"
     ],
     "deny": [],
     "ask": []

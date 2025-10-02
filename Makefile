@@ -75,6 +75,13 @@ help: ## Show this help message
 	@echo "  code-quality        Comprehensive quality checks"
 	@echo "  backup-db           Backup database"
 	@echo ""
+	@echo "🤖 ACIS - Automated Quality:"
+	@echo "  acis-install        Install ACIS git hooks"
+	@echo "  acis-status         Check ACIS installation status"
+	@echo "  acis-test           Test ACIS system"
+	@echo "  acis-run            Run ACIS manual validation"
+	@echo "  acis-uninstall      Uninstall ACIS git hooks"
+	@echo ""
 	@echo "🚀 Deployment:"
 	@echo "  deploy-staging      Deploy to staging"
 	@echo "  deploy-production   Deploy to production"
@@ -689,3 +696,121 @@ backup-db: ## Backup database
 		echo "  Docker: docker exec postgres_container pg_dump -U user dbname > backup_$$timestamp.sql"; \
 		echo "  Local: pg_dump -h localhost -U user dbname > backup_$$timestamp.sql"; \
 	fi
+
+# ============================================================================
+# ACIS - Automated Continuous Improvement System
+# ============================================================================
+
+.PHONY: acis-install acis-status acis-test acis-run acis-uninstall acis-validate
+
+acis-install: ## Install ACIS git hooks for automated quality checks
+	@echo "🤖 Installing ACIS git hooks..."
+	@./scripts/acis/git-hooks/install-hooks.sh install
+	@echo "✅ ACIS git hooks installed"
+	@echo ""
+	@echo "📝 What happens now:"
+	@echo "  • Pre-commit: Fast validation when you commit (1-5 min)"
+	@echo "  • Pre-push: Full validation before push (5-30 min)"
+	@echo "  • Auto-fix: Code style issues fixed automatically"
+	@echo ""
+	@echo "💡 To skip (emergency only): git commit --no-verify"
+
+acis-status: ## Check ACIS installation and configuration status
+	@echo "🤖 ACIS Status Check"
+	@echo "===================="
+	@./scripts/acis/git-hooks/install-hooks.sh status
+
+acis-test: ## Test ACIS system functionality
+	@echo "🧪 Testing ACIS system..."
+	@./scripts/acis/git-hooks/install-hooks.sh test
+	@echo ""
+	@echo "✅ ACIS test complete"
+
+acis-run: ## Run ACIS manual validation (dry run)
+	@echo "🤖 Running ACIS validation (dry run)..."
+	@echo "This will validate code quality without making changes"
+	@echo ""
+	@ACIS_CONTINUE_APPROVED=true DRY_RUN=true ./scripts/acis/acis-main.sh
+	@echo ""
+	@echo "📊 Check logs: .acis/logs/acis.log"
+	@echo "📊 Check reports: .acis/reports/"
+
+acis-uninstall: ## Uninstall ACIS git hooks
+	@echo "🤖 Uninstalling ACIS git hooks..."
+	@./scripts/acis/git-hooks/install-hooks.sh uninstall
+	@echo "✅ ACIS git hooks uninstalled"
+
+acis-validate: acis-test ## Validate ACIS system is working properly
+	@echo ""
+	@echo "✅ ACIS validation complete!"
+
+# Integration with existing test commands
+.PHONY: test-acis test-quality-gates
+
+test-acis: acis-test ## Run ACIS system tests
+
+test-quality-gates: ## Run quality gates validation using ACIS
+	@echo "🔒 Running quality gates validation..."
+	@echo ""
+	@echo "Quality Gates:"
+	@echo "  1. Compilation (Java)"
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew compileJava compileTestJava --no-daemon && \
+		echo "  ✅ Compilation passed" || echo "  ❌ Compilation failed"
+	@echo "  2. Code Style (Checkstyle)"
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew checkstyleMain checkstyleTest --no-daemon && \
+		echo "  ✅ Code style passed" || echo "  ❌ Code style failed"
+	@echo "  3. Tests (Unit + Integration)"
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew test --no-daemon && \
+		echo "  ✅ Tests passed" || echo "  ❌ Tests failed"
+	@echo "  4. Coverage (≥85%)"
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew jacocoTestCoverageVerification --no-daemon && \
+		echo "  ✅ Coverage passed" || echo "  ❌ Coverage failed"
+	@echo ""
+	@echo "✅ Quality gates validation complete!"
+
+# Enhanced test commands with ACIS integration
+.PHONY: test-with-acis test-ci-acis
+
+test-with-acis: acis-install test-quality-gates ## Run tests with ACIS quality gates
+	@echo "✅ Tests with ACIS quality gates complete!"
+
+test-ci-acis: test-quality-gates ## CI test suite with ACIS quality gates
+	@echo "✅ CI tests with ACIS quality gates complete!"
+
+# Quick quality check using ACIS
+.PHONY: quick-quality
+
+quick-quality: ## Quick quality check using ACIS (fast)
+	@echo "⚡ Running quick quality check..."
+	@echo ""
+	@echo "1. Compilation check..."
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew compileJava --no-daemon -q && echo "  ✅ Compiled" || echo "  ❌ Failed"
+	@echo "2. Code style check..."
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew checkstyleMain --no-daemon -q && echo "  ✅ Style OK" || echo "  ❌ Style issues"
+	@echo "3. Quick tests..."
+	@cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && \
+		./gradlew test --tests "*UnitTest" --no-daemon -q && echo "  ✅ Tests OK" || echo "  ❌ Tests failed"
+	@echo ""
+	@echo "✅ Quick quality check complete!"
+
+# ACIS-enhanced setup
+.PHONY: setup-with-acis
+
+setup-with-acis: setup acis-install ## Setup project with ACIS git hooks
+	@echo ""
+	@echo "✨ Project setup complete with ACIS!"
+	@echo ""
+	@echo "🚀 Next steps:"
+	@echo "  1. Run: make dev"
+	@echo "  2. Make changes and commit"
+	@echo "  3. ACIS will validate automatically"
+	@echo ""
+	@echo "💡 Check ACIS status: make acis-status"
+	@echo "💡 Test ACIS: make acis-test"
+

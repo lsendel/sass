@@ -1,0 +1,264 @@
+#!/bin/bash
+# ACIS Pre-Push Hook
+# Comprehensive validation before push
+
+set -eo pipefail
+
+# Get script directory (resolving symlinks)
+HOOK_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+ACIS_DIR="$HOOK_DIR/.."
+PROJECT_ROOT="$(cd "$ACIS_DIR/../.." && pwd)"
+
+# Source utilities
+source "$ACIS_DIR/utils/logger.sh"
+source "$ACIS_DIR/utils/config-reader.sh"
+source "$ACIS_DIR/git-hooks/smart-detector.sh"
+
+# Change to project root
+cd "$PROJECT_ROOT"
+
+# Banner
+log_section "ACIS Pre-Push Validation"
+
+# Check if git hooks are enabled
+if [ "$(get_config_bool "git_hooks.enabled" "false")" != "true" ]; then
+    log_info "Git hooks disabled in configuration"
+    exit 0
+fi
+
+# Check if pre-push hook is enabled
+if [ "$(get_config_bool "git_hooks.pre_push.enabled" "false")" != "true" ]; then
+    log_info "Pre-push hook disabled in configuration"
+    exit 0
+fi
+
+# Check for bypass flag
+if [ "$ACIS_SKIP_HOOKS" == "true" ] || [ "$SKIP_ACIS_HOOKS" == "true" ]; then
+    log_warn "⚠️  Pre-push hook bypassed via environment variable"
+
+    # Log bypass if configured
+    if [ "$(get_config_bool "git_hooks.bypass.log_bypasses" "true")" == "true" ]; then
+        echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] PRE-PUSH BYPASSED" >> .acis/logs/bypass.log
+    fi
+
+    exit 0
+fi
+
+# Get configuration
+FAIL_ON_ERROR=$(get_config_bool "git_hooks.pre_push.fail_on_error" "true")
+TIMEOUT=$(get_config_int "git_hooks.pre_push.timeout_seconds" "1800")
+SMART_DETECTION=$(get_config_bool "git_hooks.pre_push.smart_detection.enabled" "true")
+
+# Start timer
+START_TIME=$(date +%s)
+
+# Smart change detection
+if [ "$SMART_DETECTION" == "true" ]; then
+    log_info "Analyzing changes to be pushed..."
+
+    DETECTION_REPORT=$(generate_validation_report "diff_from_remote" "comprehensive")
+
+    if [ "$(echo "$DETECTION_REPORT" | jq -r '.has_changes')" != "true" ]; then
+        log_info "No changes to push, skipping validation"
+        exit 0
+    fi
+
+    # Display detection summary
+    FILE_COUNT=$(echo "$DETECTION_REPORT" | jq -r '.file_count')
+    MODULE_COUNT=$(echo "$DETECTION_REPORT" | jq -r '.module_count')
+    IS_CRITICAL=$(echo "$DETECTION_REPORT" | jq -r '.is_critical')
+
+    log_info "Changes to push: $FILE_COUNT file(s) across $MODULE_COUNT module(s)"
+
+    if [ "$IS_CRITICAL" == "true" ]; then
+        log_warn "🔒 Critical files changed - full security validation required"
+    fi
+
+    # Get required gates from smart detection
+    REQUIRED_GATES=$(echo "$DETECTION_REPORT" | jq -r '.required_gates[]')
+else
+    # Use configured gates
+    REQUIRED_GATES=$(get_config_array "git_hooks.pre_push.gates")
+fi
+
+log_info "Comprehensive quality gates:"
+echo "$REQUIRED_GATES" | while read -r gate; do
+    log_info "  - $gate"
+done
+
+# Run quality gates
+VALIDATION_FAILED=false
+GATES_RUN=0
+GATES_PASSED=0
+GATES_FAILED=0
+
+while IFS= read -r gate; do
+    [ -z "$gate" ] && continue
+
+    GATES_RUN=$((GATES_RUN + 1))
+    log_info ""
+    log_info "═══════════════════════════════════════"
+    log_info "Running gate: $gate"
+    log_info "═══════════════════════════════════════"
+
+    # Check timeout
+    ELAPSED=$(($(date +%s) - START_TIME))
+    if [ $ELAPSED -gt $TIMEOUT ]; then
+        log_error "⏱️  Timeout exceeded ($TIMEOUT seconds)"
+        VALIDATION_FAILED=true
+        break
+    fi
+
+    # Run gate based on type
+    case "$gate" in
+        compilation)
+            if cd backend && ./gradlew clean compileJava compileTestJava --no-daemon 2>&1 | tail -20; then
+                log_success "✅ Compilation passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Compilation failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        code_style)
+            if cd backend && ./gradlew checkstyleMain checkstyleTest --no-daemon 2>&1 | tail -20; then
+                log_success "✅ Code style passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Code style failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        architecture)
+            log_info "Running Modulith boundary checks..."
+            if cd backend && ./gradlew modulithCheck --no-daemon 2>&1 | tail -20; then
+                log_success "✅ Modulith checks passed"
+            else
+                log_error "❌ Modulith boundary violations detected"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+                cd "$PROJECT_ROOT"
+                continue
+            fi
+
+            log_info "Running ArchUnit tests..."
+            if ./gradlew archTest --no-daemon 2>&1 | tail -20; then
+                log_success "✅ Architecture tests passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Architecture tests failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        security)
+            log_info "Running security tests..."
+            if cd backend && ./gradlew securityTest --no-daemon 2>&1 | tail -20; then
+                log_success "✅ Security tests passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Security tests failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        testing)
+            log_info "Running full test suite..."
+            if cd backend && ./gradlew test --no-daemon 2>&1 | tail -30; then
+                log_success "✅ Tests passed"
+            else
+                log_error "❌ Tests failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+                cd "$PROJECT_ROOT"
+                continue
+            fi
+
+            log_info "Verifying code coverage..."
+            if ./gradlew jacocoTestCoverageVerification --no-daemon 2>&1 | tail -10; then
+                log_success "✅ Coverage requirements met"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Coverage below threshold"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        *)
+            log_warn "Unknown gate: $gate, skipping"
+            ;;
+    esac
+done <<< "$REQUIRED_GATES"
+
+# Claude AI Peer Review (if all gates passed)
+if [ "$VALIDATION_FAILED" != "true" ]; then
+    log_info ""
+    log_info "Running Claude AI peer review..."
+
+    # Source Claude reviewer
+    if [ -f "$PROJECT_ROOT/scripts/acis/claude-ai/claude-reviewer.sh" ]; then
+        source "$PROJECT_ROOT/scripts/acis/claude-ai/claude-reviewer.sh"
+
+        # Run Claude review on all uncommitted changes
+        if ! claude_code_review "all" "push" "improvement-review"; then
+            log_error "Claude AI peer review FAILED"
+            VALIDATION_FAILED=true
+            GATES_FAILED=$((GATES_FAILED + 1))
+        else
+            log_success "Claude AI peer review PASSED"
+            GATES_PASSED=$((GATES_PASSED + 1))
+        fi
+
+        GATES_RUN=$((GATES_RUN + 1))
+    else
+        log_warn "Claude reviewer not found, skipping"
+    fi
+fi
+
+# Summary
+TOTAL_TIME=$(($(date +%s) - START_TIME))
+MINUTES=$((TOTAL_TIME / 60))
+SECONDS=$((TOTAL_TIME % 60))
+
+log_section "Pre-Push Validation Summary"
+log_info "Gates run: $GATES_RUN"
+log_info "Passed: $GATES_PASSED"
+log_info "Failed: $GATES_FAILED"
+log_info "Duration: ${MINUTES}m ${SECONDS}s"
+
+if [ "$VALIDATION_FAILED" == "true" ]; then
+    log_error ""
+    log_error "❌ Pre-push validation FAILED"
+    log_error ""
+    log_error "Push blocked. Fix the issues above before pushing."
+    log_error ""
+
+    if [ "$FAIL_ON_ERROR" == "true" ]; then
+        log_info "To bypass (STRONGLY NOT RECOMMENDED):"
+        log_info "  git push --no-verify"
+        log_info "Or set environment:"
+        log_info "  ACIS_SKIP_HOOKS=true git push"
+        exit 1
+    else
+        log_warn "Validation failed but fail_on_error is disabled, allowing push"
+        exit 0
+    fi
+else
+    log_success ""
+    log_success "✅ Pre-push validation PASSED"
+    log_success "✅ Safe to push to remote"
+    log_success ""
+    exit 0
+fi

@@ -1,0 +1,500 @@
+# ACIS Configuration File
+# Automated Continuous Improvement System
+# Version: 2.0.0
+
+# ============================================================================
+# CORE SETTINGS
+# ============================================================================
+enabled: true                 # Master switch - set to false to disable ACIS
+strict_mode: true            # Zero tolerance for errors/warnings
+dry_run: false               # If true, only simulate without making changes
+
+# ============================================================================
+# CLAUDE AI PEER REVIEW (Mandatory Code Review)
+# ============================================================================
+claude_ai:
+  enabled: true                         # Enable Claude as mandatory peer reviewer
+  required: false                       # If true, commit fails when API key missing
+  fail_open: false                      # If true, allow commits when Claude API fails
+  model: "claude-sonnet-4-20250514"    # Claude model to use
+  max_tokens: 4096                      # Maximum tokens in response
+  temperature: 0.0                      # Temperature for consistent reviews
+
+# ============================================================================
+# SCHEDULER SETTINGS
+# ============================================================================
+scheduler:
+  interval_hours: 1          # Run every X hours (configurable)
+  max_iterations: 10         # Maximum improvement iterations per run
+  timeout_minutes: 120       # Maximum runtime before forced termination
+
+  # Quiet hours (no execution during these times)
+  quiet_hours:
+    enabled: false
+    start: "22:00"          # Format: HH:MM (24-hour)
+    end: "06:00"
+
+  # Days to skip execution
+  skip_days:
+    - "Sunday"              # Optional: disable on weekends
+
+  # Retry configuration
+  retry:
+    max_attempts: 3
+    backoff_multiplier: 2   # Exponential backoff
+
+# ============================================================================
+# GIT OPERATIONS
+# ============================================================================
+git:
+  auto_commit: false          # Automatically commit successful fixes
+  auto_push: false            # Automatically push commits (requires auto_commit)
+  commit_prefix: "🤖 ACIS:"  # Prefix for automated commits
+  create_branch: true         # Create feature branch for changes
+  branch_prefix: "acis/auto-improvement"
+
+  # Safety settings
+  require_clean_state: true   # Only run if working directory is clean
+  max_commits_per_run: 10    # Maximum commits in single run
+
+# ============================================================================
+# GIT HOOKS INTEGRATION (Commit/Push Validation)
+# ============================================================================
+git_hooks:
+  enabled: true               # Master switch for git hook integration
+
+  # Pre-commit hook configuration (fast validation)
+  pre_commit:
+    enabled: true
+    mode: "fast"              # Options: fast, comprehensive, custom
+    fail_on_error: true       # Block commit if validation fails
+    auto_fix: true            # Attempt to auto-fix issues before failing
+    timeout_seconds: 300      # Max time for pre-commit validation (5 min)
+
+    # Quality gates to run on commit (fast subset)
+    gates:
+      - compilation           # Quick compilation check
+      - code_style            # Checkstyle violations
+      - fast_tests            # Unit tests only (no integration tests)
+
+    # Smart change detection
+    smart_detection:
+      enabled: true           # Only run checks for changed files
+      scope: "staged"         # Options: staged, all_changes, diff_from_main
+
+    # Auto-fix behavior
+    auto_fix_and_stage: true  # If fix succeeds, auto-stage fixed files
+
+  # Pre-push hook configuration (comprehensive validation)
+  pre_push:
+    enabled: true
+    mode: "comprehensive"     # Full validation before push
+    fail_on_error: true       # Block push if validation fails
+    auto_fix: false           # Don't auto-fix on push (validation only)
+    timeout_seconds: 1800     # Max time for pre-push validation (30 min)
+
+    # Quality gates to run on push (all gates)
+    gates:
+      - compilation
+      - code_style
+      - architecture          # Modulith + ArchUnit
+      - security              # OWASP + security tests
+      - testing               # Full test suite + coverage
+
+    # Smart detection
+    smart_detection:
+      enabled: true
+      scope: "diff_from_remote"  # Compare with remote branch
+
+  # Commit message validation
+  commit_msg:
+    enabled: true
+    patterns:
+      - "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\(.+\\))?: .{1,100}"
+    reject_on_mismatch: false  # Warn but don't block
+    suggest_format: true
+
+  # Installation settings
+  installation:
+    auto_install_on_clone: false  # Auto-install hooks on git clone
+    symlink_hooks: true            # Use symlinks (easier updates)
+    backup_existing: true          # Backup existing hooks before install
+
+  # Performance optimization
+  performance:
+    parallel_execution: true       # Run independent checks in parallel
+    cache_results: true            # Cache results between runs
+    cache_duration_minutes: 60
+
+  # Bypass mechanism (for emergencies)
+  bypass:
+    allow_skip: true               # Allow --no-verify flag
+    require_reason: true           # Require reason in commit message
+    log_bypasses: true             # Log all bypass events
+    notify_on_bypass: false        # Send notification when bypassed
+
+# ============================================================================
+# QUALITY GATES (Zero Tolerance Enforcement)
+# ============================================================================
+quality_gates:
+  compilation:
+    enabled: true
+    fail_on_warnings: true
+    commands:
+      - "./gradlew compileJava compileTestJava --no-daemon"
+
+  code_style:
+    enabled: true
+    tools:
+      checkstyle:
+        enabled: true
+        max_violations: 0
+        auto_fix: true
+        commands:
+          - "./gradlew checkstyleMain --no-daemon"
+          - "./gradlew checkstyleTest --no-daemon"
+
+      spotless:
+        enabled: false        # Enable if using Spotless
+        auto_fix: true
+
+  architecture:
+    enabled: true
+    modulith:
+      enabled: true
+      command: "./gradlew modulithCheck --no-daemon"
+      auto_fix: false         # Too complex for auto-fix
+
+    archunit:
+      enabled: true
+      command: "./gradlew archTest --no-daemon"
+      auto_fix: false
+
+  security:
+    enabled: true
+    owasp_dependency_check:
+      enabled: true
+      command: "./gradlew dependencyCheckAnalyze --no-daemon"
+      severity_threshold: "CRITICAL"
+      auto_update_dependencies: true
+      max_severity_level: 7.0  # CVSS score
+
+    security_tests:
+      enabled: true
+      command: "./gradlew securityTest --no-daemon"
+      auto_fix: false
+
+  testing:
+    enabled: true
+    unit_tests:
+      enabled: true
+      command: "./gradlew test --no-daemon"
+      fail_fast: false
+      auto_fix_imports: true
+
+    integration_tests:
+      enabled: true
+      command: "./gradlew integrationTest --no-daemon"
+      auto_fix: false
+
+    coverage:
+      enabled: true
+      command: "./gradlew jacocoTestCoverageVerification --no-daemon"
+      min_line_coverage: 85
+      min_branch_coverage: 80
+      fail_below_threshold: true
+
+# ============================================================================
+# AUTO-FIX CAPABILITIES
+# ============================================================================
+auto_fix:
+  enabled: true
+  max_fixes_per_iteration: 50
+
+  # Safe fixes (low risk)
+  safe_fixes:
+    - unused_imports
+    - import_organization
+    - whitespace_normalization
+    - indentation
+    - modifier_order
+    - missing_override_annotations
+
+  # Medium risk fixes (require validation)
+  medium_risk_fixes:
+    - deprecation_warnings
+    - missing_javadoc
+    - magic_numbers
+    - code_formatting
+
+  # Never auto-fix (blacklist)
+  blacklist:
+    paths:
+      - "**/payment/**"              # Payment processing (PCI compliance)
+      - "**/security/**"             # Security code
+      - "**/authentication/**"       # Auth logic
+      - "**/authorization/**"        # AuthZ logic
+      - "**/db/migration/**"         # Database migrations
+      - "**/stripe/**"               # Stripe integration
+
+    patterns:
+      - ".*\\.sql$"                  # SQL files
+      - ".*CryptoUtils\\.java$"      # Cryptographic code
+      - ".*SecurityConfig\\.java$"   # Security configuration
+
+  # Safety checks before applying any fix
+  safety_checks:
+    validate_tests_pass: true
+    validate_coverage_maintained: true
+    validate_no_new_security_issues: true
+    validate_compilation_success: true
+    validate_no_api_breaking_changes: true
+
+# ============================================================================
+# ROLLBACK CONFIGURATION
+# ============================================================================
+rollback:
+  enabled: true
+  automatic: true
+
+  # Trigger conditions for automatic rollback
+  triggers:
+    - test_failure
+    - compilation_failure
+    - coverage_decrease
+    - new_security_vulnerability
+    - performance_regression
+
+  # Rollback strategy
+  strategy: "git_reset_hard"      # Options: git_reset_hard, git_revert
+
+  # Failure thresholds
+  thresholds:
+    consecutive_rollbacks: 3      # Stop after N consecutive rollbacks
+    failed_iterations: 5          # Stop after N failed iterations
+
+  # Checkpoint management
+  checkpoints:
+    create_before_iteration: true
+    retention_hours: 168          # Keep checkpoints for 7 days
+    tag_prefix: "acis/checkpoint"
+
+# ============================================================================
+# MODULITH ENFORCEMENT
+# ============================================================================
+modulith:
+  enabled: true
+  strict_boundaries: true
+
+  # Rules
+  rules:
+    no_internal_access: true       # Block access to internal packages
+    event_driven_only: true        # Force event-driven communication
+    circular_dependency_check: true
+
+  # Auto-refactoring (experimental)
+  auto_refactor:
+    enabled: false                 # Disabled by default (high risk)
+    move_misplaced_classes: false
+    generate_events: false
+
+# ============================================================================
+# SECURITY SCANNING
+# ============================================================================
+security:
+  enabled: true
+
+  dependency_scanning:
+    enabled: true
+    tools:
+      - owasp
+      - snyk
+
+    auto_update:
+      enabled: true
+      scope: "patch_only"          # Options: patch_only, minor, major
+      exclude_packages: []
+
+  secret_scanning:
+    enabled: true
+    block_on_detection: true
+    patterns:
+      - ".*api[_-]key.*"
+      - ".*secret.*"
+      - ".*password.*"
+      - ".*token.*"
+
+  code_scanning:
+    enabled: true
+    tools:
+      - spotbugs
+      - pmd
+
+    severity_levels:
+      block_on: ["CRITICAL", "HIGH"]
+      warn_on: ["MEDIUM"]
+
+# ============================================================================
+# TEST VALIDATION
+# ============================================================================
+test_validation:
+  enabled: true
+
+  requirements:
+    # Coverage targets
+    coverage:
+      line: 85
+      branch: 80
+      class: 90
+
+    # Test patterns
+    patterns:
+      service_integration_tests: true
+      controller_contract_tests: true
+      event_integration_tests: true
+
+    # Forbidden patterns
+    forbidden:
+      mocks_in_integration_tests: true
+      test_without_assertions: true
+      ignored_tests: true
+
+  # Test enhancement
+  enhancement:
+    generate_missing_tests: false   # Disabled (complex)
+    improve_assertions: true
+    add_test_documentation: true
+
+# ============================================================================
+# METRICS & REPORTING
+# ============================================================================
+metrics:
+  enabled: true
+  collect_interval_minutes: 5
+
+  tracked_metrics:
+    - total_iterations
+    - successful_fixes
+    - failed_fixes
+    - rollback_count
+    - code_coverage_delta
+    - security_vulnerabilities_fixed
+    - checkstyle_violations_fixed
+    - test_count_delta
+    - execution_duration
+    - files_modified
+    - lines_changed
+
+  reporting:
+    formats:
+      - json
+      - html
+      - markdown
+
+    output_dir: ".acis/reports"
+
+    # Notification settings
+    notifications:
+      enabled: true
+      on_success: false
+      on_failure: true
+      on_rollback: true
+
+      channels:
+        slack:
+          enabled: false
+          webhook_url: "${SLACK_WEBHOOK_URL}"
+
+        email:
+          enabled: false
+          to: ["team@example.com"]
+
+        github:
+          enabled: true
+          create_issue_on_failure: true
+
+# ============================================================================
+# PERFORMANCE SETTINGS
+# ============================================================================
+performance:
+  parallel_execution: false        # Parallel fix execution (experimental)
+  max_parallel_jobs: 4
+
+  caching:
+    enabled: true
+    gradle_cache: true
+    dependency_cache: true
+
+  resource_limits:
+    max_memory_mb: 4096
+    max_cpu_percent: 80
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+logging:
+  level: INFO                      # Options: DEBUG, INFO, WARN, ERROR
+  output: ".acis/logs/acis.log"
+  max_size_mb: 100
+  retention_days: 30
+
+  # Structured logging
+  format: "json"                   # Options: json, text
+  include_timestamps: true
+  include_correlation_id: true
+
+  # Debug mode
+  debug:
+    enabled: false
+    verbose_output: false
+    save_intermediate_states: false
+
+# ============================================================================
+# CONTINUATION CONFIRMATION
+# ============================================================================
+confirmation:
+  enabled: true                     # Require confirmation to proceed
+  timeout_seconds: 300              # Wait up to 5 minutes for confirmation
+  auto_approve_after_timeout: false # If true, auto-proceed after timeout
+
+  # Confirmation required for:
+  require_for:
+    - first_run_of_day
+    - after_rollback
+    - high_risk_changes
+    - security_updates
+
+  # Methods for confirmation
+  methods:
+    - file_flag                     # Check for .acis/continue flag file
+    - environment_variable          # Check ACIS_CONTINUE_APPROVED env var
+    - interactive_prompt            # Prompt user (only in terminal mode)
+
+# ============================================================================
+# EXPERIMENTAL FEATURES
+# ============================================================================
+experimental:
+  ai_powered_fixes: false            # Use AI for complex refactoring
+  predictive_quality_analysis: false # Predict future issues
+  auto_dependency_upgrades: false    # Automatic major version upgrades
+  performance_optimization: false    # Auto performance improvements
+
+# ============================================================================
+# ENVIRONMENT-SPECIFIC OVERRIDES
+# ============================================================================
+environments:
+  development:
+    dry_run: true
+    git.auto_commit: false
+    git.auto_push: false
+
+  staging:
+    scheduler.interval_hours: 2
+    git.auto_commit: true
+    git.auto_push: false
+
+  production:
+    enabled: false                   # Disabled in production
+    scheduler.interval_hours: 24
+    git.auto_commit: false
+    git.auto_push: false

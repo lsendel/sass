@@ -1,0 +1,253 @@
+#!/bin/bash
+# ACIS Pre-Commit Hook
+# Fast validation before commit with auto-fix capability
+
+set -eo pipefail
+
+# Get script directory (resolving symlinks)
+HOOK_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+ACIS_DIR="$HOOK_DIR/.."
+PROJECT_ROOT="$(cd "$ACIS_DIR/../.." && pwd)"
+
+# Source utilities
+source "$ACIS_DIR/utils/logger.sh"
+source "$ACIS_DIR/utils/config-reader.sh"
+source "$ACIS_DIR/git-hooks/smart-detector.sh"
+
+# Change to project root
+cd "$PROJECT_ROOT"
+
+# Banner
+log_section "ACIS Pre-Commit Validation"
+
+# Check if git hooks are enabled
+if [ "$(get_config_bool "git_hooks.enabled" "false")" != "true" ]; then
+    log_info "Git hooks disabled in configuration"
+    exit 0
+fi
+
+# Check if pre-commit hook is enabled
+if [ "$(get_config_bool "git_hooks.pre_commit.enabled" "false")" != "true" ]; then
+    log_info "Pre-commit hook disabled in configuration"
+    exit 0
+fi
+
+# Check for bypass flag
+if [ "$ACIS_SKIP_HOOKS" == "true" ] || [ "$SKIP_ACIS_HOOKS" == "true" ]; then
+    log_warn "⚠️  Pre-commit hook bypassed via environment variable"
+
+    # Log bypass if configured
+    if [ "$(get_config_bool "git_hooks.bypass.log_bypasses" "true")" == "true" ]; then
+        echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] PRE-COMMIT BYPASSED" >> .acis/logs/bypass.log
+    fi
+
+    exit 0
+fi
+
+# Get configuration
+FAIL_ON_ERROR=$(get_config_bool "git_hooks.pre_commit.fail_on_error" "true")
+AUTO_FIX=$(get_config_bool "git_hooks.pre_commit.auto_fix" "true")
+AUTO_FIX_AND_STAGE=$(get_config_bool "git_hooks.pre_commit.auto_fix_and_stage" "true")
+TIMEOUT=$(get_config_int "git_hooks.pre_commit.timeout_seconds" "300")
+SMART_DETECTION=$(get_config_bool "git_hooks.pre_commit.smart_detection.enabled" "true")
+
+# Start timer
+START_TIME=$(date +%s)
+
+# Smart change detection
+if [ "$SMART_DETECTION" == "true" ]; then
+    log_info "Analyzing staged changes..."
+
+    DETECTION_REPORT=$(generate_validation_report "staged" "fast")
+
+    if [ "$(echo "$DETECTION_REPORT" | jq -r '.has_changes')" != "true" ]; then
+        log_info "No relevant changes detected, skipping validation"
+        exit 0
+    fi
+
+    # Display detection summary
+    FILE_COUNT=$(echo "$DETECTION_REPORT" | jq -r '.file_count')
+    IS_CRITICAL=$(echo "$DETECTION_REPORT" | jq -r '.is_critical')
+
+    log_info "Changes detected: $FILE_COUNT file(s)"
+
+    if [ "$IS_CRITICAL" == "true" ]; then
+        log_warn "⚠️  Critical files changed - enhanced validation activated"
+    fi
+
+    # Get required gates from smart detection
+    REQUIRED_GATES=$(echo "$DETECTION_REPORT" | jq -r '.required_gates[]')
+else
+    # Use configured gates
+    REQUIRED_GATES=$(get_config_array "git_hooks.pre_commit.gates")
+fi
+
+log_info "Quality gates to run:"
+echo "$REQUIRED_GATES" | while read -r gate; do
+    log_info "  - $gate"
+done
+
+# Run quality gates
+VALIDATION_FAILED=false
+GATES_RUN=0
+GATES_PASSED=0
+GATES_FAILED=0
+
+while IFS= read -r gate; do
+    [ -z "$gate" ] && continue
+
+    GATES_RUN=$((GATES_RUN + 1))
+    log_info ""
+    log_info "Running gate: $gate..."
+
+    # Check timeout
+    ELAPSED=$(($(date +%s) - START_TIME))
+    if [ $ELAPSED -gt $TIMEOUT ]; then
+        log_error "⏱️  Timeout exceeded ($TIMEOUT seconds)"
+        VALIDATION_FAILED=true
+        break
+    fi
+
+    # Run gate based on type
+    case "$gate" in
+        compilation)
+            if cd backend && ./gradlew compileJava compileTestJava --no-daemon --quiet 2>&1; then
+                log_success "✅ Compilation passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Compilation failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        code_style)
+            # Run checkstyle
+            if cd backend && ./gradlew checkstyleMain checkstyleTest --no-daemon 2>&1; then
+                log_success "✅ Code style passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_warn "⚠️  Code style violations detected"
+
+                if [ "$AUTO_FIX" == "true" ]; then
+                    log_info "Attempting auto-fix..."
+
+                    # Apply auto-fixes (if auto-fix script exists)
+                    if [ -f "$ACIS_DIR/auto-fix/code-style-fixer.sh" ]; then
+                        if "$ACIS_DIR/auto-fix/code-style-fixer.sh" staged; then
+                            log_success "✅ Auto-fix successful"
+
+                            # Re-run checkstyle to verify
+                            if ./gradlew checkstyleMain checkstyleTest --no-daemon --quiet 2>&1; then
+                                log_success "✅ Code style now passes"
+                                GATES_PASSED=$((GATES_PASSED + 1))
+
+                                # Stage fixed files if configured
+                                if [ "$AUTO_FIX_AND_STAGE" == "true" ]; then
+                                    cd "$PROJECT_ROOT"
+                                    git add -u
+                                    log_info "Fixed files automatically staged"
+                                fi
+                            else
+                                log_error "❌ Code style still has violations after auto-fix"
+                                GATES_FAILED=$((GATES_FAILED + 1))
+                                VALIDATION_FAILED=true
+                            fi
+                        else
+                            log_error "❌ Auto-fix failed"
+                            GATES_FAILED=$((GATES_FAILED + 1))
+                            VALIDATION_FAILED=true
+                        fi
+                    else
+                        log_warn "Auto-fix script not found, skipping"
+                        GATES_FAILED=$((GATES_FAILED + 1))
+                        VALIDATION_FAILED=true
+                    fi
+                else
+                    GATES_FAILED=$((GATES_FAILED + 1))
+                    VALIDATION_FAILED=true
+                fi
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        fast_tests)
+            # Run only unit tests (exclude integration tests)
+            if cd backend && ./gradlew test --no-daemon --quiet \
+                -x integrationTest \
+                -x contractTest \
+                -x e2eTest 2>&1; then
+                log_success "✅ Unit tests passed"
+                GATES_PASSED=$((GATES_PASSED + 1))
+            else
+                log_error "❌ Unit tests failed"
+                GATES_FAILED=$((GATES_FAILED + 1))
+                VALIDATION_FAILED=true
+            fi
+            cd "$PROJECT_ROOT"
+            ;;
+
+        *)
+            log_warn "Unknown gate: $gate, skipping"
+            ;;
+    esac
+done <<< "$REQUIRED_GATES"
+
+# Claude AI Peer Review (if all gates passed)
+if [ "$VALIDATION_FAILED" != "true" ]; then
+    log_info ""
+    log_info "Running Claude AI peer review..."
+
+    # Source Claude reviewer
+    if [ -f "$PROJECT_ROOT/scripts/acis/claude-ai/claude-reviewer.sh" ]; then
+        source "$PROJECT_ROOT/scripts/acis/claude-ai/claude-reviewer.sh"
+
+        # Run Claude review on staged changes
+        if ! claude_code_review "staged" "commit" "improvement-review"; then
+            log_error "Claude AI peer review FAILED"
+            VALIDATION_FAILED=true
+            GATES_FAILED=$((GATES_FAILED + 1))
+        else
+            log_success "Claude AI peer review PASSED"
+            GATES_PASSED=$((GATES_PASSED + 1))
+        fi
+
+        GATES_RUN=$((GATES_RUN + 1))
+    else
+        log_warn "Claude reviewer not found, skipping"
+    fi
+fi
+
+# Summary
+TOTAL_TIME=$(($(date +%s) - START_TIME))
+
+log_section "Pre-Commit Validation Summary"
+log_info "Gates run: $GATES_RUN"
+log_info "Passed: $GATES_PASSED"
+log_info "Failed: $GATES_FAILED"
+log_info "Duration: ${TOTAL_TIME}s"
+
+if [ "$VALIDATION_FAILED" == "true" ]; then
+    log_error ""
+    log_error "❌ Pre-commit validation FAILED"
+    log_error ""
+
+    if [ "$FAIL_ON_ERROR" == "true" ]; then
+        log_error "Commit blocked. Fix the issues above or use --no-verify to bypass."
+        log_info ""
+        log_info "To bypass (not recommended):"
+        log_info "  git commit --no-verify"
+        log_info "Or set environment:"
+        log_info "  ACIS_SKIP_HOOKS=true git commit"
+        exit 1
+    else
+        log_warn "Validation failed but fail_on_error is disabled, allowing commit"
+        exit 0
+    fi
+else
+    log_success ""
+    log_success "✅ Pre-commit validation PASSED"
+    log_success ""
+    exit 0
+fi
