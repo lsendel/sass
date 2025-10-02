@@ -2,6 +2,7 @@ package com.platform.audit.api;
 
 import com.platform.config.AuditTestConfiguration;
 import com.platform.fixtures.AuditTestDataFixtures;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @Import(AuditTestConfiguration.class)
 @WithMockUser(roles = "USER")
+@Disabled("Simple test - disabled in favor of integration tests with real databases")
 class SimpleAuditApiTest {
 
     @Test

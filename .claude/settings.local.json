@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bash gradlew build)"
+      "Bash(bash gradlew build)",
+      "Bash(./gradlew test:*)",
+      "Bash(cat:*)",
+      "Bash(../gradlew test:*)",
+      "Bash(./gradlew jacocoTestReport:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

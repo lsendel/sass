@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
-@Profile("!test & !integration-test") // Disable in test profiles
+@Profile("!contract-test") // Only disable in contract tests, enable for integration tests
 public class SecurityConfig {
 
     private static final int HSTS_MAX_AGE_SECONDS = 31536000; // 1 year
@@ -120,25 +120,25 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         final CorsConfiguration configuration = new CorsConfiguration();
 
-                // Allow frontend origin (configure via properties in production)
-                configuration.setAllowedOrigins(List.of(
-                        "http://localhost:3000",
-                        "http://localhost:5173"
-                ));
+        // Allow frontend origin (configure via properties in production)
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://localhost:5173"
+        ));
 
-                // Allow common HTTP methods
-                configuration.setAllowedMethods(List.of(
-                        "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-                ));
+        // Allow common HTTP methods
+        configuration.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
 
-                // Allow all headers
-                configuration.setAllowedHeaders(List.of("*"));
+        // Allow all headers
+        configuration.setAllowedHeaders(List.of("*"));
 
-                // Allow credentials (cookies)
-                configuration.setAllowCredentials(true);
+        // Allow credentials (cookies)
+        configuration.setAllowCredentials(true);
 
-                // Cache preflight requests for 1 hour
-                configuration.setMaxAge(CORS_MAX_AGE_SECONDS);
+        // Cache preflight requests for 1 hour
+        configuration.setMaxAge(CORS_MAX_AGE_SECONDS);
 
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

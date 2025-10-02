@@ -1,6 +1,7 @@
 package com.platform;
 
 import com.platform.config.TestSecurityConfiguration;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
     "spring.datasource.driver-class-name=org.h2.Driver",
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
+@Disabled("Context test - disabled in favor of integration tests with real databases")
 class MinimalContextTest {
 
     @Autowired

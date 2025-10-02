@@ -25,48 +25,48 @@ import java.util.Optional;
  * @since 1.0.0
  */
 @Component
-@Profile("!test & !integration-test") // Disable in test profiles
+@Profile("!contract-test") // Only disable in contract tests, enable for integration tests
 public final class OpaqueTokenAuthenticationFilter extends OncePerRequestFilter {
 
-        private static final String AUTH_COOKIE_NAME = "auth_token";
+    private static final String AUTH_COOKIE_NAME = "auth_token";
 
-        private final OpaqueTokenService tokenService;
-        private final UserRepository userRepository;
+    private final OpaqueTokenService tokenService;
+    private final UserRepository userRepository;
 
-        /**
-         * Constructor with dependency injection.
-         */
-        public OpaqueTokenAuthenticationFilter(
-                final OpaqueTokenService tokenService,
-                final UserRepository userRepository) {
-            this.tokenService = tokenService;
-            this.userRepository = userRepository;
-        }
+    /**
+     * Constructor with dependency injection.
+     */
+    public OpaqueTokenAuthenticationFilter(
+            final OpaqueTokenService tokenService,
+            final UserRepository userRepository) {
+        this.tokenService = tokenService;
+        this.userRepository = userRepository;
+    }
 
-        @Override
-        protected void doFilterInternal(
-                final HttpServletRequest request,
-                final HttpServletResponse response,
-                final FilterChain filterChain) throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(
+            final HttpServletRequest request,
+            final HttpServletResponse response,
+            final FilterChain filterChain) throws ServletException, IOException {
 
-            extractToken(request).ifPresent(token ->
-                    tokenService.validateToken(token).ifPresent(userId ->
-                            userRepository.findById(userId)
-                                    .filter(User::isActive)
-                                    .ifPresent(user -> {
-                                            final UsernamePasswordAuthenticationToken authentication =
-                                                    new UsernamePasswordAuthenticationToken(
-                                                            user,
-                                                            null,
-                                                            Collections.emptyList() // Authorities will be added later
-                                                    );
-                                            SecurityContextHolder.getContext().setAuthentication(authentication);
-                                    })
-                    )
-            );
+        extractToken(request).ifPresent(token ->
+                tokenService.validateToken(token).ifPresent(userId ->
+                        userRepository.findById(userId)
+                                .filter(User::isActive)
+                                .ifPresent(user -> {
+                                    final UsernamePasswordAuthenticationToken authentication =
+                                            new UsernamePasswordAuthenticationToken(
+                                                    user,
+                                                    null,
+                                                    Collections.emptyList() // Authorities will be added later
+                                            );
+                                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                                })
+                )
+        );
 
-            filterChain.doFilter(request, response);
-        }
+        filterChain.doFilter(request, response);
+    }
 
     /**
      * Extracts the authentication token from the request cookies.

@@ -127,9 +127,14 @@ public class User {
 
     /**
      * Resets failed login attempts after successful authentication.
+     * Also clears any lock status.
      */
     public void resetFailedAttempts() {
         this.failedLoginAttempts = 0;
+        this.lockedUntil = null;
+        if (this.status == UserStatus.LOCKED) {
+            this.status = UserStatus.ACTIVE;
+        }
     }
 
     /**
@@ -147,6 +152,33 @@ public class User {
     public void delete() {
         this.deletedAt = Instant.now();
         this.status = UserStatus.DISABLED;
+    }
+
+    /**
+     * Soft deletes the user account (alias for delete).
+     */
+    public void softDelete() {
+        delete();
+    }
+
+    /**
+     * Checks if user is soft-deleted.
+     *
+     * @return true if deleted
+     */
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
+    /**
+     * Locks the account for a specified duration.
+     *
+     * @param durationMinutes duration in minutes
+     */
+    public void lock(final long durationMinutes) {
+        this.status = UserStatus.LOCKED;
+        this.lockedUntil = Instant.now().plusSeconds(durationMinutes * SECONDS_PER_MINUTE);
+        this.failedLoginAttempts = 5; // Set to threshold
     }
 
     // Getters and setters

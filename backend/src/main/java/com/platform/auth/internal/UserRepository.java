@@ -31,8 +31,8 @@ interface UserRepository extends JpaRepository<User, UUID> {
      * @param email the email address
      * @return optional containing the active user if found
      */
-    @Query("SELECT u FROM User u WHERE u.email = :email " +
-           "AND u.status = 'ACTIVE' AND u.deletedAt IS NULL")
+    @Query("SELECT u FROM User u WHERE u.email = :email "
+            + "AND u.status = 'ACTIVE' AND u.deletedAt IS NULL")
     Optional<User> findActiveUserByEmail(@Param("email") String email);
 
     /**
@@ -49,7 +49,7 @@ interface UserRepository extends JpaRepository<User, UUID> {
      * @param email the email address
      * @return true if active user exists
      */
-    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
-           "FROM User u WHERE u.email = :email AND u.deletedAt IS NULL")
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END "
+            + "FROM User u WHERE u.email = :email AND u.deletedAt IS NULL")
     boolean existsActiveUserByEmail(@Param("email") String email);
 }
