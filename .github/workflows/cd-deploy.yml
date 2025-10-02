@@ -226,6 +226,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Staging Deployment Status
+        if: ${{ secrets.SLACK_BOT_TOKEN != '' }}
         uses: slackapi/slack-github-action@v1.24.0
         with:
           channel-id: 'deployments'
@@ -272,6 +273,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Deployment Status
+        if: ${{ secrets.SLACK_BOT_TOKEN != '' }}
         uses: slackapi/slack-github-action@v1.24.0
         with:
           channel-id: 'deployments'

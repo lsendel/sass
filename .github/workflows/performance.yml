@@ -52,7 +52,7 @@ jobs:
         ./check-api-performance.sh
 
     - name: Upload Performance Reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-reports
         path: |
@@ -62,7 +62,7 @@ jobs:
           tests/performance/results/
 
     - name: Notify on Performance Regression
-      if: failure()
+      if: failure() && secrets.SLACK_BOT_TOKEN != ''
       uses: slackapi/slack-github-action@v1.24.0
       with:
         channel-id: 'performance-alerts'
