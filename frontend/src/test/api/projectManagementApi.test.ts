@@ -93,7 +93,7 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
+    const body = (await request.json()) as any;
     return HttpResponse.json({ ...mockUser, ...body });
   }),
 
@@ -102,7 +102,7 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
+    const body = (await request.json()) as any;
     return HttpResponse.json({ ...mockUser, ...body });
   }),
 
@@ -132,8 +132,8 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
-    if (!body.name) {
+    const body = (await request.json()) as any;
+    if (!body?.name) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockWorkspace, ...body });
@@ -148,7 +148,7 @@ const handlers = [
     if (id !== 'workspace-1') {
       return HttpResponse.json({ message: 'Workspace not found' }, { status: 404 });
     }
-    const body = await request.json();
+    const body = (await request.json()) as any;
     return HttpResponse.json({ ...mockWorkspace, ...body });
   }),
 
@@ -192,8 +192,8 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
-    if (!body.name) {
+    const body = (await request.json()) as any;
+    if (!body?.name) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockProject, ...body });
@@ -208,7 +208,7 @@ const handlers = [
     if (id !== 'project-1') {
       return HttpResponse.json({ message: 'Project not found' }, { status: 404 });
     }
-    const body = await request.json();
+    const body = (await request.json()) as any;
     return HttpResponse.json({ ...mockProject, ...body });
   }),
 
@@ -258,8 +258,8 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
-    if (!body.title) {
+    const body = (await request.json()) as any;
+    if (!body?.title) {
       return HttpResponse.json({ message: 'Title is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockTask, ...body });
@@ -274,7 +274,7 @@ const handlers = [
     if (id !== 'task-1') {
       return HttpResponse.json({ message: 'Task not found' }, { status: 404 });
     }
-    const body = await request.json();
+    const body = (await request.json()) as any;
     return HttpResponse.json({ ...mockTask, ...body });
   }),
 
@@ -304,8 +304,8 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = await request.json();
-    if (!body.content) {
+    const body = (await request.json()) as any;
+    if (!body?.content) {
       return HttpResponse.json({ message: 'Content is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockComment, ...body });

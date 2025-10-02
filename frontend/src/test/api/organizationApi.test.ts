@@ -66,15 +66,15 @@ const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    if (!body.name || typeof body.name !== 'string') {
+    const body = (await request.json()) as any;
+    if (!body?.name || typeof body?.name !== 'string') {
       return HttpResponse.json(
         { message: 'Name is required' },
         { status: 400 }
       );
     }
 
-    if (!body.slug || typeof body.slug !== 'string') {
+    if (!body?.slug || typeof body?.slug !== 'string') {
       return HttpResponse.json(
         { message: 'Slug is required' },
         { status: 400 }
@@ -143,8 +143,8 @@ const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    if (!body.name || typeof body.name !== 'string') {
+    const body = (await request.json()) as any;
+    if (!body?.name || typeof body?.name !== 'string') {
       return HttpResponse.json(
         { message: 'Name is required' },
         { status: 400 }
@@ -172,8 +172,8 @@ const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    if (!body.settings || typeof body.settings !== 'object') {
+    const body = (await request.json()) as any;
+    if (!body?.settings || typeof body?.settings !== 'object') {
       return HttpResponse.json(
         { message: 'Settings object is required' },
         { status: 400 }
@@ -239,15 +239,15 @@ const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    if (!body.email || typeof body.email !== 'string') {
+    const body = (await request.json()) as any;
+    if (!body?.email || typeof body?.email !== 'string') {
       return HttpResponse.json(
         { message: 'Email is required' },
         { status: 400 }
       );
     }
 
-    if (!body.role || !['OWNER', 'ADMIN', 'MEMBER'].includes(body.role)) {
+    if (!body?.role || !['OWNER', 'ADMIN', 'MEMBER'].includes(body.role)) {
       return HttpResponse.json(
         { message: 'Valid role is required' },
         { status: 400 }
@@ -372,8 +372,8 @@ const handlers = [
       return HttpResponse.json({ message: 'Member not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    if (!body.role || !['OWNER', 'ADMIN', 'MEMBER'].includes(body.role)) {
+    const body = (await request.json()) as any;
+    if (!body?.role || !['OWNER', 'ADMIN', 'MEMBER'].includes(body.role)) {
       return HttpResponse.json(
         { message: 'Valid role is required' },
         { status: 400 }
