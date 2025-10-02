@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
@@ -40,20 +40,20 @@ import java.util.UUID;
 })
 public class ContractTestConfiguration extends BaseTestConfiguration {
 
-    // Use @MockBean to create repository mocks that won't trigger JPA proxy creation
-    @MockBean
+    // Use @MockitoBean to create repository mocks that won't trigger JPA proxy creation
+    @MockitoBean
     private AuditEventRepository auditEventRepository;
 
-    @MockBean
+    @MockitoBean
     private AuditLogViewRepository auditLogViewRepository;
 
-    @MockBean
+    @MockitoBean
     private AuditLogExportRepository auditLogExportRepository;
 
-    @MockBean
+    @MockitoBean
     private ComplianceRepository complianceRepository;
 
-    @MockBean
+    @MockitoBean
     private SecurityAnalyticsRepository securityAnalyticsRepository;
 
     @Bean
