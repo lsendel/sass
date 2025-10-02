@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useGetTasksQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
 import { Task, TaskStatus } from '../../types/project';
 import { Button } from '../ui/button';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 import { TaskCard } from './TaskCard';
 import { CreateTaskModal } from './CreateTaskModal';
