@@ -62,7 +62,8 @@ jobs:
           tests/performance/results/
 
     - name: Notify on Performance Regression
-      if: failure() && secrets.SLACK_BOT_TOKEN != ''
+      if: failure()
+      continue-on-error: true
       uses: slackapi/slack-github-action@v1.24.0
       with:
         channel-id: 'performance-alerts'
