@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  MessageSquare, 
-  Paperclip, 
-  User,
-  Edit3,
-  Trash2,
-  CheckCircle2,
-  Circle
+import {
+  Calendar,
+  Clock,
+  MessageSquare,
+  Edit3
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
-import { useGetTaskQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
+import { useGetTaskQuery, useUpdateTaskMutation, type Task } from '../../store/api/projectManagementApi';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/Badge';
-import { Avatar } from '../ui/Avatar';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface TaskDetailModalProps {
@@ -66,8 +59,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
     try {
       await updateTask({
-        id: taskId,
-        status: newStatus as any,
+        taskId,
+        task: {
+          status: newStatus as Task['status'],
+        },
       }).unwrap();
 
       toast.success(`Task moved to ${newStatus.replace('_', ' ').toLowerCase()}`);
@@ -83,8 +78,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
     try {
       await updateTask({
-        id: taskId,
-        priority: newPriority as any,
+        taskId,
+        task: {
+          priority: newPriority as Task['priority'],
+        },
       }).unwrap();
 
       toast.success(`Priority changed to ${newPriority.toLowerCase()}`);
@@ -121,20 +118,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   }
 
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
-
-  const priorityColors = {
-    LOW: 'bg-gray-100 text-gray-800',
-    MEDIUM: 'bg-yellow-100 text-yellow-800',
-    HIGH: 'bg-orange-100 text-orange-800',
-    URGENT: 'bg-red-100 text-red-800',
-  };
-
-  const statusColors = {
-    TODO: 'bg-gray-100 text-gray-800',
-    IN_PROGRESS: 'bg-blue-100 text-blue-800',
-    REVIEW: 'bg-yellow-100 text-yellow-800',
-    DONE: 'bg-green-100 text-green-800',
-  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="lg">
@@ -181,8 +164,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               >
                 <option value="TODO">To Do</option>
                 <option value="IN_PROGRESS">In Progress</option>
-                <option value="REVIEW">Review</option>
-                <option value="DONE">Done</option>
+                <option value="IN_REVIEW">Review</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             </div>
 
@@ -200,7 +184,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
                 <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
+                <option value="CRITICAL">Critical</option>
               </select>
             </div>
 
@@ -210,16 +194,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 Assignee
               </label>
               <div className="flex items-center">
-                {task.assignee ? (
+                {task.assigneeName ? (
                   <div className="flex items-center">
-                    <Avatar
-                      src={task.assignee.avatar}
-                      alt={`${task.assignee.firstName} ${task.assignee.lastName}`}
-                      size="sm"
-                      className="mr-2"
-                    />
                     <span className="text-sm text-gray-900">
-                      {task.assignee.firstName} {task.assignee.lastName}
+                      {task.assigneeName}
                     </span>
                   </div>
                 ) : (
@@ -254,15 +232,15 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             )}
 
             {/* Time Tracking */}
-            {(task.estimatedHours || task.actualHours) && (
+            {task.estimatedHours && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Time Tracking
+                  Time Estimate
                 </label>
                 <div className="flex items-center text-sm text-gray-900">
                   <Clock className="h-4 w-4 mr-2" />
                   <span>
-                    {task.actualHours || 0}h logged / {task.estimatedHours || 0}h estimated
+                    {task.estimatedHours}h estimated
                   </span>
                 </div>
               </div>
@@ -275,56 +253,14 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               </label>
               <div className="text-sm text-gray-600">
                 {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
-                {task.reporter && (
-                  <span> by {task.reporter.firstName} {task.reporter.lastName}</span>
-                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tags */}
-        {task.tags && task.tags.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {task.tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Tags - Feature not yet in API */}
 
-        {/* Subtasks */}
-        {task.subtasks && task.subtasks.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Subtasks ({task.completedSubtaskCount || 0}/{task.subtasks.length})
-            </label>
-            <div className="space-y-2">
-              {task.subtasks.map((subtask) => (
-                <div key={subtask.id} className="flex items-center p-2 bg-gray-50 rounded">
-                  <button className="mr-3">
-                    {subtask.isCompleted ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                  <span className={`text-sm ${
-                    subtask.isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'
-                  }`}>
-                    {subtask.title}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Subtasks - Feature not yet in API */}
 
         {/* Comments Section */}
         <div>
@@ -349,44 +285,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Comments List */}
-          {task.comments && task.comments.length > 0 && (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {task.comments.map((comment) => (
-                <div key={comment.id} className="flex space-x-3">
-                  <Avatar
-                    src={comment.author.avatar}
-                    alt={`${comment.author.firstName} ${comment.author.lastName}`}
-                    size="sm"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-900">
-                        {comment.author.firstName} {comment.author.lastName}
-                      </span>
-                      <span className="ml-2 text-gray-500">
-                        {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-sm text-gray-700">
-                      {comment.content}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Comments List - Feature not yet in API */}
         </div>
 
         {/* Actions */}
         <div className="flex justify-between pt-4 border-t">
           <div className="flex items-center space-x-2 text-sm text-gray-500">
-            {(task.attachmentCount || 0) > 0 && (
-              <div className="flex items-center">
-                <Paperclip className="h-4 w-4 mr-1" />
-                <span>{task.attachmentCount} attachments</span>
-              </div>
-            )}
+            {/* Attachments - Feature not yet in API */}
           </div>
           
           <div className="flex space-x-2">

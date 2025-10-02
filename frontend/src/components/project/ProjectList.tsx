@@ -136,8 +136,8 @@ export const ProjectList: React.FC<ProjectListProps> = ({ workspaceId }) => {
                 </div>
                 <div
                   className="w-4 h-4 rounded-full ml-3 flex-shrink-0"
-                  style={{ backgroundColor: project.color || '#6B7280' }}
-                  title={`Project color: ${project.color || 'Default'}`}
+                  style={{ backgroundColor: '#6B7280' }}
+                  title="Project color"
                 />
               </div>
 

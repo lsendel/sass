@@ -701,7 +701,7 @@ describe('Audit API', () => {
 
       // Cache should be managed appropriately
       const state = store.getState();
-      expect(state.auditApi).toBeDefined();
+      expect((state as any).auditApi).toBeDefined();
     });
   });
 });

@@ -130,6 +130,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
+    return undefined;
   }, [watchedValues, isOpen, autoSaveKey]);
 
   const onSubmit = async (data: CreateProjectFormData) => {

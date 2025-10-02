@@ -67,7 +67,7 @@ export const useKeyboardNavigation = <T extends HTMLElement = HTMLElement>(
       containerRef.current.querySelectorAll(
         '[data-keyboard-nav]:not([disabled]):not([aria-disabled="true"])'
       )
-    )
+    ).filter((el): el is HTMLElement => el instanceof HTMLElement)
 
     itemsRef.current = focusableElements
   }, [])

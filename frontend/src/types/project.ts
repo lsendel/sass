@@ -190,9 +190,9 @@ export interface CreateProjectRequest {
   workspaceId: string;
   name: string;
   slug: string;
-  description?: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  dueDate?: string;
+  description?: string | undefined;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' | undefined;
+  dueDate?: string | undefined;
 }
 
 export interface UpdateProjectRequest {
@@ -206,27 +206,29 @@ export interface UpdateProjectRequest {
 export interface CreateTaskRequest {
   projectId: string;
   title: string;
-  description?: string;
+  description?: string | undefined;
   status: TaskStatus;
   priority: TaskPriority;
-  assigneeId?: string;
-  dueDate?: string;
-  estimatedHours?: number;
+  assigneeId?: string | undefined;
+  dueDate?: string | undefined;
+  estimatedHours?: number | undefined;
   tags: string[];
 }
 
 export interface UpdateTaskRequest {
-  id: string;
-  title?: string;
-  description?: string;
-  status?: TaskStatus;
-  priority?: TaskPriority;
-  assigneeId?: string;
-  dueDate?: string;
-  estimatedHours?: number;
-  actualHours?: number;
-  tags?: string[];
-  position?: number;
+  taskId: string;
+  task: {
+    title?: string | undefined;
+    description?: string | undefined;
+    status?: TaskStatus | undefined;
+    priority?: TaskPriority | undefined;
+    assigneeId?: string | undefined;
+    dueDate?: string | undefined;
+    estimatedHours?: number | undefined;
+    actualHours?: number | undefined;
+    tags?: string[] | undefined;
+    position?: number | undefined;
+  };
 }
 
 export interface CreateWorkspaceRequest {

@@ -22,7 +22,6 @@ import { parseApiError } from '../../utils/apiError'
 import { useCrossComponentSync } from '../../hooks/useDataSync'
 import { useNotifications } from '../../components/ui/FeedbackSystem'
 import PageHeader from '../../components/ui/PageHeader'
-import AccessibleFormField, { EmailField, PasswordField } from '../../components/forms/AccessibleFormField'
 
 const profileSchema = z.object({
   name: z

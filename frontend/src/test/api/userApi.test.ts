@@ -217,7 +217,9 @@ const createTestStore = () => {
     auth: {
       token: 'test-token',
       isAuthenticated: true,
-      user: { id: 'user-1', email: 'test@example.com', name: 'Test User' },
+      user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' as const, emailVerified: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as any,
+      isLoading: false,
+      error: null,
     },
   });
 };
@@ -374,7 +376,7 @@ describe('User API', () => {
 
       // Verify cache invalidation
       const state = store.getState();
-      expect(state.userApi).toBeDefined();
+      expect((state as any).userApi).toBeDefined();
     });
   });
 
@@ -444,7 +446,7 @@ describe('User API', () => {
       await store.dispatch(userApi.endpoints.deleteCurrentUser.initiate());
 
       const state = store.getState();
-      expect(state.userApi).toBeDefined();
+      expect((state as any).userApi).toBeDefined();
     });
   });
 
@@ -715,7 +717,7 @@ describe('User API', () => {
       await store.dispatch(userApi.endpoints.restoreUser.initiate('user-1'));
 
       const state = store.getState();
-      expect(state.userApi).toBeDefined();
+      expect((state as any).userApi).toBeDefined();
     });
   });
 
@@ -789,7 +791,7 @@ describe('User API', () => {
       );
 
       const state = store.getState();
-      expect(state.userApi).toBeDefined();
+      expect((state as any).userApi).toBeDefined();
     });
   });
 });

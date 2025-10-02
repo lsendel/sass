@@ -1,9 +1,8 @@
 import React from 'react';
 import { Clock, MessageSquare, Paperclip, Calendar } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
-import { Task } from '../../types/project';
-import { Avatar } from '../ui/Avatar';
+import type { Task } from '../../store/api/projectManagementApi';
 import { Badge } from '../ui/Badge';
 
 interface TaskCardProps {
@@ -31,11 +30,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
     new Date(task.dueDate) <= new Date(Date.now() + 24 * 60 * 60 * 1000) && 
     !isOverdue;
 
-  const priorityColors = {
+  const priorityColors: Record<Task['priority'], string> = {
     LOW: 'bg-gray-100 text-gray-800',
     MEDIUM: 'bg-yellow-100 text-yellow-800',
     HIGH: 'bg-orange-100 text-orange-800',
-    URGENT: 'bg-red-100 text-red-800',
+    CRITICAL: 'bg-red-100 text-red-800',
   };
 
   return (
@@ -68,24 +67,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
         </p>
       )}
 
-      {/* Task Tags */}
-      {task.tags && task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {task.tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800"
-            >
-              {tag}
-            </span>
-          ))}
-          {task.tags.length > 3 && (
-            <span className="text-xs text-gray-500">
-              +{task.tags.length - 3} more
-            </span>
-          )}
-        </div>
-      )}
+      {/* Task Tags - Feature not yet in API */}
 
       {/* Due Date */}
       {task.dueDate && (
@@ -107,25 +89,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
       )}
 
       {/* Time Tracking */}
-      {(task.estimatedHours || task.actualHours) && (
+      {task.estimatedHours && (
         <div className="flex items-center mb-3 text-xs text-gray-600">
           <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
           <span>
-            {task.actualHours || 0}h / {task.estimatedHours || 0}h
+            {task.estimatedHours}h estimated
           </span>
         </div>
       )}
 
       {/* Task Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        {/* Assignee Avatar */}
+        {/* Assignee Name */}
         <div className="flex items-center">
-          {task.assignee ? (
-            <Avatar
-              src={task.assignee.avatar}
-              alt={`${task.assignee.firstName} ${task.assignee.lastName}`}
-              size="sm"
-            />
+          {task.assigneeName ? (
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-xs text-blue-600 font-medium">
+                {task.assigneeName.charAt(0).toUpperCase()}
+              </span>
+            </div>
           ) : (
             <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
               <span className="text-xs text-gray-500">?</span>
@@ -141,32 +123,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
               <span>{task.commentCount}</span>
             </div>
           )}
-          {(task.attachmentCount || 0) > 0 && (
+          {'attachmentCount' in task && ((task as any).attachmentCount || 0) > 0 && (
             <div className="flex items-center">
               <Paperclip className="h-3 w-3 mr-1" />
-              <span>{task.attachmentCount}</span>
+              <span>{(task as any).attachmentCount}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Subtask Progress */}
-      {task.subtaskCount && task.subtaskCount > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-            <span>Subtasks</span>
-            <span>{task.completedSubtaskCount || 0}/{task.subtaskCount}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div
-              className="bg-blue-600 h-1.5 rounded-full transition-all"
-              style={{
-                width: `${((task.completedSubtaskCount || 0) / task.subtaskCount) * 100}%`
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Subtask Progress - Feature not yet in API */}
     </div>
   );
 };

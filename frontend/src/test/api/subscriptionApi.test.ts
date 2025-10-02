@@ -250,11 +250,17 @@ const createTestStore = () => {
       user: {
         id: 'test-user-1',
         email: 'test@example.com',
-        name: 'Test User',
-        role: 'USER',
-      },
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'USER' as const,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any,
       token: 'mock-test-token',
       isAuthenticated: true,
+      isLoading: false,
+      error: null,
     },
   });
 };

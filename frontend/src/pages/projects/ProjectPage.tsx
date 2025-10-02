@@ -12,7 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 
-import { useGetProjectQuery } from '../../store/api/projectManagementApi';
+import { useGetProjectQuery, type Project } from '../../store/api/projectManagementApi';
 import { KanbanBoard } from '../../components/task/KanbanBoard';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { Button } from '../../components/ui/button';
@@ -74,10 +74,11 @@ export const ProjectPage: React.FC = () => {
     );
   }
 
-  const statusColors = {
+  const statusColors: Record<Project['status'], string> = {
+    PLANNING: 'bg-purple-100 text-purple-800',
     ACTIVE: 'bg-green-100 text-green-800',
-    COMPLETED: 'bg-blue-100 text-blue-800',
     ON_HOLD: 'bg-yellow-100 text-yellow-800',
+    COMPLETED: 'bg-blue-100 text-blue-800',
     ARCHIVED: 'bg-gray-100 text-gray-800',
   };
 
@@ -104,7 +105,7 @@ export const ProjectPage: React.FC = () => {
               {/* Project color indicator */}
               <div
                 className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
-                style={{ backgroundColor: project.color }}
+                style={{ backgroundColor: '#6B7280' }}
               />
 
               {/* Project name and details */}
@@ -193,20 +194,12 @@ export const ProjectPage: React.FC = () => {
           </div>
 
           {/* Project dates */}
-          {(project.startDate || project.endDate) && (
+          {project.dueDate && (
             <div className="flex items-center space-x-6 text-sm text-gray-600 pb-4">
-              {project.startDate && (
-                <div>
-                  <span className="font-medium">Start:</span>{' '}
-                  {format(new Date(project.startDate), 'MMM d, yyyy')}
-                </div>
-              )}
-              {project.endDate && (
-                <div>
-                  <span className="font-medium">Due:</span>{' '}
-                  {format(new Date(project.endDate), 'MMM d, yyyy')}
-                </div>
-              )}
+              <div>
+                <span className="font-medium">Due:</span>{' '}
+                {format(new Date(project.dueDate), 'MMM d, yyyy')}
+              </div>
             </div>
           )}
         </div>

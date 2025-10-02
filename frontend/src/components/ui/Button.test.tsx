@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { Button } from './button';
@@ -355,7 +355,7 @@ describe('Button', () => {
 
       render(<Button onFocus={handleFocus}>Focus me</Button>);
 
-      const button = screen.getByRole('button');
+       screen.getByRole('button');
       await user.tab();
 
       expect(handleFocus).toHaveBeenCalledTimes(1);
@@ -372,7 +372,7 @@ describe('Button', () => {
         </>
       );
 
-      const button = screen.getAllByRole('button')[0];
+       screen.getAllByRole('button')[0];
       await user.tab(); // Focus first button
       await user.tab(); // Focus second button (blur first)
 

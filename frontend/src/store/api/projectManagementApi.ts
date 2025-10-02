@@ -174,37 +174,37 @@ export interface CreateProjectRequest {
   workspaceId: string;
   name: string;
   slug: string;
-  description?: string;
-  priority?: Project['priority'];
-  dueDate?: string;
+  description?: string | undefined;
+  priority?: Project['priority'] | undefined;
+  dueDate?: string | undefined;
 }
 
 export interface UpdateProjectRequest {
-  name?: string;
-  description?: string;
-  status?: Project['status'];
-  priority?: Project['priority'];
-  dueDate?: string;
+  name?: string | undefined;
+  description?: string | undefined;
+  status?: Project['status'] | undefined;
+  priority?: Project['priority'] | undefined;
+  dueDate?: string | undefined;
 }
 
 export interface CreateTaskRequest {
   projectId: string;
   title: string;
-  description?: string;
-  priority?: Task['priority'];
-  assigneeId?: string;
-  dueDate?: string;
-  estimatedHours?: number;
+  description?: string | undefined;
+  priority?: Task['priority'] | undefined;
+  assigneeId?: string | undefined;
+  dueDate?: string | undefined;
+  estimatedHours?: number | undefined;
 }
 
 export interface UpdateTaskRequest {
-  title?: string;
-  description?: string;
-  status?: Task['status'];
-  priority?: Task['priority'];
-  assigneeId?: string;
-  dueDate?: string;
-  estimatedHours?: number;
+  title?: string | undefined;
+  description?: string | undefined;
+  status?: Task['status'] | undefined;
+  priority?: Task['priority'] | undefined;
+  assigneeId?: string | undefined;
+  dueDate?: string | undefined;
+  estimatedHours?: number | undefined;
 }
 
 export const projectManagementApi = createApi({

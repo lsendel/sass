@@ -1,8 +1,8 @@
 import React from 'react';
 
-interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  error?: string;
-  label?: string;
+export interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  error?: string | undefined;
+  label?: string | undefined;
 }
 
 /**

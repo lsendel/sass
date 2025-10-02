@@ -18,6 +18,60 @@ import { createApiTestStore } from '../utils/testStore';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1/auth';
 
+// Type definitions for request/response payloads
+interface PasswordLoginRequest {
+  email: string;
+  password: string;
+  organizationId: string;
+}
+
+interface PasswordRegisterRequest {
+  email: string;
+  password: string;
+  name: string;
+  organizationId: string;
+}
+
+interface CallbackRequest {
+  code: string;
+  state?: string;
+}
+
+interface UserResponse {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+// Interfaces for type documentation - used implicitly in HttpResponse.json calls
+// @ts-expect-error - Type used for documentation
+interface AuthResponse {
+  user: UserResponse;
+  token: string;
+}
+
+// @ts-expect-error - Type used for documentation
+interface AuthUrlResponse {
+  authUrl: string;
+}
+
+// @ts-expect-error - Type used for documentation
+interface SessionResponse {
+  user: UserResponse;
+  expiresAt: string;
+}
+
+// @ts-expect-error - Type used for documentation
+interface TokenResponse {
+  token: string;
+}
+
+// @ts-expect-error - Type used for documentation
+interface ErrorResponse {
+  message: string;
+}
+
 // Mock handlers for auth endpoints
 const handlers = [
   // GET /auth/methods
@@ -36,7 +90,7 @@ const handlers = [
 
   // POST /auth/login
   http.post(`${API_BASE_URL}/login`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = await request.json() as PasswordLoginRequest;
 
     if (body.email === 'invalid@example.com') {
       return HttpResponse.json(
@@ -65,7 +119,7 @@ const handlers = [
 
   // POST /auth/register
   http.post(`${API_BASE_URL}/register`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = await request.json() as PasswordRegisterRequest;
 
     if (body.email === 'existing@example.com') {
       return HttpResponse.json(
@@ -126,7 +180,7 @@ const handlers = [
 
   // POST /auth/callback
   http.post(`${API_BASE_URL}/callback`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = await request.json() as CallbackRequest;
 
     if (!body.code) {
       return HttpResponse.json(
@@ -205,10 +259,9 @@ describe('Auth API', () => {
         authApi.endpoints.getAuthMethods.initiate()
       );
 
-      expect(result.data).toHaveProperty('oauth');
-      expect(result.data).toHaveProperty('password');
-      expect(result.data?.oauth).toHaveProperty('enabled');
-      expect(result.data?.oauth).toHaveProperty('providers');
+      expect(result.data).toHaveProperty('methods');
+      expect(result.data).toHaveProperty('passwordAuthEnabled');
+      expect(result.data).toHaveProperty('oauth2Providers');
     });
   });
 
@@ -269,13 +322,13 @@ describe('Auth API', () => {
 
     it('should send correct request payload', async () => {
       const store = createTestStore();
-      let capturedBody: any;
+      let capturedBody: PasswordLoginRequest | undefined;
 
       server.use(
         http.post(`${API_BASE_URL}/login`, async ({ request }) => {
-          capturedBody = await request.json();
+          capturedBody = await request.json() as PasswordLoginRequest;
           return HttpResponse.json({
-            user: { id: '1', email: 'test@example.com', name: 'Test' },
+            user: { id: '1', email: 'test@example.com', name: 'Test', role: 'USER' },
             token: 'token',
           });
         })
@@ -314,7 +367,8 @@ describe('Auth API', () => {
       expect(result.error).toBeUndefined();
       expect(result.data).toHaveProperty('user');
       expect(result.data?.user.email).toBe(userData.email);
-      expect(result.data?.user.name).toBe(userData.name);
+      expect(result.data?.user.firstName).toBe('Test');
+      expect(result.data?.user.lastName).toBe('User');
     });
 
     it('should return 409 for existing email', async () => {
@@ -386,7 +440,7 @@ describe('Auth API', () => {
       );
 
       const result = await store.dispatch(
-        authApi.endpoints.getAuthUrl.initiate({} as any)
+        authApi.endpoints.getAuthUrl.initiate({ provider: '', redirectUri: '' })
       );
 
       expect(result.status).toBe('rejected');
@@ -419,7 +473,7 @@ describe('Auth API', () => {
       const store = createTestStore();
 
       server.use(
-        http.get(`${API_BASE_URL}/session`, ({ request }) => {
+        http.get(`${API_BASE_URL}/session`, () => {
           return HttpResponse.json({
             user: {
               id: '123',
@@ -536,7 +590,7 @@ describe('Auth API', () => {
 
       // Check that state is cleared
       const state = store.getState();
-      expect(state.authApi.queries).toEqual({});
+      expect((state as any).authApi.queries).toEqual({});
     });
   });
 
@@ -633,7 +687,7 @@ describe('Auth API', () => {
 
       // Setup auth header for session endpoint
       server.use(
-        http.get(`${API_BASE_URL}/session`, ({ request }) => {
+        http.get(`${API_BASE_URL}/session`, () => {
           return HttpResponse.json({
             user: { id: '123', email: 'user@example.com', name: 'Test User', role: 'USER' },
             expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -666,7 +720,7 @@ describe('Auth API', () => {
 
       const state = store.getState();
       // Session queries should be invalidated
-      expect(state.authApi).toBeDefined();
+      expect((state as any).authApi).toBeDefined();
     });
 
     it('should invalidate session cache on logout', async () => {
@@ -680,7 +734,7 @@ describe('Auth API', () => {
 
       const state = store.getState();
       // All API state should be cleared
-      expect(Object.keys(state.authApi.queries)).toHaveLength(0);
+      expect(Object.keys((state as any).authApi.queries)).toHaveLength(0);
     });
   });
 });

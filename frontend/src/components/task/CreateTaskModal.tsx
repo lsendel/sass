@@ -5,8 +5,7 @@ import { z } from 'zod';
 import { Loader2, Plus, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import { useCreateTaskMutation } from '../../store/api/projectManagementApi';
-import { TaskStatus } from '../../types/project';
+import { useCreateTaskMutation, type Task } from '../../store/api/projectManagementApi';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/input';
 import { TextArea } from '../ui/TextArea';
@@ -19,7 +18,7 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onTaskCreated: () => void;
   projectId: string;
-  initialStatus?: TaskStatus;
+  initialStatus?: Task['status'];
 }
 
 const createTaskSchema = z.object({
@@ -31,12 +30,12 @@ const createTaskSchema = z.object({
     .string()
     .max(5000, 'Description must be less than 5000 characters')
     .optional(),
-  status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'ARCHIVED']),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(),
   estimatedHours: z.number().min(0).optional(),
-  tags: z.array(z.string()).default([]),
+  tags: z.array(z.string()),
 });
 
 type CreateTaskFormData = z.infer<typeof createTaskSchema>;
@@ -88,9 +87,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     try {
       await createTask({
         projectId,
-        ...data,
-        estimatedHours: data.estimatedHours || undefined,
-        dueDate: data.dueDate || undefined,
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        assigneeId: data.assigneeId,
+        dueDate: data.dueDate,
+        estimatedHours: data.estimatedHours,
       }).unwrap();
 
       toast.success('Task created successfully!');

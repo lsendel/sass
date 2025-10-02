@@ -399,7 +399,9 @@ const createTestStore = () => {
     auth: {
       token: 'test-token',
       isAuthenticated: true,
-      user: { id: 'user-1', email: 'test@example.com', name: 'Test User' },
+      user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' as const, emailVerified: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as any,
+      isLoading: false,
+      error: null,
     },
   });
 };
@@ -446,7 +448,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
 
     it('should return 409 for duplicate slug', async () => {
@@ -459,7 +461,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(409);
+      expect((result.error as any)?.status).toBe(409);
     });
 
     it('should create organization without settings', async () => {
@@ -493,14 +495,14 @@ describe('Organization API', () => {
 
     it('should return 401 for unauthenticated request', async () => {
       const store = createApiTestStore(organizationApi, {
-        auth: { token: null, isAuthenticated: false, user: null },
+        auth: { token: null, isAuthenticated: false, user: null, isLoading: false, error: null },
       });
 
       const result = await store.dispatch(
         organizationApi.endpoints.getUserOrganizations.initiate()
       );
 
-      expect(result.error?.status).toBe(401);
+      expect((result.error as any)?.status).toBe(401);
     });
 
     it('should cache user organizations', async () => {
@@ -538,7 +540,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.getOrganization.initiate('org-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
 
     it('should include organization metadata', async () => {
@@ -575,7 +577,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.getOrganizationBySlug.initiate('non-existent')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
   });
 
@@ -605,7 +607,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
 
     it('should return 404 for non-existent organization', async () => {
@@ -618,7 +620,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
 
     it('should invalidate organization cache', async () => {
@@ -663,7 +665,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
   });
 
@@ -685,7 +687,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.deleteOrganization.initiate('org-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
 
     it('should invalidate organization cache', async () => {
@@ -700,7 +702,7 @@ describe('Organization API', () => {
       );
 
       const state = store.getState();
-      const tags = state.organizationApi.provided;
+      const tags = (state as any).organizationApi.provided;
       expect(Object.keys(tags || {}).length).toBeGreaterThan(0);
     });
   });
@@ -726,7 +728,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.getOrganizationMembers.initiate('org-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
   });
 
@@ -758,7 +760,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
 
     it('should return 400 for invalid role', async () => {
@@ -772,7 +774,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
   });
 
@@ -795,7 +797,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.acceptInvitation.initiate('invalid-token')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
   });
 
@@ -817,7 +819,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.declineInvitation.initiate('invalid-token')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
   });
 
@@ -853,7 +855,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.revokeInvitation.initiate('inv-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
   });
 
@@ -881,7 +883,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
   });
 
@@ -911,7 +913,7 @@ describe('Organization API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
   });
 
@@ -946,7 +948,7 @@ describe('Organization API', () => {
         organizationApi.endpoints.getUserOrganizations.initiate()
       );
 
-      expect(result.error?.status).toBe(500);
+      expect((result.error as any)?.status).toBe(500);
     });
   });
 
@@ -980,7 +982,7 @@ describe('Organization API', () => {
       );
 
       const state = store.getState();
-      const tags = state.organizationApi.provided;
+      const tags = (state as any).organizationApi.provided;
       expect(tags).toBeDefined();
     });
 
@@ -1000,7 +1002,7 @@ describe('Organization API', () => {
       );
 
       const state = store.getState();
-      const tags = state.organizationApi.provided;
+      const tags = (state as any).organizationApi.provided;
       expect(tags).toBeDefined();
     });
   });

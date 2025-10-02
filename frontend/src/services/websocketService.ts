@@ -354,12 +354,6 @@ export class PresenceService extends EventEmitter {
     }
   }
 
-  private emit(event: string, data: any): void {
-    if (this.websocket) {
-      this.websocket.emit(event, data)
-    }
-  }
-
   public cleanup(): void {
     this.stopPresenceUpdates()
     this.presenceData.clear()

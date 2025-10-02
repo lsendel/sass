@@ -158,8 +158,6 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const url = new URL(request.url);
-    const workspaceId = url.searchParams.get('workspaceId');
     return HttpResponse.json({
       content: [mockProject],
       pageable: {
@@ -230,8 +228,6 @@ const handlers = [
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const url = new URL(request.url);
-    const projectId = url.searchParams.get('projectId');
     return HttpResponse.json({
       content: [mockTask],
       page: 0,
@@ -291,7 +287,7 @@ const handlers = [
   }),
 
   // Comment endpoints
-  http.get(`${API_BASE_URL}/tasks/:taskId/comments`, ({ params, request }) => {
+  http.get(`${API_BASE_URL}/tasks/:taskId/comments`, ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -367,7 +363,9 @@ const createTestStore = () => {
     auth: {
       token: 'test-token',
       isAuthenticated: true,
-      user: { id: 'user-1', email: 'test@example.com', name: 'Test User' },
+      user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' as const, emailVerified: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as any,
+      isLoading: false,
+      error: null,
     },
   });
 };
@@ -413,14 +411,14 @@ describe('Project Management API', () => {
 
     it('should return 401 for unauthenticated request', async () => {
       const store = createApiTestStore(projectManagementApi, {
-        auth: { token: null, isAuthenticated: false, user: null },
+        auth: { token: null, isAuthenticated: false, user: null, isLoading: false, error: null },
       });
 
       const result = await store.dispatch(
         projectManagementApi.endpoints.getCurrentUser.initiate()
       );
 
-      expect(result.error?.status).toBe(401);
+      expect((result.error as any)?.status).toBe(401);
     });
   });
 
@@ -456,7 +454,7 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getWorkspace.initiate('workspace-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
 
     it('should create workspace', async () => {
@@ -482,7 +480,7 @@ describe('Project Management API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
 
     it('should update workspace', async () => {
@@ -536,7 +534,7 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getProject.initiate('project-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
 
     it('should create project', async () => {
@@ -547,7 +545,6 @@ describe('Project Management API', () => {
           workspaceId: 'workspace-1',
           name: 'New Project',
           slug: 'new-project',
-          status: 'PLANNING',
           priority: 'MEDIUM',
         })
       );
@@ -563,12 +560,11 @@ describe('Project Management API', () => {
           workspaceId: 'workspace-1',
           name: '',
           slug: 'test',
-          status: 'PLANNING',
           priority: 'MEDIUM',
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
 
     it('should update project', async () => {
@@ -633,7 +629,7 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getTask.initiate('task-999')
       );
 
-      expect(result.error?.status).toBe(404);
+      expect((result.error as any)?.status).toBe(404);
     });
 
     it('should create task', async () => {
@@ -643,7 +639,6 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.createTask.initiate({
           projectId: 'project-1',
           title: 'New Task',
-          status: 'TODO',
           priority: 'MEDIUM',
         })
       );
@@ -658,12 +653,11 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.createTask.initiate({
           projectId: 'project-1',
           title: '',
-          status: 'TODO',
           priority: 'MEDIUM',
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
 
     it('should update task', async () => {
@@ -727,7 +721,7 @@ describe('Project Management API', () => {
         })
       );
 
-      expect(result.error?.status).toBe(400);
+      expect((result.error as any)?.status).toBe(400);
     });
   });
 
@@ -794,7 +788,7 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getCurrentUser.initiate()
       );
 
-      expect(result.error?.status).toBe(500);
+      expect((result.error as any)?.status).toBe(500);
     });
   });
 

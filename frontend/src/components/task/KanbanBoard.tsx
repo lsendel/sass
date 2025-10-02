@@ -3,8 +3,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { Plus, MoreHorizontal, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import { useGetTasksQuery, useUpdateTaskMutation } from '../../store/api/projectManagementApi';
-import { Task, TaskStatus } from '../../types/project';
+import { useGetTasksQuery, useUpdateTaskMutation, type Task } from '../../store/api/projectManagementApi';
 import { Button } from '../ui/button';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -14,11 +13,10 @@ import { TaskDetailModal } from './TaskDetailModal';
 
 interface KanbanBoardProps {
   projectId: string;
-  boardId?: string;
 }
 
 interface Column {
-  id: TaskStatus;
+  id: Task['status'];
   title: string;
   color: string;
   tasks: Task[];
@@ -27,16 +25,16 @@ interface Column {
 const DEFAULT_COLUMNS: Array<Omit<Column, 'tasks'>> = [
   { id: 'TODO', title: 'To Do', color: 'bg-gray-100' },
   { id: 'IN_PROGRESS', title: 'In Progress', color: 'bg-blue-100' },
-  { id: 'REVIEW', title: 'Review', color: 'bg-yellow-100' },
-  { id: 'DONE', title: 'Done', color: 'bg-green-100' },
+  { id: 'IN_REVIEW', title: 'Review', color: 'bg-yellow-100' },
+  { id: 'COMPLETED', title: 'Done', color: 'bg-green-100' },
 ];
 
 /**
  * KanbanBoard Component
- * 
+ *
  * Interactive Kanban board with drag-and-drop functionality for task management.
  * Supports real-time updates, task creation, and status changes.
- * 
+ *
  * Features:
  * - Drag-and-drop task reordering and status changes
  * - Real-time task updates via WebSocket
@@ -46,19 +44,22 @@ const DEFAULT_COLUMNS: Array<Omit<Column, 'tasks'>> = [
  * - Loading and error states
  * - Responsive design for mobile
  */
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, boardId }) => {
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId }) => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createInColumn, setCreateInColumn] = useState<TaskStatus>('TODO');
+  const [createInColumn, setCreateInColumn] = useState<Task['status']>('TODO');
   
   const {
-    data: tasks = [],
+    data: tasksResponse,
     error,
     isLoading,
     refetch
-  } = useGetTasksQuery(projectId);
-  
+  } = useGetTasksQuery({ projectId });
+
   const [updateTask] = useUpdateTaskMutation();
+
+  // Extract tasks from paginated response
+  const tasks = tasksResponse?.content || [];
 
   // Organize tasks into columns
   const [columns, setColumns] = useState<Column[]>(() =>
@@ -66,11 +67,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, boardId }) 
   );
 
   useEffect(() => {
-    if (tasks) {
+    if (tasks.length > 0) {
       const updatedColumns = DEFAULT_COLUMNS.map(col => ({
         ...col,
-        tasks: tasks.filter(task => task.status === col.id)
-          .sort((a, b) => (a.position || 0) - (b.position || 0))
+        tasks: tasks.filter((task: Task) => task.status === col.id)
       }));
       setColumns(updatedColumns);
     }
@@ -89,11 +89,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, boardId }) 
       return;
     }
 
-    const task = tasks.find(t => t.id === draggableId);
+    const task = tasks.find((t: Task) => t.id === draggableId);
     if (!task) return;
 
-    const sourceColumn = columns.find(col => col.id === source.droppableId as TaskStatus);
-    const destColumn = columns.find(col => col.id === destination.droppableId as TaskStatus);
+    const sourceColumn = columns.find(col => col.id === source.droppableId as Task['status']);
+    const destColumn = columns.find(col => col.id === destination.droppableId as Task['status']);
 
     if (!sourceColumn || !destColumn) return;
 
@@ -109,19 +109,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, boardId }) 
     movedTask.status = destColumn.id;
     newColumns[destColIndex].tasks.splice(destination.index, 0, movedTask);
 
-    // Update positions
-    newColumns[destColIndex].tasks.forEach((task, index) => {
-      task.position = index;
-    });
+    // Note: Position tracking removed as API Task doesn't have position property
 
     setColumns(newColumns);
 
     try {
-      // Update task status and position on server
+      // Update task status on server
       await updateTask({
-        id: task.id,
-        status: destColumn.id,
-        position: destination.index,
+        taskId: task.id,
+        task: {
+          status: destColumn.id as Task['status'],
+        },
       }).unwrap();
 
       toast.success(`Task moved to ${destColumn.title}`);
@@ -132,7 +130,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, boardId }) 
     }
   };
 
-  const handleCreateTask = (columnId: TaskStatus) => {
+  const handleCreateTask = (columnId: Task['status']) => {
     setCreateInColumn(columnId);
     setIsCreateModalOpen(true);
   };

@@ -19,6 +19,7 @@ const STATIC_ASSETS = [
 ]
 
 // Cache strategies
+// @ts-expect-error - Type used for future caching features
 interface CacheStrategy {
   name: string
   maxAge?: number // in seconds

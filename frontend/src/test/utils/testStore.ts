@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit';
-import type { Api } from '@reduxjs/toolkit/query/react';
 import type { Middleware, Reducer } from '@reduxjs/toolkit';
 
 import authReducer from '../../store/slices/authSlice';
@@ -19,10 +18,9 @@ import type { RootState } from '../../store';
  * @param preloadedState - Optional initial state
  * @returns Configured Redux store for testing
  */
-export const createApiTestStore = <
-  T extends Api<any, Record<string, any>, string, string>
->(
-  api: T,
+export const createApiTestStore = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  api: any,
   preloadedState?: Partial<RootState>
 ) => {
   return configureStore({
@@ -43,10 +41,9 @@ export const createApiTestStore = <
  * @param preloadedState - Optional initial state
  * @returns Configured Redux store for testing
  */
-export const createMultiApiTestStore = <
-  T extends Api<any, Record<string, any>, string, string>
->(
-  apis: T[],
+export const createMultiApiTestStore = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  apis: any[],
   preloadedState?: Partial<RootState>
 ) => {
   const reducers: Record<string, Reducer> = {
@@ -75,14 +72,14 @@ export const createMultiApiTestStore = <
  * @param user - User object to pre-populate
  * @returns Configured Redux store with authenticated state
  */
-export const createAuthenticatedApiTestStore = <
-  T extends Api<any, Record<string, any>, string, string>
->(
-  api: T,
+export const createAuthenticatedApiTestStore = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  api: any,
   user?: {
     id: string;
     email: string;
-    name: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     token?: string;
   }
@@ -90,6 +87,8 @@ export const createAuthenticatedApiTestStore = <
   const defaultUser = user || {
     id: 'test-user-1',
     email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'User',
     role: 'USER' as const,
     emailVerified: true,
     createdAt: new Date().toISOString(),
@@ -98,7 +97,7 @@ export const createAuthenticatedApiTestStore = <
 
   return createApiTestStore(api, {
     auth: {
-      user: defaultUser,
+      user: defaultUser as any,
       isAuthenticated: true,
       token: (user?.token as string) || null,
       isLoading: false,
