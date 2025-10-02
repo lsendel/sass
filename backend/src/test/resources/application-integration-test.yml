@@ -72,7 +72,19 @@ logging:
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
-# Test-specific exclusions
+# Test-specific management endpoints
 management:
   endpoints:
     enabled-by-default: false
+    web:
+      exposure:
+        include: health,info
+    jmx:
+      exposure:
+        exclude: "*"
+  endpoint:
+    health:
+      enabled: true
+      show-details: never
+    info:
+      enabled: true
