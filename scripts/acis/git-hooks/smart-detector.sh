@@ -38,43 +38,44 @@ detect_changed_files() {
     esac
 }
 
-# Categorize files by type
+# Categorize files by type (bash 3.x compatible)
 categorize_files() {
     local files="$1"
 
-    declare -A categories=(
-        [java]=0
-        [test]=0
-        [config]=0
-        [sql]=0
-        [docs]=0
-        [frontend]=0
-        [build]=0
-    )
+    # Initialize categories (bash 3.x compatible - using simple variables)
+    local has_java=0
+    local has_test=0
+    local has_config=0
+    local has_sql=0
+    local has_docs=0
+    local has_frontend=0
+    local has_build=0
 
     while IFS= read -r file; do
+        [ -z "$file" ] && continue
+
         case "$file" in
             *.java)
                 if [[ "$file" == *"/test/"* ]] || [[ "$file" == *"Test.java" ]]; then
-                    categories[test]=1
+                    has_test=1
                 else
-                    categories[java]=1
+                    has_java=1
                 fi
                 ;;
             *.yml|*.yaml|*.properties|*.xml)
-                categories[config]=1
+                has_config=1
                 ;;
             *.sql)
-                categories[sql]=1
+                has_sql=1
                 ;;
             *.md|*.txt)
-                categories[docs]=1
+                has_docs=1
                 ;;
             *.ts|*.tsx|*.js|*.jsx|*.css|*.scss)
-                categories[frontend]=1
+                has_frontend=1
                 ;;
             *build.gradle|*pom.xml|*package.json)
-                categories[build]=1
+                has_build=1
                 ;;
         esac
     done <<< "$files"
@@ -82,13 +83,13 @@ categorize_files() {
     # Export categories as JSON
     cat <<EOF
 {
-    "java": ${categories[java]},
-    "test": ${categories[test]},
-    "config": ${categories[config]},
-    "sql": ${categories[sql]},
-    "docs": ${categories[docs]},
-    "frontend": ${categories[frontend]},
-    "build": ${categories[build]}
+    "java": $has_java,
+    "test": $has_test,
+    "config": $has_config,
+    "sql": $has_sql,
+    "docs": $has_docs,
+    "frontend": $has_frontend,
+    "build": $has_build
 }
 EOF
 }
