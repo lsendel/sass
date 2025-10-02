@@ -5,12 +5,13 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
- * Base test configuration providing common infrastructure beans for all test profiles.
+ * Base test configuration providing common infrastructure beans for contract tests.
  * This abstract class consolidates duplicate configuration across test types.
  *
  * <p>Provides:
@@ -21,11 +22,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  *   <li>Utility method for creating typed mock beans</li>
  * </ul>
  *
- * @see TestBeanConfiguration
- * @see AuditTestConfiguration
+ * <p>This configuration is only active for contract-test profile to avoid
+ * interfering with integration tests that need real database beans.
+ *
  * @see ContractTestConfiguration
  */
 @TestConfiguration
+@Profile("contract-test")
 public abstract class BaseTestConfiguration {
 
     /**

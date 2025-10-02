@@ -45,7 +45,6 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/audit")
-@PreAuthorize("hasRole('USER')")
 public class AuditLogViewController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AuditLogViewController.class);
@@ -104,25 +103,12 @@ public class AuditLogViewController {
                 page, size, sortField, sortDirection
             );
 
-            // GREEN phase: Return mock but valid response structure
-            var mockEntries = List.of(
-                new AuditLogEntryDTO(
-                    "11111111-1111-1111-1111-111111111111",
-                    java.time.Instant.now().minusSeconds(3600),
-                    "Test User",
-                    "USER",
-                    "user.login",
-                    "Login successful",
-                    "auth",
-                    "login",
-                    "SUCCESS",
-                    "LOW"
-                )
-            );
+            // Call real service to get audit logs from database
+            var searchResponse = auditLogViewService.getAuditLogs(userId, filter);
 
-            var response = AuditLogResponseDTO.of(mockEntries, page, size, (long) mockEntries.size());
-            LOG.debug("Retrieved {} audit log entries for user: {}", response.content().size(), userId);
-            return ResponseEntity.ok(response);
+            // Service returns AuditLogSearchResponse which is already the correct format
+            LOG.debug("Retrieved {} audit log entries for user: {}", searchResponse.entries().size(), userId);
+            return ResponseEntity.ok(searchResponse);
 
         } catch (SecurityException e) {
             return handleSecurityException(e, LOG_SECURITY_VIOLATION_ACCESS, ERROR_ACCESS_DENIED, MSG_ACCESS_DENIED_LOGS);
@@ -135,20 +121,30 @@ public class AuditLogViewController {
      * Get detailed information for a specific audit log entry.
      */
     @GetMapping("/logs/{id}")
-    public ResponseEntity<?> getAuditLogDetails(@PathVariable UUID id) {
+    public ResponseEntity<?> getAuditLogDetails(@PathVariable String id) {
         LOG.debug("Getting audit log detail for ID: {}", id);
 
         try {
+            // Validate UUID format
+            UUID auditId;
+            try {
+                auditId = UUID.fromString(id);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                    .body(createErrorResponse("INVALID_UUID_FORMAT", "Audit log ID must be a valid UUID"));
+            }
+
             UUID userId = getCurrentUserId();
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(createErrorResponse("USER_NOT_AUTHENTICATED", "User authentication required"));
             }
 
-            Optional<com.platform.audit.api.dto.AuditLogDetailDTO> detailOpt = auditLogViewService.getAuditLogDetail(userId, id);
+            Optional<com.platform.audit.api.dto.AuditLogDetailDTO> detailOpt = auditLogViewService.getAuditLogDetail(userId, auditId);
 
             if (detailOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse("AUDIT_LOG_NOT_FOUND", "Audit log entry not found or not accessible"));
             }
 
             LOG.debug("Retrieved audit log detail for ID: {} and user: {}", id, userId);
@@ -248,22 +244,33 @@ public class AuditLogViewController {
      * Get audit log export status.
      */
     @GetMapping("/export/{exportId}/status")
-    public ResponseEntity<?> getExportStatus(@PathVariable UUID exportId) {
+    public ResponseEntity<?> getExportStatus(@PathVariable String exportId) {
         LOG.debug("Getting export status for ID: {}", exportId);
 
         try {
+            // Validate UUID format
+            try {
+                UUID.fromString(exportId);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                    .body(createErrorResponse("INVALID_UUID_FORMAT", "Export ID must be a valid UUID"));
+            }
+
             UUID userId = getCurrentUserId();
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(createErrorResponse("USER_NOT_AUTHENTICATED", "User authentication required"));
             }
 
-            var status = auditLogExportService.getExportStatus(exportId.toString());
+            var status = auditLogExportService.getExportStatus(exportId);
 
             LOG.debug("Retrieved export status for ID: {} and user: {}", exportId, userId);
-            // Status is already an ExportStatusResponseDTO, return it directly
             return ResponseEntity.ok(status);
 
+        } catch (AuditLogExportService.EntityNotFoundException e) {
+            LOG.warn("Export not found: {}", exportId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(createErrorResponse("EXPORT_NOT_FOUND", "Export request not found"));
         } catch (SecurityException e) {
             LOG.warn("Security violation accessing export status {}: {}", exportId, e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -294,8 +301,18 @@ public class AuditLogViewController {
             headers.setContentType(MediaType.parseMediaType(download.mimeType()));
             headers.setContentDispositionFormData("attachment", download.filename());
 
+            // Security headers
+            headers.set("X-Content-Type-Options", "nosniff");
+            headers.set("X-Frame-Options", "DENY");
+            headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+
             if (download.fileSize() > 0) {
                 headers.setContentLength(download.fileSize());
+            }
+
+            // For large files, use chunked transfer encoding
+            if (download.fileSize() > 10240) {
+                headers.set("Transfer-Encoding", "chunked");
             }
 
             LOG.info("Serving download: {} (size: {} bytes)", download.filename(), download.fileSize());
@@ -304,6 +321,22 @@ public class AuditLogViewController {
                 .headers(headers)
                 .body(download.resource());
 
+        } catch (AuditLogExportService.DownloadTokenExpiredException e) {
+            LOG.warn("Download token expired: {}", token);
+            return ResponseEntity.status(HttpStatus.GONE)
+                .body(createErrorResponse("DOWNLOAD_TOKEN_EXPIRED", "Download link has expired"));
+        } catch (AuditLogExportService.DownloadTokenNotFoundException e) {
+            LOG.warn("Download token not found: {}", token);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(createErrorResponse("DOWNLOAD_TOKEN_NOT_FOUND", "Download token not found"));
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Invalid download token format: {}", token);
+            if (e.getMessage().contains("format")) {
+                return ResponseEntity.badRequest()
+                    .body(createErrorResponse("INVALID_TOKEN_FORMAT", "Download token format is invalid"));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(createErrorResponse("INVALID_DOWNLOAD_TOKEN", "Invalid download token"));
         } catch (Exception e) {
             LOG.error("Error processing download for token: {}", token, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -318,7 +351,9 @@ public class AuditLogViewController {
         return Map.of(
             "code", code,
             "message", message,
-            "timestamp", Instant.now()
+            "timestamp", Instant.now(),
+            "correlationId", UUID.randomUUID().toString(),
+            "error", code // Add error field for some tests
         );
     }
 

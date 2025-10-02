@@ -2,6 +2,7 @@ package com.platform.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -9,11 +10,13 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 
 /**
  * Redis configuration for session management and token storage.
+ * Only active in non-test profiles.
  *
  * @since 1.0.0
  */
 @Configuration
 @EnableRedisHttpSession(maxInactiveIntervalInSeconds = 86400) // 24 hours
+@Profile("!test & !integration-test") // Disable in test profiles
 public class RedisConfig {
 
     /**

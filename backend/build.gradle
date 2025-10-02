@@ -87,6 +87,9 @@ dependencies {
     testImplementation 'io.rest-assured:xml-path'
     testImplementation 'com.h2database:h2'
 
+    // Embedded Redis for integration tests
+    testImplementation 'com.github.kstyrc:embedded-redis:0.6'
+
     // Security Testing Dependencies
     testImplementation 'org.zaproxy:zap-clientapi:1.14.0'
     testImplementation 'com.github.spotbugs:spotbugs-annotations:4.8.6'
@@ -105,12 +108,19 @@ tasks.named('test') {
     exclude '**/SecurityPipelineTest.class'
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:deprecation'
+}
+
 // Security testing task
 task securityTest(type: Test) {
     description = 'Run comprehensive security tests'
     group = 'security'
 
     useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
     include '**/SecurityTestSuite.class'
     include '**/SecurityValidation*Test.class'
 
@@ -129,6 +139,9 @@ task penetrationTest(type: Test) {
     group = 'security'
 
     useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
     include '**/PenetrationTest.class'
     include '**/SecurityPipelineTest.class'
 
@@ -307,6 +320,9 @@ task modulithCheck(type: Test) {
     group = 'verification'
 
     useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
     include '**/ModulithTest.class'
     include '**/ModuleBoundaryTest.class'
     include '**/*ModulithTest.class'
@@ -331,6 +347,9 @@ task archTest(type: Test) {
     group = 'verification'
 
     useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
     include '**/ArchitectureTest.class'
     include '**/ModuleBoundaryTest.class'
     include '**/*ArchTest.class'
@@ -382,7 +401,7 @@ task testReport {
         def skippedTests = 0
 
         testResults.each { file ->
-            def xml = new XmlSlurper().parse(file)
+            def xml = new groovy.xml.XmlSlurper().parse(file)
             totalTests += xml.@tests.toInteger()
             failedTests += xml.@failures.toInteger() + xml.@errors.toInteger()
             skippedTests += xml.@skipped.toInteger()

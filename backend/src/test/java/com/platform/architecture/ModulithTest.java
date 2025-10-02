@@ -34,10 +34,8 @@ class ModulithTest {
         // Verify that modules only depend on allowed modules
         // This ensures proper layering and prevents circular dependencies
         modules.forEach(module -> {
-            System.out.println("Module: " + module.getName());
+            System.out.println("Module: " + module.getDisplayName());
             System.out.println("  Base Package: " + module.getBasePackage());
-            // Dependencies require ApplicationModules parameter in newer versions
-            System.out.println("  Dependencies: " + module.getDependencies(modules));
         });
     }
 }

@@ -11,11 +11,13 @@
  *
  * <p><strong>Module Boundaries:</strong>
  * All packages in this module are public and accessible to other modules.
+ * This is a special utility module where all types are considered public API.
  *
  * @since 1.0.0
  */
 @org.springframework.modulith.ApplicationModule(
     displayName = "Shared Utilities",
-    allowedDependencies = {}
+    allowedDependencies = {},
+    type = org.springframework.modulith.ApplicationModule.Type.OPEN
 )
 package com.platform.shared;

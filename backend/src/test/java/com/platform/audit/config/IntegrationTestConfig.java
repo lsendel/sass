@@ -30,5 +30,5 @@ import org.springframework.context.annotation.Profile;
         }
 )
 @Import({TestDatabaseConfig.class, TestServiceConfig.class})
-public final class IntegrationTestConfig {
+public class IntegrationTestConfig {
 }

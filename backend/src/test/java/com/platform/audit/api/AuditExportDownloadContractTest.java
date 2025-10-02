@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.platform.config.WithMockUserPrincipal;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,15 +21,20 @@ import static org.hamcrest.Matchers.containsString;
 /**
  * Contract tests for the Audit Export Download API endpoint GET /api/audit/export/{token}/download.
  *
- * CRITICAL: These tests MUST FAIL initially as part of TDD RED phase.
- * Implementation should only be created after these tests are written and failing.
+ * TDD GREEN PHASE: These tests validate the controller behavior with real services.
+ * Uses mocked repositories but real service implementations.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+    classes = {
+        com.platform.config.ContractTestApplication.class,
+        com.platform.config.ContractTestConfiguration.class,
+        com.platform.config.ContractTestSecurityConfig.class
+    }
+)
 @AutoConfigureMockMvc
-@Import(AuditTestConfiguration.class)
-@ActiveProfiles("test")
-@Transactional
-@WithMockUser(roles = "USER")
+@ActiveProfiles("contract-test")
+@WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
 class AuditExportDownloadContractTest {
 
     @Autowired

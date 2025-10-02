@@ -42,7 +42,7 @@ class TestDataValidationTest {
         assertNotNull(dto.timestamp());
         assertEquals("user123", dto.actorName());
         assertEquals("USER_LOGIN", dto.actionType());
-        assertNotNull(dto.details());
+        assertNotNull(dto.metadata());
     }
 
     @Test

@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({AuditTestConfiguration.class, com.platform.config.TestSecurityConfig.class})
+@Import({com.platform.config.AuditTestConfiguration.class, com.platform.config.TestSecurityConfig.class})
 @ActiveProfiles("integration-test")
 class AuditLogViewerIntegrationTest {
 

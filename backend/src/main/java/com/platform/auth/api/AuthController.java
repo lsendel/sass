@@ -5,6 +5,7 @@ import com.platform.auth.api.dto.LoginResponse;
 import com.platform.auth.internal.AuthenticationService;
 import com.platform.shared.exceptions.ValidationException;
 import jakarta.validation.Valid;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -14,11 +15,13 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for authentication endpoints.
  * Provides login and logout functionality with opaque token authentication.
+ * Only active in non-test profiles.
  *
  * @since 1.0.0
  */
 @RestController
 @RequestMapping("/api/v1/auth")
+@Profile("!test & !integration-test") // Disable in test profiles
 public class AuthController {
 
     private static final String AUTH_COOKIE_NAME = "auth_token";

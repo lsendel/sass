@@ -68,9 +68,20 @@ public class AuditTestDataFixtures {
             UUID.randomUUID().toString(),
             Instant.now(),
             "user123",
+            "user@example.com",
             "USER_LOGIN",
+            "UserSession",
+            "Session Resource",
             "User login action",
-            createEventDetails()
+            "SUCCESS",
+            "LOW",
+            true,
+            UUID.randomUUID().toString(),
+            "hashed_192.168.1.1",
+            "Mozilla/5.0",
+            createEventDetails(),
+            null,
+            List.of()
         );
     }
 

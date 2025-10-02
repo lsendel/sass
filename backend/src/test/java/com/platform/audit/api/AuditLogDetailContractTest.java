@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.platform.config.WithMockUserPrincipal;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,14 +26,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.MOCK,
     classes = {
-        com.platform.AuditApplication.class,
+        com.platform.config.ContractTestApplication.class,
         ContractTestConfiguration.class,
         ContractTestSecurityConfig.class
     }
 )
 @AutoConfigureMockMvc
 @ActiveProfiles("contract-test")
-@WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000", roles = "USER")
+@WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
 class AuditLogDetailContractTest {
 
     @Autowired

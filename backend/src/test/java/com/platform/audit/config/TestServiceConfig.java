@@ -15,7 +15,7 @@ import org.mockito.Mockito;
  */
 @TestConfiguration
 @Profile("test")
-public final class TestServiceConfig {
+public class TestServiceConfig {
 
     /**
      * Provides mock services for tests that need them

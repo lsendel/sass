@@ -1,8 +1,7 @@
-package com.platform.config;
-
-import com.platform.auth.internal.OpaqueTokenAuthenticationFilter;
+package com.platform.auth.internal;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +19,7 @@ import java.util.List;
 /**
  * Security configuration for the application.
  * Implements opaque token authentication with httpOnly cookies (no JWT).
+ * Only active in non-test profiles.
  *
  * <p>Constitutional requirements:
  * <ul>
@@ -34,6 +34,7 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@Profile("!test & !integration-test") // Disable in test profiles
 public class SecurityConfig {
 
     private static final int HSTS_MAX_AGE_SECONDS = 31536000; // 1 year

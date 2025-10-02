@@ -20,8 +20,6 @@ import java.util.UUID;
 @Service
 public class AuditLogViewService {
 
-    private static final int SECONDS_IN_HOUR = 3600;
-
     private final AuditLogViewRepository auditLogViewRepository;
 
     public AuditLogViewService(final AuditLogViewRepository auditLogViewRepository) {
@@ -30,26 +28,36 @@ public class AuditLogViewService {
 
     @Transactional(readOnly = true)
     public AuditLogSearchResponse getAuditLogs(final UUID userId, final AuditLogFilter filter) {
-        // Skip database for now - return mock data to get tests passing
-        // GREEN phase: Just return valid response structure
-        return AuditLogSearchResponse.of(
-            List.of(
-                new AuditLogEntryDTO(
-                    "11111111-1111-1111-1111-111111111111",
-                    java.time.Instant.now().minusSeconds(SECONDS_IN_HOUR),
-                    "Test Actor",
-                    "USER",
-                    "user.login",
-                    "User logged in",
-                    "auth",
-                    "login",
-                    "SUCCESS",
-                    "LOW"
-                )
-            ),
+        // Query real database with pagination
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
             filter.page(),
             filter.pageSize(),
-            1L
+            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<AuditEvent> page = queryAuditEvents(filter, pageable);
+
+        // Convert to DTOs
+        List<AuditLogEntryDTO> entries = page.getContent().stream()
+            .map(event -> new AuditLogEntryDTO(
+                event.getId().toString(),
+                event.getCreatedAt(),
+                "System User", // Would be from user service in full implementation
+                "USER",
+                event.getAction(),
+                generateActionDescription(event),
+                event.getResourceType(),
+                event.getResourceId() != null ? event.getResourceId().toString() : "N/A",
+                "SUCCESS", // Would be from event outcome in full implementation
+                "LOW" // Would be from event severity in full implementation
+            ))
+            .toList();
+
+        return AuditLogSearchResponse.of(
+            entries,
+            filter.page(),
+            filter.pageSize(),
+            page.getTotalElements()
         );
     }
 
@@ -62,28 +70,15 @@ public class AuditLogViewService {
             }
 
             AuditEvent event = eventOpt.get();
-            // Create a basic entry DTO for actor name - in real implementation this would use user service
-            AuditLogEntryDTO entry = new AuditLogEntryDTO(
-                event.getId().toString(),
-                event.getCreatedAt(),
-                "System User", // Placeholder - would get from user service
-                "USER", // actorType
-                event.getAction(), // actionType
-                generateActionDescription(event), // Generate description from action
-                event.getResourceType(),
-                event.getResourceId() != null ? event.getResourceId().toString() : "N/A", // resourceName
-                "SUCCESS",
-                "LOW"
+
+            // Build detail DTO using factory method
+            AuditLogDetailDTO detailDTO = AuditLogDetailDTO.fromAuditEvent(
+                event,
+                "System User", // Would be fetched from user service
+                event.getUserEmail() // Use email from event
             );
 
-            return Optional.of(new AuditLogDetailDTO(
-                event.getId().toString(),
-                event.getCreatedAt(),
-                "System User",
-                event.getAction(),
-                "User action: " + event.getAction(),
-                Map.of() // Empty details for now
-            ));
+            return Optional.of(detailDTO);
         } catch (Exception e) {
             return Optional.empty();
         }

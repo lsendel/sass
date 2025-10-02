@@ -1,10 +1,8 @@
 package com.platform.audit.api;
 
-import com.platform.config.AuditTestConfiguration;
+import com.platform.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -13,11 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Simple test to verify our audit log viewer endpoints.
- * Tests the controller implementation with mocked dependencies.
+ * Uses full Spring context from BaseIntegrationTest.
  */
-@WebMvcTest(AuditLogViewController.class)
-@Import(AuditTestConfiguration.class)
-class AuditLogViewerSimpleTest {
+class AuditLogViewerSimpleTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

@@ -16,7 +16,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableCaching
 @EnableJpaRepositories(basePackages = "com.platform")
 @EntityScan(basePackages = "com.platform")
-public final class AuditApplication {
+public class AuditApplication {
 
     /**
      * Private constructor to prevent instantiation of utility class.

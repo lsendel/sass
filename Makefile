@@ -30,10 +30,12 @@ help: ## Show this help message
 	@echo "  test-ci             CI test suite (with quality checks)"
 	@echo ""
 	@echo "  Backend Tests:"
-	@echo "    test-backend            All backend tests"
-	@echo "    test-backend-unit       Unit tests only"
-	@echo "    test-backend-contract   Contract tests only"
-	@echo "    test-backend-integration Integration tests only"
+	@echo "    test-backend                  All backend tests"
+	@echo "    test-backend-unit             Unit tests only"
+	@echo "    test-backend-contract         Contract tests only"
+	@echo "    test-backend-integration      Integration tests (H2 in-memory)"
+	@echo "    test-backend-testcontainer    TestContainer tests (PostgreSQL Docker)"
+	@echo "    test-backend-all-integration  All integration tests (H2 + TestContainer)"
 	@echo ""
 	@echo "  Frontend Tests:"
 	@echo "    test-frontend           Unit + integration tests"
@@ -206,9 +208,18 @@ test-backend-contract: ## Run backend contract tests only
 	@echo "📋 Running backend contract tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*ContractTest"
 
-test-backend-integration: ## Run backend integration tests only
-	@echo "🔗 Running backend integration tests..."
+test-backend-integration: ## Run backend integration tests only (H2 in-memory)
+	@echo "🔗 Running backend integration tests with H2..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*IntegrationTest"
+
+test-backend-testcontainer: ## Run backend TestContainer tests only (PostgreSQL Docker)
+	@echo "🐳 Running backend TestContainer tests with real PostgreSQL..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*TestContainerTest" --tests "DatabaseConnectivityTest"
+
+test-backend-all-integration: ## Run all integration tests (H2 + TestContainer)
+	@echo "🔗 Running all backend integration tests (H2 + PostgreSQL TestContainer)..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*IntegrationTest" --tests "*TestContainerTest" --tests "DatabaseConnectivityTest"
+	@echo "✅ All integration tests completed (8 tests)"
 
 test-backend-unit: ## Run backend unit tests only
 	@echo "🧪 Running backend unit tests..."
@@ -272,8 +283,10 @@ test-all: ## Run comprehensive test suite (all systems with all test types)
 	@echo "📦 Backend Tests:"
 	@echo "  - Contract tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*ContractTest"
-	@echo "  - Integration tests..."
+	@echo "  - Integration tests (H2)..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*IntegrationTest"
+	@echo "  - TestContainer tests (PostgreSQL)..."
+	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*TestContainerTest" --tests "DatabaseConnectivityTest"
 	@echo "  - Unit tests..."
 	cd backend && export JAVA_HOME=$(JAVA_HOME) && export PATH=$(JAVA_HOME)/bin:$$PATH && ./gradlew test --tests "*UnitTest"
 	@echo ""

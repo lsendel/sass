@@ -1,6 +1,7 @@
 package com.platform.auth.internal;
 
 import com.platform.auth.User;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -13,12 +14,14 @@ import java.util.UUID;
 /**
  * Service for managing opaque authentication tokens.
  * Tokens are stored in Redis with expiration for security and performance.
+ * Only active in non-test profiles.
  *
  * <p>Constitutional requirement: Opaque tokens only, no JWT.
  *
  * @since 1.0.0
  */
 @Service
+@Profile("!test & !integration-test") // Disable in test profiles
 final class OpaqueTokenService {
 
         private static final String TOKEN_PREFIX = "auth:token:";

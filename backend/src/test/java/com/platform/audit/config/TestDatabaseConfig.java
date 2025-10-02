@@ -15,7 +15,7 @@ import javax.sql.DataSource;
  */
 @TestConfiguration
 @Profile("test")
-public final class TestDatabaseConfig {
+public class TestDatabaseConfig {
 
     @Bean
     @Primary

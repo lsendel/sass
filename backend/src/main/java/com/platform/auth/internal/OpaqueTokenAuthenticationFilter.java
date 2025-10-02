@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -19,10 +20,12 @@ import java.util.Optional;
 /**
  * Filter that extracts and validates opaque tokens from httpOnly cookies.
  * Sets Spring Security authentication context if token is valid.
+ * Only active in non-test profiles.
  *
  * @since 1.0.0
  */
 @Component
+@Profile("!test & !integration-test") // Disable in test profiles
 public final class OpaqueTokenAuthenticationFilter extends OncePerRequestFilter {
 
         private static final String AUTH_COOKIE_NAME = "auth_token";

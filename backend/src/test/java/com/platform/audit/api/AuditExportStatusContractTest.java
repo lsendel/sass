@@ -6,7 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.platform.config.WithMockUserPrincipal;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +22,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Contract tests for the Audit Export Status API endpoint GET /api/audit/export/{exportId}/status.
  *
- * CRITICAL: These tests MUST FAIL initially as part of TDD RED phase.
- * Implementation should only be created after these tests are written and failing.
+ * TDD GREEN PHASE: These tests validate the controller behavior with real services.
+ * Uses mocked repositories but real service implementations.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+    classes = {
+        com.platform.config.ContractTestApplication.class,
+        com.platform.config.ContractTestConfiguration.class,
+        com.platform.config.ContractTestSecurityConfig.class
+    }
+)
 @AutoConfigureMockMvc
-@Import(AuditTestConfiguration.class)
-@ActiveProfiles("test")
-@Transactional
+@ActiveProfiles("contract-test")
 class AuditExportStatusContractTest {
 
     @Autowired
@@ -42,7 +47,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldReturnExportStatus() throws Exception {
         mockMvc.perform(get("/api/audit/export/{exportId}/status", SAMPLE_EXPORT_ID)
                 .contentType(MediaType.APPLICATION_JSON))
@@ -59,7 +64,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldReturnPendingStatus() throws Exception {
         UUID pendingExportId = UUID.fromString("660e8400-e29b-41d4-a716-446655440001");
 
@@ -78,7 +83,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldReturnProcessingStatus() throws Exception {
         UUID processingExportId = UUID.fromString("660e8400-e29b-41d4-a716-446655440002");
 
@@ -97,7 +102,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldReturnCompletedStatus() throws Exception {
         UUID completedExportId = UUID.fromString("660e8400-e29b-41d4-a716-446655440003");
 
@@ -119,7 +124,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldReturnFailedStatus() throws Exception {
         UUID failedExportId = UUID.fromString("660e8400-e29b-41d4-a716-446655440004");
 
@@ -139,7 +144,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldHandleNonExistentExportId() throws Exception {
         UUID nonExistentId = UUID.fromString("660e8400-e29b-41d4-a716-446655440999");
 
@@ -156,7 +161,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldHandleInvalidExportIdFormat() throws Exception {
         mockMvc.perform(get("/api/audit/export/{exportId}/status", "invalid-uuid")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -181,7 +186,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "unauthorized@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440001", roles = {"USER"})
     void shouldEnforceAccessControl() throws Exception {
         // User should only be able to check status of their own exports
         mockMvc.perform(get("/api/audit/export/{exportId}/status", SAMPLE_EXPORT_ID)
@@ -194,7 +199,7 @@ class AuditExportStatusContractTest {
      * Expected to FAIL until AuditLogExportController is implemented
      */
     @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
+    @WithMockUserPrincipal(userId = "550e8400-e29b-41d4-a716-446655440000", roles = {"USER"})
     void shouldReturnProgressUpdates() throws Exception {
         UUID processingExportId = UUID.fromString("660e8400-e29b-41d4-a716-446655440005");
 

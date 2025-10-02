@@ -4,6 +4,7 @@ import com.platform.auth.User;
 import com.platform.auth.events.UserAuthenticatedEvent;
 import com.platform.shared.exceptions.ValidationException;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,10 +14,12 @@ import java.time.Instant;
 /**
  * Service for user authentication operations.
  * Handles password-based authentication and token generation.
+ * Only active in non-test profiles.
  *
  * @since 1.0.0
  */
 @Service
+@Profile("!test & !integration-test") // Disable in test profiles
 public class AuthenticationService {
 
         private static final int MAX_LOGIN_ATTEMPTS = 5;
