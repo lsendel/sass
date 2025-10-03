@@ -80,7 +80,8 @@ jobs:
       uses: anchore/sbom-action@v0.15.1
       with:
         format: spdx-json
-        artifact-name: sbom.spdx.json
+        artifact-name: sbom-spdx-json
+        output-file: sbom.spdx.json
 
     # Vulnerability Scanning
     - name: Run Trivy vulnerability scanner
@@ -253,6 +254,7 @@ jobs:
           });
 
     - name: Send Security Alert
+      if: env.SLACK_BOT_TOKEN != ''
       uses: slackapi/slack-github-action@v1.24.0
       with:
         channel-id: 'security-alerts'
