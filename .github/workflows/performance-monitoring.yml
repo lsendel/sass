@@ -203,6 +203,12 @@ jobs:
         curl -f http://localhost:8080/api/v1/performance/metrics || true
 
         kill $APP_PID || true
+      env:
+        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+        SPRING_DATASOURCE_USERNAME: testuser
+        SPRING_DATASOURCE_PASSWORD: testpass
+        SPRING_REDIS_HOST: localhost
+        SPRING_REDIS_PORT: 6379
 
     - name: Generate JVM performance report
       working-directory: ./backend
