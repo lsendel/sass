@@ -2,7 +2,6 @@ package com.platform.audit.api;
 
 import com.platform.audit.api.dto.AuditLogExportRequestDTO;
 import com.platform.audit.api.dto.ValidationResult;
-import com.platform.audit.internal.AuditRequestValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
