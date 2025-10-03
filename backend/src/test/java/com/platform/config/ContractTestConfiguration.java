@@ -1,10 +1,18 @@
 package com.platform.config;
 
-import com.platform.audit.internal.*;
+import com.platform.audit.internal.AuditEvent;
+import com.platform.audit.internal.AuditEventRepository;
+import com.platform.audit.internal.AuditLogExportRepository;
+import com.platform.audit.internal.AuditLogExportRequest;
+import com.platform.audit.internal.AuditLogExportService;
+import com.platform.audit.internal.AuditLogViewRepository;
+import com.platform.audit.internal.AuditLogViewService;
+import com.platform.audit.internal.AuditRequestValidator;
+import com.platform.audit.internal.ComplianceRepository;
+import com.platform.audit.internal.SecurityAnalyticsRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -18,7 +26,6 @@ import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 
 import java.util.Collections;
 import java.util.Map;
