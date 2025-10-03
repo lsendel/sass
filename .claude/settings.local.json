@@ -6,7 +6,12 @@
       "Bash(cat:*)",
       "Bash(../gradlew test:*)",
       "Bash(./gradlew jacocoTestReport:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(./scripts/track-eslint-progress.sh:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(awk:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

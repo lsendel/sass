@@ -24,19 +24,19 @@ async function globalTeardown(config: FullConfig) {
         await page.goto(baseURL ?? 'http://localhost:3000', { timeout: 5000 })
         console.log('🗑️ Cleaning up test data...')
         await cleanupTestData(page)
-      } catch (error) {
+      } catch (_error) {
         console.log('⏭️ Skipping data cleanup (server not available)')
       } finally {
         await browser.close()
       }
-    } catch (error) {
+    } catch (_error) {
       console.log('⏭️ Skipping browser cleanup (browser launch failed)')
     }
 
     console.log('✅ Global teardown completed successfully')
 
-  } catch (error) {
-    console.error('❌ Global teardown failed:', error)
+  } catch (_error) {
+    console.error('❌ Global teardown failed:', _error)
     // Don't throw error to avoid masking test failures
   }
 }

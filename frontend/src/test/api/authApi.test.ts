@@ -44,17 +44,7 @@ interface UserResponse {
   role: string;
 }
 
-// Interfaces for type documentation - used implicitly in HttpResponse.json calls
-// @ts-expect-error - Type used for documentation
-interface AuthResponse {
-  user: UserResponse;
-  token: string;
-}
-
-// @ts-expect-error - Type used for documentation
-interface AuthUrlResponse {
-  authUrl: string;
-}
+// Type definitions removed - using inline types in HttpResponse.json calls instead
 
 // @ts-expect-error - Type used for documentation
 interface SessionResponse {

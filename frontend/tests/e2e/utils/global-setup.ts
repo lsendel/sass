@@ -13,7 +13,7 @@ async function waitForServer(url: string, timeout: number) {
         console.log('✅ Server is ready!')
         return
       }
-    } catch (error) {
+    } catch (_error) {
       // Server not ready yet, continue waiting
     }
 

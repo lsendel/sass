@@ -7,6 +7,31 @@ import { createApiTestStore } from '../utils/testStore';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1/organizations';
 
+// Type definitions for request/response payloads
+interface OrganizationCreateRequest {
+  name?: string;
+  slug?: string;
+  settings?: Record<string, unknown>;
+}
+
+interface OrganizationUpdateRequest {
+  name?: string;
+  settings?: Record<string, unknown>;
+}
+
+interface SettingsUpdateRequest {
+  settings?: Record<string, unknown> | null;
+}
+
+interface InvitationCreateRequest {
+  email?: string;
+  role?: string;
+}
+
+interface MemberRoleUpdateRequest {
+  role?: string;
+}
+
 // Mock data
 const mockOrganization = {
   id: 'org-1',
@@ -60,13 +85,13 @@ const handlers = [
   }),
 
   // POST /organizations - Create organization
-  http.post(API_BASE_URL, async ({ request }) => {
+  http.post<never, OrganizationCreateRequest>(API_BASE_URL, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.name || typeof body?.name !== 'string') {
       return HttpResponse.json(
         { message: 'Name is required' },
@@ -93,7 +118,7 @@ const handlers = [
       ...mockOrganization,
       name: body.name,
       slug: body.slug,
-      settings: body.settings || {},
+      settings: body.settings ?? {},
     });
   }),
 
@@ -132,7 +157,7 @@ const handlers = [
   }),
 
   // PUT /organizations/:id - Update organization
-  http.put(`${API_BASE_URL}/:id`, async ({ params, request }) => {
+  http.put<{ id: string }, OrganizationUpdateRequest>(`${API_BASE_URL}/:id`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -143,7 +168,7 @@ const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.name || typeof body?.name !== 'string') {
       return HttpResponse.json(
         { message: 'Name is required' },
@@ -155,13 +180,13 @@ const handlers = [
       ...mockOrganization,
       id,
       name: body.name,
-      settings: body.settings || mockOrganization.settings,
+      settings: body.settings ?? mockOrganization.settings,
       updatedAt: new Date().toISOString(),
     });
   }),
 
   // PUT /organizations/:id/settings - Update organization settings
-  http.put(`${API_BASE_URL}/:id/settings`, async ({ params, request }) => {
+  http.put<{ id: string }, SettingsUpdateRequest>(`${API_BASE_URL}/:id/settings`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -172,7 +197,7 @@ const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.settings || typeof body?.settings !== 'object') {
       return HttpResponse.json(
         { message: 'Settings object is required' },
@@ -228,7 +253,7 @@ const handlers = [
   }),
 
   // POST /organizations/:id/invitations - Invite user
-  http.post(`${API_BASE_URL}/:id/invitations`, async ({ params, request }) => {
+  http.post<{ id: string }, InvitationCreateRequest>(`${API_BASE_URL}/:id/invitations`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -239,7 +264,7 @@ const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.email || typeof body?.email !== 'string') {
       return HttpResponse.json(
         { message: 'Email is required' },
@@ -256,7 +281,7 @@ const handlers = [
 
     return HttpResponse.json({
       ...mockInvitation,
-      organizationId: id,
+      organizationId: id as string,
       email: body.email,
       role: body.role,
     });
@@ -357,7 +382,7 @@ const handlers = [
   }),
 
   // PUT /organizations/:id/members/:userId/role - Update member role
-  http.put(`${API_BASE_URL}/:id/members/:userId/role`, async ({ params, request }) => {
+  http.put<{ id: string; userId: string }, MemberRoleUpdateRequest>(`${API_BASE_URL}/:id/members/:userId/role`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -372,7 +397,7 @@ const handlers = [
       return HttpResponse.json({ message: 'Member not found' }, { status: 404 });
     }
 
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.role || !['OWNER', 'ADMIN', 'MEMBER'].includes(body.role)) {
       return HttpResponse.json(
         { message: 'Valid role is required' },
@@ -399,7 +424,16 @@ const createTestStore = () => {
     auth: {
       token: 'test-token',
       isAuthenticated: true,
-      user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' as const, emailVerified: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as any,
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'USER' as const,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
       isLoading: false,
       error: null,
     },
@@ -448,7 +482,11 @@ describe('Organization API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should return 409 for duplicate slug', async () => {
@@ -461,7 +499,11 @@ describe('Organization API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(409);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(409);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should create organization without settings', async () => {
@@ -502,7 +544,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.getUserOrganizations.initiate()
       );
 
-      expect((result.error as any)?.status).toBe(401);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(401);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should cache user organizations', async () => {
@@ -540,7 +586,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.getOrganization.initiate('org-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should include organization metadata', async () => {
@@ -577,7 +627,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.getOrganizationBySlug.initiate('non-existent')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -607,7 +661,11 @@ describe('Organization API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should return 404 for non-existent organization', async () => {
@@ -620,7 +678,11 @@ describe('Organization API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should invalidate organization cache', async () => {
@@ -661,11 +723,15 @@ describe('Organization API', () => {
       const result = await store.dispatch(
         organizationApi.endpoints.updateSettings.initiate({
           organizationId: 'org-1',
-          settings: null as any,
+          settings: null,
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -687,7 +753,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.deleteOrganization.initiate('org-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should invalidate organization cache', async () => {
@@ -702,8 +772,9 @@ describe('Organization API', () => {
       );
 
       const state = store.getState();
-      const tags = (state as any).organizationApi.provided;
-      expect(Object.keys(tags || {}).length).toBeGreaterThan(0);
+      const stateWithApi = state as { organizationApi?: { provided?: unknown } };
+      const tags = stateWithApi.organizationApi?.provided;
+      expect(Object.keys(tags ?? {}).length).toBeGreaterThan(0);
     });
   });
 
@@ -728,7 +799,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.getOrganizationMembers.initiate('org-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -760,21 +835,37 @@ describe('Organization API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should return 400 for invalid role', async () => {
       const store = createTestStore();
 
+      interface InviteUserArgs {
+        organizationId: string;
+        email: string;
+        role: string;
+      }
+
+      const invalidArgs: InviteUserArgs = {
+        organizationId: 'org-1',
+        email: 'test@example.com',
+        role: 'INVALID_ROLE',
+      };
+
       const result = await store.dispatch(
-        organizationApi.endpoints.inviteUser.initiate({
-          organizationId: 'org-1',
-          email: 'test@example.com',
-          role: 'INVALID_ROLE' as any,
-        })
+        organizationApi.endpoints.inviteUser.initiate(invalidArgs)
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -797,7 +888,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.acceptInvitation.initiate('invalid-token')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -819,7 +914,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.declineInvitation.initiate('invalid-token')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -855,7 +954,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.revokeInvitation.initiate('inv-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -883,7 +986,11 @@ describe('Organization API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -905,15 +1012,27 @@ describe('Organization API', () => {
     it('should return 400 for invalid role', async () => {
       const store = createTestStore();
 
+      interface UpdateMemberRoleArgs {
+        organizationId: string;
+        userId: string;
+        role: string;
+      }
+
+      const invalidArgs: UpdateMemberRoleArgs = {
+        organizationId: 'org-1',
+        userId: 'user-2',
+        role: 'INVALID_ROLE',
+      };
+
       const result = await store.dispatch(
-        organizationApi.endpoints.updateMemberRole.initiate({
-          organizationId: 'org-1',
-          userId: 'user-2',
-          role: 'INVALID_ROLE' as any,
-        })
+        organizationApi.endpoints.updateMemberRole.initiate(invalidArgs)
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -948,7 +1067,11 @@ describe('Organization API', () => {
         organizationApi.endpoints.getUserOrganizations.initiate()
       );
 
-      expect((result.error as any)?.status).toBe(500);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(500);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -982,7 +1105,8 @@ describe('Organization API', () => {
       );
 
       const state = store.getState();
-      const tags = (state as any).organizationApi.provided;
+      const stateWithApi = state as { organizationApi?: { provided?: unknown } };
+      const tags = stateWithApi.organizationApi?.provided;
       expect(tags).toBeDefined();
     });
 
@@ -1002,7 +1126,8 @@ describe('Organization API', () => {
       );
 
       const state = store.getState();
-      const tags = (state as any).organizationApi.provided;
+      const stateWithApi = state as { organizationApi?: { provided?: unknown } };
+      const tags = stateWithApi.organizationApi?.provided;
       expect(tags).toBeDefined();
     });
   });

@@ -5,6 +5,33 @@ import {
   createTestOrganization,
 } from './utils/test-utils'
 
+// Type definitions for Redux store in window
+interface ReduxAuthState {
+  isAuthenticated: boolean;
+  user: unknown;
+  token: string | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+interface ReduxState {
+  auth: ReduxAuthState;
+  authApi?: unknown;
+  [key: string]: unknown;
+}
+
+interface ReduxStore {
+  getState: () => ReduxState;
+  subscribe: (listener: () => void) => () => void;
+  dispatch: (action: unknown) => unknown;
+}
+
+interface WindowWithRedux extends Window {
+  __REDUX_STORE__?: ReduxStore;
+}
+
+declare let window: WindowWithRedux;
+
 test.describe('Authentication Flow Debug', () => {
   test('should debug complete authentication flow step by step', async ({ page }) => {
     console.log('=== Starting authentication flow debug ===')
@@ -12,7 +39,7 @@ test.describe('Authentication Flow Debug', () => {
     // Monitor Redux state changes
     await page.addInitScript(() => {
       window.addEventListener('load', () => {
-        const store = (window as any).__REDUX_STORE__
+        const store = (window as WindowWithRedux).__REDUX_STORE__
         if (store) {
           let previousState = store.getState()
           store.subscribe(() => {
@@ -104,14 +131,14 @@ test.describe('Authentication Flow Debug', () => {
 
     // Get authentication state from Redux
     const authState = await page.evaluate(() => {
-      const store = (window as any).__REDUX_STORE__
+      const store = (window as WindowWithRedux).__REDUX_STORE__
       return store ? store.getState().auth : null
     })
     console.log('Redux auth state:', authState)
 
     // Also check the RTK Query cache to see if session data was stored
     const queryState = await page.evaluate(() => {
-      const store = (window as any).__REDUX_STORE__
+      const store = (window as WindowWithRedux).__REDUX_STORE__
       if (!store) return null
       const state = store.getState()
       return {
@@ -124,16 +151,16 @@ test.describe('Authentication Flow Debug', () => {
     // Wait for either auth to complete or timeout
     try {
       await page.waitForFunction(() => {
-        const store = (window as any).__REDUX_STORE__
+        const store = (window as WindowWithRedux).__REDUX_STORE__
         if (!store) return false
         const state = store.getState()
         return state.auth.isAuthenticated === true
       }, { timeout: 10000 })
       console.log('✅ Authentication completed!')
-    } catch (error) {
+    } catch (_error) {
       console.log('⚠️ Authentication timeout, checking state...')
       const finalAuthState = await page.evaluate(() => {
-        const store = (window as any).__REDUX_STORE__
+        const store = (window as WindowWithRedux).__REDUX_STORE__
         return store ? store.getState().auth : null
       })
       console.log('Final auth state:', finalAuthState)

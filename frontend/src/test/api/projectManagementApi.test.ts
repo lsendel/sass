@@ -7,6 +7,62 @@ import { createApiTestStore } from '../utils/testStore';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1';
 
+// Type definitions for request payloads
+interface UserUpdateRequest {
+  firstName?: string;
+  lastName?: string;
+  timezone?: string;
+  language?: string;
+}
+
+interface WorkspaceCreateRequest {
+  name?: string;
+  slug?: string;
+  description?: string;
+}
+
+interface WorkspaceUpdateRequest {
+  name?: string;
+  description?: string;
+}
+
+interface ProjectCreateRequest {
+  workspaceId?: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  priority?: string;
+  status?: string;
+}
+
+interface ProjectUpdateRequest {
+  name?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+}
+
+interface TaskCreateRequest {
+  projectId?: string;
+  title?: string;
+  description?: string;
+  priority?: string;
+  status?: string;
+  assigneeId?: string;
+}
+
+interface TaskUpdateRequest {
+  title?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  assigneeId?: string;
+}
+
+interface CommentCreateRequest {
+  content?: string;
+}
+
 // Mock data
 const mockUser = {
   id: 'user-1',
@@ -88,21 +144,21 @@ const handlers = [
     return HttpResponse.json(mockUser);
   }),
 
-  http.patch(`${API_BASE_URL}/users/me`, async ({ request }) => {
+  http.patch<never, UserUpdateRequest>(`${API_BASE_URL}/users/me`, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     return HttpResponse.json({ ...mockUser, ...body });
   }),
 
-  http.put(`${API_BASE_URL}/users/me`, async ({ request }) => {
+  http.put<never, UserUpdateRequest>(`${API_BASE_URL}/users/me`, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     return HttpResponse.json({ ...mockUser, ...body });
   }),
 
@@ -127,19 +183,19 @@ const handlers = [
     return HttpResponse.json({ message: 'Workspace not found' }, { status: 404 });
   }),
 
-  http.post(`${API_BASE_URL}/workspaces`, async ({ request }) => {
+  http.post<never, WorkspaceCreateRequest>(`${API_BASE_URL}/workspaces`, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.name) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockWorkspace, ...body });
   }),
 
-  http.put(`${API_BASE_URL}/workspaces/:id`, async ({ params, request }) => {
+  http.put<{ id: string }, WorkspaceUpdateRequest>(`${API_BASE_URL}/workspaces/:id`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -148,7 +204,7 @@ const handlers = [
     if (id !== 'workspace-1') {
       return HttpResponse.json({ message: 'Workspace not found' }, { status: 404 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     return HttpResponse.json({ ...mockWorkspace, ...body });
   }),
 
@@ -185,19 +241,19 @@ const handlers = [
     return HttpResponse.json({ message: 'Project not found' }, { status: 404 });
   }),
 
-  http.post(`${API_BASE_URL}/projects`, async ({ request }) => {
+  http.post<never, ProjectCreateRequest>(`${API_BASE_URL}/projects`, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.name) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockProject, ...body });
   }),
 
-  http.put(`${API_BASE_URL}/projects/:id`, async ({ params, request }) => {
+  http.put<{ id: string }, ProjectUpdateRequest>(`${API_BASE_URL}/projects/:id`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -206,7 +262,7 @@ const handlers = [
     if (id !== 'project-1') {
       return HttpResponse.json({ message: 'Project not found' }, { status: 404 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     return HttpResponse.json({ ...mockProject, ...body });
   }),
 
@@ -249,19 +305,19 @@ const handlers = [
     return HttpResponse.json({ message: 'Task not found' }, { status: 404 });
   }),
 
-  http.post(`${API_BASE_URL}/tasks`, async ({ request }) => {
+  http.post<never, TaskCreateRequest>(`${API_BASE_URL}/tasks`, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.title) {
       return HttpResponse.json({ message: 'Title is required' }, { status: 400 });
     }
     return HttpResponse.json({ ...mockTask, ...body });
   }),
 
-  http.put(`${API_BASE_URL}/tasks/:id`, async ({ params, request }) => {
+  http.put<{ id: string }, TaskUpdateRequest>(`${API_BASE_URL}/tasks/:id`, async ({ params, request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -270,7 +326,7 @@ const handlers = [
     if (id !== 'task-1') {
       return HttpResponse.json({ message: 'Task not found' }, { status: 404 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     return HttpResponse.json({ ...mockTask, ...body });
   }),
 
@@ -295,12 +351,12 @@ const handlers = [
     return HttpResponse.json([mockComment]);
   }),
 
-  http.post(`${API_BASE_URL}/tasks/:taskId/comments`, async ({ request }) => {
+  http.post<{ taskId: string }, CommentCreateRequest>(`${API_BASE_URL}/tasks/:taskId/comments`, async ({ request }) => {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    const body = (await request.json()) as any;
+    const body = await request.json();
     if (!body?.content) {
       return HttpResponse.json({ message: 'Content is required' }, { status: 400 });
     }
@@ -363,7 +419,16 @@ const createTestStore = () => {
     auth: {
       token: 'test-token',
       isAuthenticated: true,
-      user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' as const, emailVerified: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as any,
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'USER' as const,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
       isLoading: false,
       error: null,
     },
@@ -418,7 +483,11 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getCurrentUser.initiate()
       );
 
-      expect((result.error as any)?.status).toBe(401);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(401);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -454,7 +523,11 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getWorkspace.initiate('workspace-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should create workspace', async () => {
@@ -480,7 +553,11 @@ describe('Project Management API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should update workspace', async () => {
@@ -534,7 +611,11 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getProject.initiate('project-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should create project', async () => {
@@ -564,7 +645,11 @@ describe('Project Management API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should update project', async () => {
@@ -629,7 +714,11 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getTask.initiate('task-999')
       );
 
-      expect((result.error as any)?.status).toBe(404);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(404);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should create task', async () => {
@@ -657,7 +746,11 @@ describe('Project Management API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
 
     it('should update task', async () => {
@@ -721,7 +814,11 @@ describe('Project Management API', () => {
         })
       );
 
-      expect((result.error as any)?.status).toBe(400);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(400);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 
@@ -788,7 +885,11 @@ describe('Project Management API', () => {
         projectManagementApi.endpoints.getCurrentUser.initiate()
       );
 
-      expect((result.error as any)?.status).toBe(500);
+      if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
+        expect(result.error.status).toBe(500);
+      } else {
+        throw new Error('Expected error response');
+      }
     });
   });
 

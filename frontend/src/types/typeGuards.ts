@@ -7,13 +7,14 @@
  * @module typeGuards
  */
 
+import { isAxiosError as axiosIsAxiosError } from 'axios';
+
 import type {
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
   CreateProjectRequest,
   UpdateProjectRequest,
 } from './api';
-import { isAxiosError as axiosIsAxiosError } from 'axios';
 
 /**
  * Check if value is a non-null object

@@ -56,13 +56,13 @@ async function testViewport() {
 
     try {
       await page.goto('http://localhost:3000/dashboard', { waitUntil: 'networkidle', timeout: 5000 });
-    } catch (e) {
+    } catch (_e) {
       // Try mock login route
       try {
         await page.goto('http://localhost:3000/mock-login', { waitUntil: 'networkidle', timeout: 5000 });
         await page.click('button', { timeout: 5000 });
         await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 10000 });
-      } catch (mockError) {
+      } catch (_mockError) {
         console.log('⚠️ Could not access dashboard - trying organizations page');
         await page.goto('http://localhost:3000/organizations', { waitUntil: 'networkidle', timeout: 5000 });
       }
