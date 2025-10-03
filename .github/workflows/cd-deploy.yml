@@ -34,36 +34,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check AWS credentials
-        id: check_aws
-        run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
-            echo "AWS credentials not configured, skipping deployment"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Configure AWS credentials
-        if: steps.check_aws.outputs.skip != 'true'
+        id: aws_creds
+        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Setup kubectl
-        if: steps.check_aws.outputs.skip != 'true'
+        if: steps.aws_creds.outcome == 'success'
         uses: azure/setup-kubectl@v3
         with:
           version: "v1.28.0"
 
       - name: Update kubeconfig
-        if: steps.check_aws.outputs.skip != 'true'
+        if: steps.aws_creds.outcome == 'success'
         run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_STAGING }}
 
       - name: Deploy to staging
-        if: steps.check_aws.outputs.skip != 'true'
+        if: steps.aws_creds.outcome == 'success'
         id: deploy_staging
         run: |
           # Deploy application
@@ -131,7 +122,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
 
       - name: Run smoke tests
-        if: steps.check_aws.outputs.skip != 'true'
+        if: steps.aws_creds.outcome == 'success'
         run: |
           kubectl wait --for=condition=ready pod -l app=payment-platform -n staging --timeout=300s
           if ! ./scripts/smoke-tests.sh staging; then
@@ -153,39 +144,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check AWS credentials
-        id: check_aws_prod
-        run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID_PROD }}" ]; then
-            echo "AWS credentials not configured, skipping deployment"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Configure AWS credentials
-        if: steps.check_aws_prod.outputs.skip != 'true'
+        id: aws_creds_prod
+        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Setup kubectl
-        if: steps.check_aws_prod.outputs.skip != 'true'
+        if: steps.aws_creds_prod.outcome == 'success'
         uses: azure/setup-kubectl@v3
 
       - name: Update kubeconfig
-        if: steps.check_aws_prod.outputs.skip != 'true'
+        if: steps.aws_creds_prod.outcome == 'success'
         run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_PROD }}
 
       - name: Pre-deployment validation
-        if: steps.check_aws_prod.outputs.skip != 'true'
+        if: steps.aws_creds_prod.outcome == 'success'
         run: |
           ./scripts/pre-deployment-checks.sh production
 
       - name: Blue-Green deployment
-        if: steps.check_aws_prod.outputs.skip != 'true'
+        if: steps.aws_creds_prod.outcome == 'success'
         run: |
           # Deploy green environment
           echo "Deploying green environment..."
@@ -225,7 +207,7 @@ jobs:
           kubectl scale deployment payment-platform-blue --replicas=1 -n production
 
       - name: Create release
-        if: steps.check_aws_prod.outputs.skip != 'true'
+        if: steps.aws_creds_prod.outcome == 'success'
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
