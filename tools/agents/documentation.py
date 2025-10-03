@@ -231,13 +231,13 @@ class DocumentationAgent:
         returns = context.get("returns", "None")
         raises = context.get("raises", [])
 
-        docstring = f'''"""
+        docstring = f"""\"\"\"
     {self._generate_description(context)}
 
     Enforces constitutional requirements including TDD compliance,
     module boundaries, and security standards.
 
-    Args:'''
+    Args:"""
 
         for param in params:
             docstring += f"\n        {param['name']}: {param.get('description', 'Parameter description')}"
@@ -265,7 +265,7 @@ class DocumentationAgent:
 
     Note:
         This function has constitutional enforcement authority.
-    """'''
+    \"\"\""""
 
         return docstring
 
@@ -631,7 +631,7 @@ All code changes must pass constitutional validation."""
 
     def _python_docstring_template(self) -> str:
         """Python docstring template."""
-        return '''"""
+        return """
     {description}
 
     Args:
@@ -642,7 +642,7 @@ All code changes must pass constitutional validation."""
 
     Constitutional Requirements:
         - {requirements}
-    """'''
+    """
 
     def _openapi_template(self) -> str:
         """OpenAPI template."""

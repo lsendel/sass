@@ -22,14 +22,17 @@ public class TestSecurityConfiguration {
     /**
      * Configures a permissive security filter chain for tests.
      * Allows all requests without authentication.
+     * CSRF is disabled as this is test-only configuration and tests use stateless requests.
      *
      * @param http the HttpSecurity to configure
      * @return the configured security filter chain
      * @throws Exception if configuration fails
      */
     @Bean
+    @SuppressWarnings("lgtm[java/spring-disabled-csrf-protection]") // CSRF protection intentionally disabled for test environment
     public SecurityFilterChain testFilterChain(final HttpSecurity http) throws Exception {
         http
+                // lgtm[java/spring-disabled-csrf-protection] - Safe for test environment only
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()

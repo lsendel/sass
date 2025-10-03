@@ -35,7 +35,7 @@ $(function() {
         if (redirect.is(":checked")) {
             href += "&r=1";
         }
-        searchLink.html(href);
+        searchLink.text(href); // Use .text() to prevent XSS
         copy[0].onmouseenter();
     }
     function copyLink(e) {
@@ -197,12 +197,13 @@ $(window).on("load", function() {
             .html(label);
         var container = getHighlightedText(item.input, item.boundaries, 0, item.prefix.length - 1);
         if (item.category === "searchTags") {
-            container = item.indexItem.h || "";
+            // Sanitize user-controlled content to prevent XSS
+            container = $("<div>").text(item.indexItem.h || "").html();
         }
         if (item.category !== "modules") {
             $("<div/>").html(container).addClass("col-plain").addClass(rowColor).appendTo(table);
         }
-        $("<div/>").html(link).addClass("col-last").addClass(rowColor).appendTo(table);
+        $("<div/>").append(link).addClass("col-last").addClass(rowColor).appendTo(table);
     }
     var timeout;
     function schedulePageSearch() {

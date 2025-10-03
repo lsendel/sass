@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Security configuration for integration tests that need basic authentication.
  * This provides minimal security setup for @WithMockUser tests.
+ * CSRF protection is disabled as tests use stateless authentication.
  */
 @TestConfiguration
 @EnableWebSecurity
@@ -21,9 +22,11 @@ public class TestSecurityConfig {
 
     @Bean
     @Primary
+    @SuppressWarnings("lgtm[java/spring-disabled-csrf-protection]") // CSRF protection intentionally disabled for test environment
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authz -> authz.anyRequest().authenticated())
+            // lgtm[java/spring-disabled-csrf-protection] - Safe for test environment only
             .csrf(csrf -> csrf.disable());
         return http.build();
     }

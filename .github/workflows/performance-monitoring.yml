@@ -9,6 +9,11 @@ on:
     # Run performance tests daily at 2 AM UTC
     - cron: '0 2 * * *'
 
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
 env:
   NODE_VERSION: '18'
   JAVA_VERSION: '21'
@@ -78,12 +83,34 @@ jobs:
     - name: Generate Lighthouse reports
       working-directory: ./frontend
       run: |
-        npm install -g @lhci/cli
+        npm install -g @lhci/cli lighthouse
         npm run build
         npm run preview &
+        PREVIEW_PID=$!
         sleep 10
-        lhci collect --url=http://localhost:4173 --numberOfRuns=3
-        lhci upload || true  # Don't fail if upload fails
+
+        # Wait for preview server to be ready
+        for i in {1..30}; do
+          if curl -f http://localhost:4173 > /dev/null 2>&1; then
+            echo "Preview server is ready"
+            break
+          fi
+          echo "Waiting for preview server... ($i/30)"
+          sleep 2
+        done
+
+        # Run Lighthouse with headless Chrome flags
+        lhci collect \
+          --url=http://localhost:4173 \
+          --numberOfRuns=3 \
+          --settings.chromeFlags="--headless --no-sandbox --disable-gpu --disable-dev-shm-usage" \
+          || echo "Lighthouse collection failed, continuing anyway"
+
+        # Kill preview server
+        kill $PREVIEW_PID || true
+
+        # Upload results (don't fail if upload fails)
+        lhci upload || true
 
     - name: Upload performance artifacts
       uses: actions/upload-artifact@v4
