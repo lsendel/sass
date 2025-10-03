@@ -121,7 +121,7 @@ jobs:
 
     # Container Security (skip if no SNYK_TOKEN)
     - name: Run Snyk Container Security
-      if: secrets.SNYK_TOKEN != ''
+      if: ${{ secrets.SNYK_TOKEN != '' }}
       uses: snyk/actions/docker@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -132,7 +132,7 @@ jobs:
 
     # Secrets Scanning (skip if no GITGUARDIAN_API_KEY)
     - name: Run GitGuardian scan
-      if: secrets.GITGUARDIAN_API_KEY != ''
+      if: ${{ secrets.GITGUARDIAN_API_KEY != '' }}
       uses: GitGuardian/ggshield-action@master
       env:
         GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
