@@ -10,6 +10,12 @@ on:
     types: [completed]
     branches: [main, develop]
 
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+  actions: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -19,7 +25,7 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.ref == 'refs/heads/develop' && github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/develop' && github.event.workflow_run.conclusion == 'success' && secrets.AWS_ACCESS_KEY_ID != ''
     environment:
       name: staging
       url: https://staging.example.com
@@ -38,7 +44,7 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'v1.28.0'
+          version: "v1.28.0"
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_STAGING }}
@@ -123,7 +129,7 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success' && secrets.AWS_ACCESS_KEY_ID_PROD != ''
     environment:
       name: production
       url: https://app.example.com
@@ -154,7 +160,7 @@ jobs:
           # Deploy green environment
           echo "Deploying green environment..."
           envsubst < k8s/production/deployment-green.yaml | kubectl apply -f -
-          
+
           # Wait for deployment and monitor
           echo "Waiting for green deployment to be ready..."
           if ! kubectl rollout status deployment/payment-platform-green -n production --timeout=600s; then
@@ -162,7 +168,7 @@ jobs:
             kubectl rollout undo deployment/payment-platform-green -n production
             exit 1
           fi
-          
+
           # Run smoke tests
           echo "Running smoke tests..."
           if ! ./scripts/smoke-tests.sh production-green; then
@@ -170,11 +176,11 @@ jobs:
             kubectl rollout undo deployment/payment-platform-green -n production
             exit 1
           fi
-          
+
           # Switch traffic
           echo "Switching traffic to green deployment..."
           kubectl patch service payment-platform -n production -p '{"spec":{"selector":{"version":"green"}}}'
-          
+
           # Monitor for 5 minutes
           echo "Monitoring deployment for 5 minutes..."
           ./scripts/monitor-deployment.sh 300 || {
@@ -183,7 +189,7 @@ jobs:
             kubectl rollout undo deployment/payment-platform-green -n production
             exit 1
           }
-          
+
           # Scale down blue deployment
           echo "Scaling down blue deployment..."
           kubectl scale deployment payment-platform-blue --replicas=1 -n production
@@ -197,23 +203,23 @@ jobs:
           name: Production Release v${{ github.run_number }}
           body: |
             ## Production Deployment Summary
-            
+
             ### Deployment Information
             - **Commit**: ${{ github.sha }}
             - **Branch**: ${{ github.ref_name }}
             - **Timestamp**: ${{ github.event.workflow_run.updated_at }}
-            
+
             ### Validations
             - ✅ Constitutional compliance
             - ✅ Security validation
             - ✅ Smoke tests
             - ✅ Load balancer health
             - ✅ Application health
-            
+
             ### Monitoring
             - [View Metrics Dashboard](https://metrics.example.com/prod/dashboard)
             - [View Logs](https://logs.example.com/prod/latest)
-            
+
             ### Support
             If you encounter any issues, please contact the DevOps team immediately.
           draft: false
@@ -229,7 +235,7 @@ jobs:
         continue-on-error: true
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel-id: 'deployments'
+          channel-id: "deployments"
           slack-message: |
             *Staging Deployment* ${{ needs.deploy-staging.result == 'success' && ':white_check_mark:' || ':x:' }}
 
@@ -276,7 +282,7 @@ jobs:
         continue-on-error: true
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel-id: 'deployments'
+          channel-id: "deployments"
           slack-message: |
             *Production Deployment* ${{ needs.deploy-production.result == 'success' && ':rocket:' || ':x:' }}
 
@@ -316,7 +322,7 @@ jobs:
               auto_merge: false,
               required_contexts: []
             });
-            
+
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
