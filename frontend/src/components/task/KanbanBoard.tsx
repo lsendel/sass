@@ -118,7 +118,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId }) => {
       await updateTask({
         taskId: task.id,
         task: {
-          status: destColumn.id as Task['status'],
+          status: destColumn.id,
         },
       }).unwrap();
 

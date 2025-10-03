@@ -96,7 +96,7 @@ export function useFormDraft<T extends FieldValues>(
 
       // Restore each field from draft
       Object.entries(draft.data).forEach(([key, value]) => {
-        setValue(key as Path<T>, value as any);
+        setValue(key as Path<T>, value);
       });
 
       if (showNotifications) {

@@ -99,7 +99,7 @@ export const createAuthenticatedApiTestStore = (
     auth: {
       user: defaultUser as any,
       isAuthenticated: true,
-      token: (user?.token as string) || null,
+      token: (user?.token!) || null,
       isLoading: false,
       error: null,
     },
