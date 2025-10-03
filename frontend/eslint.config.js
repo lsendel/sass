@@ -90,6 +90,7 @@ export default tseslint.config(
       "@typescript-eslint/await-thenable": "warn",
       "@typescript-eslint/prefer-promise-reject-errors": "warn",
       "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
       "@typescript-eslint/array-type": ["warn", { default: "array-simple" }],
       "@typescript-eslint/consistent-type-definitions": ["warn", "interface"],
     },
