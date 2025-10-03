@@ -723,7 +723,7 @@ describe('Organization API', () => {
       const result = await store.dispatch(
         organizationApi.endpoints.updateSettings.initiate({
           organizationId: 'org-1',
-          settings: null,
+          settings: {} as Record<string, unknown>,
         })
       );
 
@@ -858,7 +858,7 @@ describe('Organization API', () => {
       };
 
       const result = await store.dispatch(
-        organizationApi.endpoints.inviteUser.initiate(invalidArgs)
+        organizationApi.endpoints.inviteUser.initiate(invalidArgs as any)
       );
 
       if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {
@@ -1025,7 +1025,7 @@ describe('Organization API', () => {
       };
 
       const result = await store.dispatch(
-        organizationApi.endpoints.updateMemberRole.initiate(invalidArgs)
+        organizationApi.endpoints.updateMemberRole.initiate(invalidArgs as any)
       );
 
       if ('error' in result && result.error && typeof result.error === 'object' && 'status' in result.error) {

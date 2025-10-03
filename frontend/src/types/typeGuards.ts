@@ -12,9 +12,12 @@ import { isAxiosError as axiosIsAxiosError } from 'axios';
 import type {
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
+} from '../store/api/organizationApi';
+
+import type {
   CreateProjectRequest,
   UpdateProjectRequest,
-} from './api';
+} from '../store/api/projectManagementApi';
 
 /**
  * Check if value is a non-null object

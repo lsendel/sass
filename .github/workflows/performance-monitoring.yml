@@ -226,19 +226,35 @@ jobs:
 
     - name: Run database performance tests
       run: |
-        # Create simple performance test log
-        echo "Database Performance Test" > query-performance.log
-        echo "=========================" >> query-performance.log
-        echo "Date: $(date)" >> query-performance.log
-        echo "" >> query-performance.log
-
-        # Test basic query performance on existing tables
+        # Create test data
+        echo "Creating test data..." > query-performance.log
         PGPASSWORD=testpass psql -h localhost -U testuser -d testdb -c "
-        SELECT version();
-        " >> query-performance.log
+        INSERT INTO organizations (id, name, slug, created_at, updated_at)
+        SELECT gen_random_uuid(), 'Org ' || i, 'org-' || i, NOW(), NOW()
+        FROM generate_series(1, 1000) i;
+        "
 
+        PGPASSWORD=testpass psql -h localhost -U testuser -d testdb -c "
+        INSERT INTO audit_events (id, organization_id, event_type, severity, description, timestamp, created_at)
+        SELECT gen_random_uuid(),
+               (SELECT id FROM organizations ORDER BY RANDOM() LIMIT 1),
+               (ARRAY['LOGIN', 'LOGOUT', 'CREATE', 'UPDATE', 'DELETE'])[ceil(random()*5)],
+               'INFO',
+               'Test audit event',
+               NOW() - (random() * interval '30 days'),
+               NOW()
+        FROM generate_series(1, 10000);
+        "
+
+        # Test query performance
         echo "" >> query-performance.log
-        echo "Database schema loaded successfully" >> query-performance.log
+        echo "Testing query performance..." >> query-performance.log
+        PGPASSWORD=testpass psql -h localhost -U testuser -d testdb -c "
+        EXPLAIN (ANALYZE, BUFFERS)
+        SELECT COUNT(*) FROM audit_events
+        WHERE organization_id = (SELECT id FROM organizations LIMIT 1)
+        AND timestamp >= NOW() - interval '7 days';
+        " >> query-performance.log
 
     - name: Upload database performance results
       uses: actions/upload-artifact@v4
