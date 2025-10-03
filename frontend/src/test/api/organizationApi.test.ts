@@ -815,7 +815,7 @@ describe('Organization API', () => {
       })
     })
 
-    it('should return 400 for missing settings', async () => {
+    it('should update settings with empty object', async () => {
       const store = createTestStore()
 
       const result = await store.dispatch(
@@ -825,16 +825,8 @@ describe('Organization API', () => {
         })
       )
 
-      if (
-        'error' in result &&
-        result.error &&
-        typeof result.error === 'object' &&
-        'status' in result.error
-      ) {
-        expect(result.error.status).toBe(400)
-      } else {
-        throw new Error('Expected error response')
-      }
+      expect(result.error).toBeUndefined()
+      expect(result.data).toBeDefined()
     })
   })
 

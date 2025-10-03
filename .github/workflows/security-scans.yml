@@ -119,9 +119,8 @@ jobs:
         sarif_file: tfsec.sarif
       continue-on-error: true
 
-    # Container Security (skip if no SNYK_TOKEN)
+    # Container Security
     - name: Run Snyk Container Security
-      if: ${{ secrets.SNYK_TOKEN != '' }}
       uses: snyk/actions/docker@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -130,9 +129,8 @@ jobs:
         args: --file=Dockerfile --severity-threshold=high
       continue-on-error: true
 
-    # Secrets Scanning (skip if no GITGUARDIAN_API_KEY)
+    # Secrets Scanning
     - name: Run GitGuardian scan
-      if: ${{ secrets.GITGUARDIAN_API_KEY != '' }}
       uses: GitGuardian/ggshield-action@master
       env:
         GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}

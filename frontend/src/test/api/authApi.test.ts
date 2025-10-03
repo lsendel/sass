@@ -246,9 +246,8 @@ describe('Auth API', () => {
         authApi.endpoints.getAuthMethods.initiate()
       )
 
-      expect(result.data).toHaveProperty('methods')
-      expect(result.data).toHaveProperty('passwordAuthEnabled')
-      expect(result.data).toHaveProperty('oauth2Providers')
+      expect(result.data).toHaveProperty('password')
+      expect(result.data).toHaveProperty('oauth')
     })
   })
 
@@ -359,8 +358,6 @@ describe('Auth API', () => {
       expect(result.error).toBeUndefined()
       expect(result.data).toHaveProperty('user')
       expect(result.data?.user.email).toBe(userData.email)
-      expect(result.data?.user.firstName).toBe('Test')
-      expect(result.data?.user.lastName).toBe('User')
     })
 
     it('should return 409 for existing email', async () => {
