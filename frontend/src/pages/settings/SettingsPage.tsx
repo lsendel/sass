@@ -48,8 +48,10 @@ const SettingsPage: React.FC = () => {
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation()
   const { syncUserData } = useCrossComponentSync()
   const { addNotification } = useNotifications()
-  const showSuccess = (message: string) => addNotification({ variant: 'success', title: message })
-  const showError = (message: string) => addNotification({ variant: 'error', title: message })
+  const showSuccess = (message: string) =>
+    addNotification({ variant: 'success', title: message })
+  const showError = (message: string) =>
+    addNotification({ variant: 'error', title: message })
 
   const headerDescription = 'Manage your account settings and preferences.'
   const renderHeader = () => (
@@ -62,19 +64,21 @@ const SettingsPage: React.FC = () => {
     formState: { errors },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    ...(profile ? {
-      defaultValues: {
-        name: (profile as any).name || (profile as any).firstName || '',
-        email: profile.email || '',
-        timezone: 'UTC',
-        language: 'en',
-        notifications: {
-          email: true,
-          push: true,
-          sms: false,
-        },
-      }
-    } : {}),
+    ...(profile
+      ? {
+          defaultValues: {
+            name: (profile as any).name || (profile as any).firstName || '',
+            email: profile.email || '',
+            timezone: 'UTC',
+            language: 'en',
+            notifications: {
+              email: true,
+              push: true,
+              sms: false,
+            },
+          },
+        }
+      : {}),
   })
 
   if (isLoading) {
@@ -385,8 +389,9 @@ const SettingsPage: React.FC = () => {
                         OAuth Authentication
                       </h4>
                       <p className="text-sm text-gray-500">
-                        You&apos;re signed in with OAuth. Manage your authentication
-                        providers in your OAuth provider settings.
+                        You&apos;re signed in with OAuth. Manage your
+                        authentication providers in your OAuth provider
+                        settings.
                       </p>
                     </div>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -409,7 +414,11 @@ const SettingsPage: React.FC = () => {
                     <LoadingButton
                       variant="secondary"
                       size="sm"
-                      onClick={() => showError('Two-factor authentication is not yet implemented.')}
+                      onClick={() =>
+                        showError(
+                          'Two-factor authentication is not yet implemented.'
+                        )
+                      }
                     >
                       Enable
                     </LoadingButton>
@@ -444,7 +453,9 @@ const SettingsPage: React.FC = () => {
                     <LoadingButton
                       variant="secondary"
                       size="sm"
-                      onClick={() => showError('Data export is not yet implemented.')}
+                      onClick={() =>
+                        showError('Data export is not yet implemented.')
+                      }
                     >
                       Export Data
                     </LoadingButton>
@@ -466,8 +477,14 @@ const SettingsPage: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                          showError('Account deletion is not yet implemented. Please contact support.')
+                        if (
+                          confirm(
+                            'Are you sure you want to delete your account? This action cannot be undone.'
+                          )
+                        ) {
+                          showError(
+                            'Account deletion is not yet implemented. Please contact support.'
+                          )
                         }
                       }}
                     >

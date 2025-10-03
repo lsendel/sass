@@ -1,7 +1,7 @@
-import { render } from '@testing-library/react';
-import { Provider } from 'react-redux';
+import { render } from '@testing-library/react'
+import { Provider } from 'react-redux'
 
-import { store } from './store';
+import { store } from './store'
 
 // Mock the App component to avoid complex setup
 test('renders without crashing', () => {
@@ -9,6 +9,6 @@ test('renders without crashing', () => {
     <Provider store={store}>
       <div>App Component Placeholder</div>
     </Provider>
-  );
-  expect(true).toBe(true);
-});
+  )
+  expect(true).toBe(true)
+})

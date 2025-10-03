@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
         </div>
       )}
 
-      {(authMethods?.passwordAuthEnabled || apiError) ? (
+      {authMethods?.passwordAuthEnabled || apiError ? (
         <PasswordLoginForm
           onSuccess={handleLoginSuccess}
           onError={handleLoginError}

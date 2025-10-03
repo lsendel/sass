@@ -1,12 +1,16 @@
 /**
  * State Management with Advanced Patterns
- * 
+ *
  * Implements Redux Toolkit Query with optimistic updates,
  * caching strategies, and error handling.
  */
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+} from '@reduxjs/toolkit/query'
 
 import { API_ENDPOINTS } from '@/constants/appConstants'
 
@@ -24,10 +28,10 @@ const baseQueryWithAuth: BaseQueryFn<
       if (token) {
         headers.set('authorization', `Bearer ${token}`)
       }
-      
+
       // Add correlation ID for tracing
       headers.set('x-correlation-id', generateCorrelationId())
-      
+
       return headers
     },
   })
@@ -59,17 +63,20 @@ export const auditApi = createApi({
   reducerPath: 'auditApi',
   baseQuery: baseQueryWithAuth,
   tagTypes: ['AuditLog', 'Export', 'User'],
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     // Audit logs with advanced caching
     getAuditLogs: builder.query<AuditLogsResponse, AuditLogsRequest>({
-      query: (params) => ({
+      query: params => ({
         url: API_ENDPOINTS.AUDIT_LOGS,
         params: cleanEmptyParams(params),
       }),
-      providesTags: (result) => 
+      providesTags: result =>
         result?.logs
           ? [
-              ...result.logs.map(({ id }) => ({ type: 'AuditLog' as const, id })),
+              ...result.logs.map(({ id }) => ({
+                type: 'AuditLog' as const,
+                id,
+              })),
               { type: 'AuditLog', id: 'LIST' },
             ]
           : [{ type: 'AuditLog', id: 'LIST' }],
@@ -88,7 +95,7 @@ export const auditApi = createApi({
 
     // Export with optimistic updates
     requestExport: builder.mutation<ExportResponse, ExportRequest>({
-      query: (exportData) => ({
+      query: exportData => ({
         url: API_ENDPOINTS.EXPORT_AUDIT,
         method: 'POST',
         body: exportData,
@@ -106,7 +113,7 @@ export const auditApi = createApi({
 
         // Update the exports list optimistically
         const patchResult = dispatch(
-          auditApi.util.updateQueryData('getExports', undefined, (draft) => {
+          auditApi.util.updateQueryData('getExports', undefined, draft => {
             draft.exports.unshift(optimisticExport)
           })
         )
@@ -115,7 +122,7 @@ export const auditApi = createApi({
           const { data } = await queryFulfilled
           // Replace optimistic entry with real data
           dispatch(
-            auditApi.util.updateQueryData('getExports', undefined, (draft) => {
+            auditApi.util.updateQueryData('getExports', undefined, draft => {
               const index = draft.exports.findIndex(
                 e => e.exportId === optimisticExport.exportId
               )
@@ -140,9 +147,9 @@ export const auditApi = createApi({
 
     // Get export status with caching
     getExportStatus: builder.query<ExportStatusResponse, string>({
-      query: (exportId) => API_ENDPOINTS.EXPORT_STATUS.replace('{id}', exportId),
+      query: exportId => API_ENDPOINTS.EXPORT_STATUS.replace('{id}', exportId),
       providesTags: (_, __, exportId) => [{ type: 'Export', id: exportId }],
-      // Cache for 1 minute for completed exports, 10s for active ones  
+      // Cache for 1 minute for completed exports, 10s for active ones
       keepUnusedDataFor: 60,
     }),
   }),
@@ -158,21 +165,23 @@ export const {
 
 // Selectors for derived state
 export const selectAuditLogById = (state: any, logId: string) =>
-  auditApi.endpoints.getAuditLogs.select({})(state)?.data?.logs.find(
-    log => log.id === logId
-  )
+  auditApi.endpoints.getAuditLogs
+    .select({})(state)
+    ?.data?.logs.find(log => log.id === logId)
 
 export const selectActiveExports = (state: any) =>
-  auditApi.endpoints.getExports.select()(state)?.data?.exports.filter(
-    export_ => export_.status === 'PENDING' || export_.status === 'PROCESSING'
-  ) || []
+  auditApi.endpoints.getExports
+    .select()(state)
+    ?.data?.exports.filter(
+      export_ => export_.status === 'PENDING' || export_.status === 'PROCESSING'
+    ) || []
 
 // Advanced caching utilities
 export const auditApiEnhanced = auditApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     // Prefetch related data
     prefetchAuditLogDetails: builder.query<AuditLogDetail, string>({
-      query: (logId) => `/audit/logs/${logId}`,
+      query: logId => `/audit/logs/${logId}`,
       // Don't cache prefetched data as long
       keepUnusedDataFor: 60,
     }),
@@ -183,8 +192,8 @@ export const auditApiEnhanced = auditApi.injectEndpoints({
 // Utility functions
 function cleanEmptyParams(params: Record<string, any>): Record<string, any> {
   return Object.fromEntries(
-    Object.entries(params).filter(([_, value]) => 
-      value !== undefined && value !== null && value !== ''
+    Object.entries(params).filter(
+      ([_, value]) => value !== undefined && value !== null && value !== ''
     )
   )
 }

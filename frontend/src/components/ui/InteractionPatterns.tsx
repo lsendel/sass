@@ -39,7 +39,7 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
   multiSelect = false,
   disabled = false,
   className,
-  maxHeight = 'max-h-60'
+  maxHeight = 'max-h-60',
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -102,7 +102,10 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -115,11 +118,17 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
     if (selectedValues.length === 0) return placeholder
     if (multiSelect) {
       if (selectedValues.length === 1) {
-        return options.find(opt => opt.value === selectedValues[0])?.label || selectedValues[0]
+        return (
+          options.find(opt => opt.value === selectedValues[0])?.label ||
+          selectedValues[0]
+        )
       }
       return `${selectedValues.length} selected`
     }
-    return options.find(opt => opt.value === selectedValues[0])?.label || selectedValues[0]
+    return (
+      options.find(opt => opt.value === selectedValues[0])?.label ||
+      selectedValues[0]
+    )
   }
 
   return (
@@ -131,7 +140,9 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
         disabled={disabled}
         className={clsx(
           'w-full flex items-center justify-between px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors',
-          disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:border-gray-400',
+          disabled
+            ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            : 'hover:border-gray-400',
           isOpen ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-300'
         )}
       >
@@ -139,16 +150,21 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
           {getDisplayText()}
         </span>
         <ChevronDownIcon
-          className={clsx('h-4 w-4 transition-transform', isOpen && 'rotate-180')}
+          className={clsx(
+            'h-4 w-4 transition-transform',
+            isOpen && 'rotate-180'
+          )}
         />
       </button>
 
       {isOpen && (
-        <div className={clsx(
-          'absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg',
-          maxHeight,
-          'overflow-auto'
-        )}>
+        <div
+          className={clsx(
+            'absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg',
+            maxHeight,
+            'overflow-auto'
+          )}
+        >
           {searchable && (
             <div className="p-2 border-b border-gray-200">
               <div className="relative">
@@ -157,7 +173,7 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
                   ref={searchRef}
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Search options..."
                   className="w-full pl-8 pr-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -179,7 +195,9 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => !option.disabled && handleSelect(option.value)}
+                    onClick={() =>
+                      !option.disabled && handleSelect(option.value)
+                    }
                     disabled={option.disabled}
                     className={clsx(
                       'w-full px-3 py-2 text-left flex items-center justify-between transition-colors',
@@ -191,9 +209,7 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
                     )}
                   >
                     <div className="flex items-center">
-                      {option.icon && (
-                        <option.icon className="h-4 w-4 mr-2" />
-                      )}
+                      {option.icon && <option.icon className="h-4 w-4 mr-2" />}
                       <span>{option.label}</span>
                     </div>
                     {isSelected && multiSelect && (
@@ -234,7 +250,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
   items,
-  placeholder = 'Type a command or search...'
+  placeholder = 'Type a command or search...',
 }) => {
   const [search, setSearch] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -245,17 +261,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return (
       item.title.toLowerCase().includes(searchLower) ||
       item.subtitle?.toLowerCase().includes(searchLower) ||
-      item.keywords?.some(keyword => keyword.toLowerCase().includes(searchLower))
+      item.keywords?.some(keyword =>
+        keyword.toLowerCase().includes(searchLower)
+      )
     )
   })
 
   // Group filtered items
-  const groupedItems = filteredItems.reduce((acc, item) => {
-    const group = item.group || 'Other'
-    if (!acc[group]) acc[group] = []
-    acc[group].push(item)
-    return acc
-  }, {} as Record<string, CommandPaletteItem[]>)
+  const groupedItems = filteredItems.reduce(
+    (acc, item) => {
+      const group = item.group || 'Other'
+      if (!acc[group]) acc[group] = []
+      acc[group].push(item)
+      return acc
+    },
+    {} as Record<string, CommandPaletteItem[]>
+  )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -312,7 +333,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               ref={inputRef}
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               className="flex-1 outline-none text-gray-900"
@@ -403,7 +424,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   isOpen,
   position,
   onClose,
-  actions
+  actions,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -439,7 +460,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-48"
       style={{
         left: position.x,
-        top: position.y
+        top: position.y,
       }}
     >
       {actions.map((action, _index) => (
@@ -460,15 +481,17 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                 action.disabled
                   ? 'text-gray-400 cursor-not-allowed'
                   : action.destructive
-                  ? 'text-red-600 hover:bg-red-50'
-                  : 'text-gray-900 hover:bg-gray-100'
+                    ? 'text-red-600 hover:bg-red-50'
+                    : 'text-gray-900 hover:bg-gray-100'
               )}
             >
               {action.icon && (
-                <action.icon className={clsx(
-                  'h-4 w-4 mr-3',
-                  action.destructive ? 'text-red-500' : 'text-gray-500'
-                )} />
+                <action.icon
+                  className={clsx(
+                    'h-4 w-4 mr-3',
+                    action.destructive ? 'text-red-500' : 'text-gray-500'
+                  )}
+                />
               )}
               {action.label}
             </button>
@@ -500,7 +523,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   primaryAction,
   secondaryActions = [],
   position = 'bottom-right',
-  className
+  className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -508,7 +531,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
     'bottom-right': 'bottom-6 right-6',
     'bottom-left': 'bottom-6 left-6',
     'top-right': 'top-6 right-6',
-    'top-left': 'top-6 left-6'
+    'top-left': 'top-6 left-6',
   }
 
   const handlePrimaryAction = () => {
@@ -564,7 +587,9 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
 /**
  * Scroll-to-top button that appears when scrolling
  */
-export const ScrollToTop: React.FC<{ threshold?: number }> = ({ threshold = 400 }) => {
+export const ScrollToTop: React.FC<{ threshold?: number }> = ({
+  threshold = 400,
+}) => {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -579,7 +604,7 @@ export const ScrollToTop: React.FC<{ threshold?: number }> = ({ threshold = 400 
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: 'smooth',
     })
   }
 

@@ -4,7 +4,7 @@
  * This file defines the core visual identity for the application.
  * All components should use these tokens for consistent styling.
  *
-*/
+ */
 
 // Core Style System - Modern, clean, and professional
 export const STYLE = 'modern' as const
@@ -25,7 +25,7 @@ export const theme = {
     // Semantic colors derived from brand
     success: '#16a34a', // green-600
     warning: '#d97706', // amber-600
-    error: '#dc2626',   // red-600
+    error: '#dc2626', // red-600
 
     // Neutral palette for modern design
     gray: {
@@ -46,21 +46,21 @@ export const theme = {
       primary: '#ffffff',
       secondary: '#f9fafb',
       subtle: '#f3f4f6',
-    }
+    },
   },
 
   // Typography Scale - Optimized for readability
   typography: {
     // Font sizes - reduced from current oversized headings
     fontSize: {
-      xs: '0.75rem',    // 12px
-      sm: '0.875rem',   // 14px
-      base: '1rem',     // 16px
-      lg: '1.125rem',   // 18px
-      xl: '1.25rem',    // 20px
-      '2xl': '1.5rem',  // 24px - reduced from 4xl
+      xs: '0.75rem', // 12px
+      sm: '0.875rem', // 14px
+      base: '1rem', // 16px
+      lg: '1.125rem', // 18px
+      xl: '1.25rem', // 20px
+      '2xl': '1.5rem', // 24px - reduced from 4xl
       '3xl': '1.875rem', // 30px - reduced from massive
-      '4xl': '2.25rem',  // 36px - for hero sections only
+      '4xl': '2.25rem', // 36px - for hero sections only
     },
 
     fontWeight: {
@@ -74,35 +74,35 @@ export const theme = {
       tight: '1.25',
       normal: '1.5',
       relaxed: '1.75',
-    }
+    },
   },
 
   // Spacing Scale - Consistent and logical
   spacing: {
-    xs: '0.5rem',   // 8px
-    sm: '0.75rem',  // 12px
-    base: '1rem',   // 16px
-    lg: '1.5rem',   // 24px
-    xl: '2rem',     // 32px
-    '2xl': '3rem',  // 48px
-    '3xl': '4rem',  // 64px
+    xs: '0.5rem', // 8px
+    sm: '0.75rem', // 12px
+    base: '1rem', // 16px
+    lg: '1.5rem', // 24px
+    xl: '2rem', // 32px
+    '2xl': '3rem', // 48px
+    '3xl': '4rem', // 64px
   },
 
   // Icon System - Properly sized for hierarchy
   iconSize: {
-    xs: 'w-3 h-3',     // 12px - for inline text
-    sm: 'w-4 h-4',     // 16px - for small buttons and compact areas
-    base: 'w-5 h-5',   // 20px - for normal buttons and navigation
-    lg: 'w-6 h-6',     // 24px - for section headers (maximum recommended)
-    xl: 'w-8 h-8',     // 32px - only for major empty states
+    xs: 'w-3 h-3', // 12px - for inline text
+    sm: 'w-4 h-4', // 16px - for small buttons and compact areas
+    base: 'w-5 h-5', // 20px - for normal buttons and navigation
+    lg: 'w-6 h-6', // 24px - for section headers (maximum recommended)
+    xl: 'w-8 h-8', // 32px - only for major empty states
   },
 
   // Border Radius - Modern but not excessive
   borderRadius: {
-    sm: '0.375rem',  // 6px
-    base: '0.5rem',  // 8px
-    lg: '0.75rem',   // 12px
-    xl: '1rem',      // 16px
+    sm: '0.375rem', // 6px
+    base: '0.5rem', // 8px
+    lg: '0.75rem', // 12px
+    xl: '1rem', // 16px
     '2xl': '1.5rem', // 24px - maximum for most elements
   },
 
@@ -127,8 +127,8 @@ export const theme = {
       easeIn: 'ease-in',
       easeOut: 'ease-out',
       easeInOut: 'ease-in-out',
-    }
-  }
+    },
+  },
 } as const
 
 // Component Style Variants
@@ -155,12 +155,16 @@ export const styleVariants = {
     muted: 'text-gray-500',
     accent: `text-[${ACCENT_COLOR}]`,
     brand: `text-[${COLOR}]`,
-  }
+  },
 } as const
 
 // Utility functions for consistent styling
-export const getButtonClasses = (variant: keyof typeof styleVariants.button = 'primary', size: 'sm' | 'base' | 'lg' = 'base') => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
+export const getButtonClasses = (
+  variant: keyof typeof styleVariants.button = 'primary',
+  size: 'sm' | 'base' | 'lg' = 'base'
+) => {
+  const baseClasses =
+    'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
 
   const sizeClasses = {
     sm: 'px-3 py-1.5 text-sm',
@@ -171,7 +175,9 @@ export const getButtonClasses = (variant: keyof typeof styleVariants.button = 'p
   return `${baseClasses} ${styleVariants.button[variant]} ${sizeClasses[size]}`
 }
 
-export const getCardClasses = (variant: keyof typeof styleVariants.card = 'primary') => {
+export const getCardClasses = (
+  variant: keyof typeof styleVariants.card = 'primary'
+) => {
   const baseClasses = 'rounded-xl p-6'
   return `${baseClasses} ${styleVariants.card[variant]}`
 }
@@ -208,6 +214,6 @@ export const tailwindTheme = {
       700: '#0e7490',
       800: '#155e75',
       900: '#164e63',
-    }
-  }
+    },
+  },
 } as const

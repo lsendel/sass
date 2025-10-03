@@ -1,12 +1,12 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from 'react'
+import { Slot } from '@radix-ui/react-slot'
+import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from "@/lib/utils"
-import { COLOR, ACCENT_COLOR } from "@/lib/theme"
+import { cn } from '@/lib/utils'
+import { COLOR, ACCENT_COLOR } from '@/lib/theme'
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 disabled:cursor-not-allowed",
+  'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
@@ -17,30 +17,32 @@ const buttonVariants = cva(
         accent: `bg-[${ACCENT_COLOR}] text-white hover:bg-[${ACCENT_COLOR}]/90 focus:ring-[${ACCENT_COLOR}]/20 shadow-sm hover:shadow-md`,
 
         // Destructive actions
-        destructive: "bg-error-600 text-white hover:bg-error-700 focus:ring-error-200 shadow-sm hover:shadow-md",
+        destructive:
+          'bg-error-600 text-white hover:bg-error-700 focus:ring-error-200 shadow-sm hover:shadow-md',
 
         // Outline variant using theme colors
         outline: `border border-[${COLOR}] text-[${COLOR}] hover:bg-[${COLOR}] hover:text-white focus:ring-[${COLOR}]/20`,
 
         // Secondary button
-        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-200",
+        secondary:
+          'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-200',
 
         // Ghost button
-        ghost: "text-gray-700 hover:bg-gray-100 focus:ring-gray-200",
+        ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-200',
 
         // Link variant
         link: `text-[${COLOR}] hover:text-[${ACCENT_COLOR}] hover:underline focus:ring-[${COLOR}]/20 p-0 h-auto font-medium`,
       },
       size: {
-        sm: "h-8 px-3 text-sm rounded-lg",
-        default: "h-10 px-4 text-sm rounded-lg",
-        lg: "h-12 px-6 text-base rounded-xl",
-        icon: "h-10 w-10 rounded-lg",
+        sm: 'h-8 px-3 text-sm rounded-lg',
+        default: 'h-10 px-4 text-sm rounded-lg',
+        lg: 'h-12 px-6 text-base rounded-xl',
+        icon: 'h-10 w-10 rounded-lg',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: 'default',
+      size: 'default',
     },
   }
 )
@@ -53,8 +55,20 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, isLoading, children, disabled, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      isLoading,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
+    const Comp = asChild ? Slot : 'button'
     const isDisabled = disabled || isLoading
 
     return (
@@ -91,6 +105,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     )
   }
 )
-Button.displayName = "Button"
+Button.displayName = 'Button'
 
 export { Button, buttonVariants }

@@ -2,8 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
 import { withAuthHeader } from './utils'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export interface Organization {
   id: string
@@ -73,7 +72,8 @@ export const organizationApi = createApi({
   reducerPath: 'organizationApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/organizations`,
-    prepareHeaders: (headers, { getState }) => withAuthHeader(headers, getState),
+    prepareHeaders: (headers, { getState }) =>
+      withAuthHeader(headers, getState),
   }),
   tagTypes: ['Organization', 'OrganizationMember', 'Invitation'],
   endpoints: builder => ({

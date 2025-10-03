@@ -36,7 +36,8 @@ export const userApi = createApi({
   reducerPath: 'userApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/users`,
-    prepareHeaders: (headers, { getState }) => withAuthHeader(headers, getState),
+    prepareHeaders: (headers, { getState }) =>
+      withAuthHeader(headers, getState),
   }),
   tagTypes: ['User', 'UserProfile'],
   endpoints: builder => ({

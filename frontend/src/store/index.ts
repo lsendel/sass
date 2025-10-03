@@ -41,7 +41,7 @@ export const store = configureStore({
       .concat(userApi.middleware)
       .concat(organizationApi.middleware)
       .concat(subscriptionApi.middleware),
-      // .concat(createCacheEnhancerMiddleware()), // Temporarily disabled
+  // .concat(createCacheEnhancerMiddleware()), // Temporarily disabled
   devTools: import.meta.env.DEV,
 })
 

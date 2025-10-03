@@ -28,9 +28,30 @@ export type TimePeriod = 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year'
 export type TimeGranularity = 'minute' | 'hour' | 'day' | 'week' | 'month'
 
 // Analytics data types
-export type MetricType = 'counter' | 'gauge' | 'histogram' | 'rate' | 'percentage' | 'currency'
-export type AggregationType = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'median' | 'percentile'
-export type ChartType = 'line' | 'bar' | 'pie' | 'donut' | 'area' | 'scatter' | 'heatmap' | 'table'
+export type MetricType =
+  | 'counter'
+  | 'gauge'
+  | 'histogram'
+  | 'rate'
+  | 'percentage'
+  | 'currency'
+export type AggregationType =
+  | 'sum'
+  | 'avg'
+  | 'min'
+  | 'max'
+  | 'count'
+  | 'median'
+  | 'percentile'
+export type ChartType =
+  | 'line'
+  | 'bar'
+  | 'pie'
+  | 'donut'
+  | 'area'
+  | 'scatter'
+  | 'heatmap'
+  | 'table'
 
 // Core metric definition
 export interface Metric {
@@ -177,7 +198,6 @@ interface DashboardLayout {
   gap: number
   responsive: boolean
 }
-
 
 interface WidgetConfig {
   // Chart-specific config
@@ -379,7 +399,17 @@ interface ReportJoin {
 
 interface ReportFilter {
   field: string
-  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'not_in' | 'contains' | 'starts_with'
+  operator:
+    | 'eq'
+    | 'neq'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'in'
+    | 'not_in'
+    | 'contains'
+    | 'starts_with'
   value: string | number | boolean | string[]
   dynamic?: boolean
 }
@@ -601,7 +631,14 @@ export const MetricSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(100),
   description: z.string().max(500),
-  type: z.enum(['counter', 'gauge', 'histogram', 'rate', 'percentage', 'currency']),
+  type: z.enum([
+    'counter',
+    'gauge',
+    'histogram',
+    'rate',
+    'percentage',
+    'currency',
+  ]),
   unit: z.string(),
   category: z.string(),
   tags: z.array(z.string()),
@@ -638,12 +675,21 @@ export const AnalyticsQuerySchema = z.object({
     end: z.string().datetime(),
     granularity: z.enum(['minute', 'hour', 'day', 'week', 'month']),
   }),
-  filters: z.array(z.object({
-    field: z.string(),
-    operator: z.string(),
-    value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-    type: z.enum(['and', 'or']).optional(),
-  })).optional(),
+  filters: z
+    .array(
+      z.object({
+        field: z.string(),
+        operator: z.string(),
+        value: z.union([
+          z.string(),
+          z.number(),
+          z.boolean(),
+          z.array(z.string()),
+        ]),
+        type: z.enum(['and', 'or']).optional(),
+      })
+    )
+    .optional(),
   groupBy: z.array(z.string()).optional(),
   limit: z.number().min(1).max(10000).optional(),
   offset: z.number().min(0).optional(),

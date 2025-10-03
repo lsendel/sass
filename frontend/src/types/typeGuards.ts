@@ -7,22 +7,22 @@
  * @module typeGuards
  */
 
-import { isAxiosError as axiosIsAxiosError } from 'axios';
+import { isAxiosError as axiosIsAxiosError } from 'axios'
 
 import type {
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
-} from '../store/api/organizationApi';
+} from '../store/api/organizationApi'
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,
-} from '../store/api/projectManagementApi';
+} from '../store/api/projectManagementApi'
 
 /**
  * Check if value is a non-null object
  */
 export function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null
 }
 
 /**
@@ -32,7 +32,7 @@ export function hasProperty<K extends string>(
   obj: unknown,
   key: K
 ): obj is Record<K, unknown> {
-  return isObject(obj) && key in obj;
+  return isObject(obj) && key in obj
 }
 
 /**
@@ -49,7 +49,7 @@ export function isCreateOrganizationRequest(
     hasProperty(data, 'slug') &&
     typeof data.slug === 'string' &&
     data.slug.length > 0
-  );
+  )
 }
 
 /**
@@ -58,15 +58,16 @@ export function isCreateOrganizationRequest(
 export function isUpdateOrganizationRequest(
   data: unknown
 ): data is UpdateOrganizationRequest {
-  if (!isObject(data)) return false;
+  if (!isObject(data)) return false
 
   // At least one field must be present
   const hasValidField =
     (hasProperty(data, 'name') && typeof data.name === 'string') ||
-    (hasProperty(data, 'description') && (typeof data.description === 'string' || data.description === null)) ||
-    (hasProperty(data, 'settings') && isObject(data.settings));
+    (hasProperty(data, 'description') &&
+      (typeof data.description === 'string' || data.description === null)) ||
+    (hasProperty(data, 'settings') && isObject(data.settings))
 
-  return hasValidField;
+  return hasValidField
 }
 
 /**
@@ -85,7 +86,7 @@ export function isCreateProjectRequest(
     data.slug.length > 0 &&
     hasProperty(data, 'workspaceId') &&
     typeof data.workspaceId === 'string'
-  );
+  )
 }
 
 /**
@@ -94,25 +95,26 @@ export function isCreateProjectRequest(
 export function isUpdateProjectRequest(
   data: unknown
 ): data is UpdateProjectRequest {
-  if (!isObject(data)) return false;
+  if (!isObject(data)) return false
 
   // At least one field must be present
   const hasValidField =
     (hasProperty(data, 'name') && typeof data.name === 'string') ||
-    (hasProperty(data, 'description') && (typeof data.description === 'string' || data.description === null)) ||
-    (hasProperty(data, 'status') && typeof data.status === 'string');
+    (hasProperty(data, 'description') &&
+      (typeof data.description === 'string' || data.description === null)) ||
+    (hasProperty(data, 'status') && typeof data.status === 'string')
 
-  return hasValidField;
+  return hasValidField
 }
 
 /**
  * API Error Response type
  */
 export interface ApiErrorResponse {
-  message: string;
-  code?: string;
-  details?: Record<string, unknown>;
-  status?: number;
+  message: string
+  code?: string
+  details?: Record<string, unknown>
+  status?: number
 }
 
 /**
@@ -123,45 +125,45 @@ export function isApiErrorResponse(data: unknown): data is ApiErrorResponse {
     isObject(data) &&
     hasProperty(data, 'message') &&
     typeof data.message === 'string'
-  );
+  )
 }
 
 /**
  * Re-export Axios error type guard
  */
-export const isAxiosError = axiosIsAxiosError;
+export const isAxiosError = axiosIsAxiosError
 
 /**
  * Safely get error message from unknown error
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    return error.message;
+    return error.message
   }
   if (isAxiosError(error)) {
-    const data = error.response?.data;
+    const data = error.response?.data
     if (isApiErrorResponse(data)) {
-      return data.message;
+      return data.message
     }
-    return error.message;
+    return error.message
   }
   if (isObject(error) && hasProperty(error, 'message')) {
-    const msg = error.message;
+    const msg = error.message
     if (typeof msg === 'string') {
-      return msg;
+      return msg
     }
   }
-  return 'An unknown error occurred';
+  return 'An unknown error occurred'
 }
 
 /**
  * WebSocket Message base type
  */
 export interface WebSocketMessage<T = unknown> {
-  type: string;
-  payload: T;
-  timestamp: number;
-  correlationId?: string;
+  type: string
+  payload: T
+  timestamp: number
+  correlationId?: string
 }
 
 /**
@@ -175,16 +177,16 @@ export function isWebSocketMessage(data: unknown): data is WebSocketMessage {
     hasProperty(data, 'payload') &&
     hasProperty(data, 'timestamp') &&
     typeof data.timestamp === 'number'
-  );
+  )
 }
 
 /**
  * User Joined Payload
  */
 export interface UserJoinedPayload {
-  userId: string;
-  userName: string;
-  avatar?: string;
+  userId: string
+  userName: string
+  avatar?: string
 }
 
 /**
@@ -197,14 +199,14 @@ export function isUserJoinedPayload(data: unknown): data is UserJoinedPayload {
     typeof data.userId === 'string' &&
     hasProperty(data, 'userName') &&
     typeof data.userName === 'string'
-  );
+  )
 }
 
 /**
  * User Left Payload
  */
 export interface UserLeftPayload {
-  userId: string;
+  userId: string
 }
 
 /**
@@ -215,17 +217,17 @@ export function isUserLeftPayload(data: unknown): data is UserLeftPayload {
     isObject(data) &&
     hasProperty(data, 'userId') &&
     typeof data.userId === 'string'
-  );
+  )
 }
 
 /**
  * Message Payload
  */
 export interface MessagePayload {
-  messageId: string;
-  content: string;
-  senderId: string;
-  timestamp: number;
+  messageId: string
+  content: string
+  senderId: string
+  timestamp: number
 }
 
 /**
@@ -242,41 +244,42 @@ export function isMessagePayload(data: unknown): data is MessagePayload {
     typeof data.senderId === 'string' &&
     hasProperty(data, 'timestamp') &&
     typeof data.timestamp === 'number'
-  );
+  )
 }
 
 /**
  * Check if a string is a valid non-empty string
  */
 export function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
+  return typeof value === 'string' && value.trim().length > 0
 }
 
 /**
  * Check if a value is a valid UUID
  */
 export function isUUID(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(value);
+  if (typeof value !== 'string') return false
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(value)
 }
 
 /**
  * Check if a value is a valid email
  */
 export function isEmail(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(value);
+  if (typeof value !== 'string') return false
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(value)
 }
 
 /**
  * Check if a value is a valid ISO date string
  */
 export function isISODateString(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  const date = new Date(value);
-  return !isNaN(date.getTime()) && date.toISOString() === value;
+  if (typeof value !== 'string') return false
+  const date = new Date(value)
+  return !isNaN(date.getTime()) && date.toISOString() === value
 }
 
 /**
@@ -286,21 +289,22 @@ export function isArrayOf<T>(
   value: unknown,
   guard: (item: unknown) => item is T
 ): value is T[] {
-  return Array.isArray(value) && value.every(guard);
+  return Array.isArray(value) && value.every(guard)
 }
 
 /**
  * Safely stringify any value for logging/debugging
  */
 export function safeStringify(value: unknown): string {
-  if (value === null) return 'null';
-  if (value === undefined) return 'undefined';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value === null) return 'null'
+  if (value === undefined) return 'undefined'
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value)
 
   try {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(value, null, 2)
   } catch {
-    return Object.prototype.toString.call(value);
+    return Object.prototype.toString.call(value)
   }
 }

@@ -34,38 +34,50 @@ interface DataSyncOptions {
  * Helps maintain consistency when data changes in one component affect others
  */
 export const useDataSync = (options: DataSyncOptions) => {
-  const { dependencies, onSync, interval, enabled = true, debounceMs = 300 } = options
+  const {
+    dependencies,
+    onSync,
+    interval,
+    enabled = true,
+    debounceMs = 300,
+  } = options
   // const _dispatch = useAppDispatch()
   const lastSyncRef = useRef<Record<string, any>>({})
   const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
   const intervalRef = useRef<number | NodeJS.Timeout | null>(null)
 
-  const debouncedSync = useCallback((data: Record<string, any>) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+  const debouncedSync = useCallback(
+    (data: Record<string, any>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
 
-    timeoutRef.current = setTimeout(() => {
-      void onSync(data)
-    }, debounceMs)
-  }, [onSync, debounceMs])
+      timeoutRef.current = setTimeout(() => {
+        void onSync(data)
+      }, debounceMs)
+    },
+    [onSync, debounceMs]
+  )
 
-  const triggerSync = useCallback((data: Record<string, any>) => {
-    if (!enabled) return
+  const triggerSync = useCallback(
+    (data: Record<string, any>) => {
+      if (!enabled) return
 
-    // Check if data has actually changed
-    const hasChanged = dependencies.some(key => {
-      const current = data[key]
-      const previous = lastSyncRef.current[key]
+      // Check if data has actually changed
+      const hasChanged = dependencies.some(key => {
+        const current = data[key]
+        const previous = lastSyncRef.current[key]
 
-      return JSON.stringify(current) !== JSON.stringify(previous)
-    })
+        return JSON.stringify(current) !== JSON.stringify(previous)
+      })
 
-    if (hasChanged) {
-      lastSyncRef.current = { ...data }
-      debouncedSync(data)
-    }
-  }, [dependencies, enabled, debouncedSync])
+      if (hasChanged) {
+        lastSyncRef.current = { ...data }
+        debouncedSync(data)
+      }
+    },
+    [dependencies, enabled, debouncedSync]
+  )
 
   // Set up periodic sync if interval is provided
   useEffect(() => {
@@ -114,7 +126,10 @@ export const useCrossComponentSync = () => {
 
   const syncPaymentData = useCallback(() => {
     // Trigger refetch of payment data across all components
-    dispatch({ type: 'api/invalidateTags', payload: ['Payment', 'PaymentStatistics'] })
+    dispatch({
+      type: 'api/invalidateTags',
+      payload: ['Payment', 'PaymentStatistics'],
+    })
   }, [dispatch])
 
   const syncSubscriptionData = useCallback(() => {
@@ -133,7 +148,12 @@ export const useCrossComponentSync = () => {
     syncPaymentData()
     syncSubscriptionData()
     syncUserData()
-  }, [syncOrganizationData, syncPaymentData, syncSubscriptionData, syncUserData])
+  }, [
+    syncOrganizationData,
+    syncPaymentData,
+    syncSubscriptionData,
+    syncUserData,
+  ])
 
   return {
     syncOrganizationData,

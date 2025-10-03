@@ -35,7 +35,11 @@ export class WebSocketService extends EventEmitter {
   private reconnectTimer: NodeJS.Timeout | null = null
   private isManualClose = false
   private messageQueue: WebSocketMessage[] = []
-  private connectionState: 'connecting' | 'connected' | 'disconnected' | 'error' = 'disconnected'
+  private connectionState:
+    | 'connecting'
+    | 'connected'
+    | 'disconnected'
+    | 'error' = 'disconnected'
 
   constructor(config: ConnectionConfig) {
     super()
@@ -43,7 +47,7 @@ export class WebSocketService extends EventEmitter {
       reconnectInterval: 5000,
       maxReconnectAttempts: 10,
       heartbeatInterval: 30000,
-      ...config
+      ...config,
     }
   }
 
@@ -68,7 +72,7 @@ export class WebSocketService extends EventEmitter {
           resolve()
         }
 
-        this.socket.onmessage = (event) => {
+        this.socket.onmessage = event => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data)
             this.handleMessage(message)
@@ -77,8 +81,12 @@ export class WebSocketService extends EventEmitter {
           }
         }
 
-        this.socket.onclose = (event) => {
-          console.log('[WebSocket] Connection closed:', event.code, event.reason)
+        this.socket.onclose = event => {
+          console.log(
+            '[WebSocket] Connection closed:',
+            event.code,
+            event.reason
+          )
           this.connectionState = 'disconnected'
           this.stopHeartbeat()
           this.emit('disconnected', { code: event.code, reason: event.reason })
@@ -88,13 +96,12 @@ export class WebSocketService extends EventEmitter {
           }
         }
 
-        this.socket.onerror = (error) => {
+        this.socket.onerror = error => {
           console.error('[WebSocket] Connection error:', error)
           this.connectionState = 'error'
           this.emit('error', error)
           reject(error)
         }
-
       } catch (error) {
         console.error('[WebSocket] Failed to create connection:', error)
         reject(error)
@@ -119,7 +126,7 @@ export class WebSocketService extends EventEmitter {
   public send(message: Omit<WebSocketMessage, 'timestamp'>): void {
     const fullMessage: WebSocketMessage = {
       ...message,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
 
     if (this.isConnected()) {
@@ -134,7 +141,10 @@ export class WebSocketService extends EventEmitter {
     }
   }
 
-  public subscribe(eventType: string, callback: (data: any) => void): () => void {
+  public subscribe(
+    eventType: string,
+    callback: (data: any) => void
+  ): () => void {
     this.on(eventType, callback)
     return () => this.off(eventType, callback)
   }
@@ -209,11 +219,13 @@ export class WebSocketService extends EventEmitter {
       30000 // Max 30 seconds
     )
 
-    console.log(`[WebSocket] Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1})`)
+    console.log(
+      `[WebSocket] Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1})`
+    )
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++
-      this.connect().catch((error) => {
+      this.connect().catch(error => {
         console.error('[WebSocket] Reconnect failed:', error)
       })
     }, delay)
@@ -284,7 +296,7 @@ export class PresenceService extends EventEmitter {
   public setCurrentUser(userData: Omit<PresenceData, 'lastSeen'>): void {
     this.currentUser = {
       ...userData,
-      lastSeen: Date.now()
+      lastSeen: Date.now(),
     }
 
     if (this.websocket.isConnected()) {
@@ -300,12 +312,12 @@ export class PresenceService extends EventEmitter {
     this.currentUser = {
       ...this.currentUser,
       ...data,
-      lastSeen: Date.now()
+      lastSeen: Date.now(),
     }
 
     this.websocket.send({
       type: 'presence_update',
-      payload: this.currentUser
+      payload: this.currentUser,
     })
   }
 
@@ -330,9 +342,8 @@ export class PresenceService extends EventEmitter {
   }
 
   public getOnlineUsers(): PresenceData[] {
-    return this.getPresenceData().filter(user =>
-      user.status === 'online' &&
-      Date.now() - user.lastSeen < 60000 // Active within last minute
+    return this.getPresenceData().filter(
+      user => user.status === 'online' && Date.now() - user.lastSeen < 60000 // Active within last minute
     )
   }
 
@@ -372,30 +383,36 @@ export class RealTimeDataService {
   }
 
   private setupEventHandlers(): void {
-    this.websocket.on('data_update', (payload: { resource: string; data: any; action: string }) => {
-      const { resource, data, action } = payload
-      const callbacks = this.subscriptions.get(resource)
+    this.websocket.on(
+      'data_update',
+      (payload: { resource: string; data: any; action: string }) => {
+        const { resource, data, action } = payload
+        const callbacks = this.subscriptions.get(resource)
 
-      if (callbacks) {
-        callbacks.forEach(callback => {
-          try {
-            callback({ data, action, resource })
-          } catch (error) {
-            console.error('[RealTimeData] Callback error:', error)
-          }
-        })
+        if (callbacks) {
+          callbacks.forEach(callback => {
+            try {
+              callback({ data, action, resource })
+            } catch (error) {
+              console.error('[RealTimeData] Callback error:', error)
+            }
+          })
+        }
       }
-    })
+    )
   }
 
-  public subscribe(resource: string, callback: (update: any) => void): () => void {
+  public subscribe(
+    resource: string,
+    callback: (update: any) => void
+  ): () => void {
     if (!this.subscriptions.has(resource)) {
       this.subscriptions.set(resource, new Set())
 
       // Send subscription request to server
       this.websocket.send({
         type: 'subscribe',
-        payload: { resource }
+        payload: { resource },
       })
     }
 
@@ -413,7 +430,7 @@ export class RealTimeDataService {
           // Send unsubscribe request to server
           this.websocket.send({
             type: 'unsubscribe',
-            payload: { resource }
+            payload: { resource },
           })
         }
       }
@@ -423,7 +440,7 @@ export class RealTimeDataService {
   public publishUpdate(resource: string, data: any, action = 'update'): void {
     this.websocket.send({
       type: 'data_update',
-      payload: { resource, data, action }
+      payload: { resource, data, action },
     })
   }
 
@@ -445,7 +462,7 @@ export const initializeWebSocketServices = (config: ConnectionConfig) => {
   return {
     websocket: websocketService,
     presence: presenceService,
-    realTimeData: realTimeDataService
+    realTimeData: realTimeDataService,
   }
 }
 

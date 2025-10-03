@@ -12,7 +12,6 @@ import {
 import LoadingSpinner from '../ui/LoadingSpinner'
 import { parseApiError } from '../../utils/apiError'
 
-
 interface UpgradePlanModalProps {
   isOpen: boolean
   onClose: () => void
@@ -39,7 +38,9 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
     useChangeSubscriptionPlanMutation()
 
   const handlePlanSelection = async () => {
-    if (!selectedPlanId || !organizationId) {return}
+    if (!selectedPlanId || !organizationId) {
+      return
+    }
 
     try {
       if (subscriptionId) {
@@ -71,7 +72,9 @@ const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
     }
   }
 
-  if (!isOpen) {return null}
+  if (!isOpen) {
+    return null
+  }
 
   const sortedPlans = plans
     ? [...plans].sort((a, b) => a.amount - b.amount)

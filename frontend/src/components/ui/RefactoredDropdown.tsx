@@ -1,6 +1,6 @@
 /**
  * Refactored Dropdown Component
- * 
+ *
  * Improvements from original InteractionPatterns.tsx:
  * - Extracted constants to eliminate magic numbers
  * - Broke down into smaller, focused functions
@@ -24,7 +24,7 @@ const DROPDOWN_CONFIG = {
   SEARCH_DEBOUNCE_MS: 300,
   KEYBOARD_NAVIGATION_DELAY: 100,
   FOCUS_TRAP_DELAY: 50,
-} as const;
+} as const
 
 const KEYBOARD_KEYS = {
   ARROW_DOWN: 'ArrowDown',
@@ -33,7 +33,7 @@ const KEYBOARD_KEYS = {
   ESCAPE: 'Escape',
   SPACE: ' ',
   TAB: 'Tab',
-} as const;
+} as const
 
 interface DropdownOption {
   value: string
@@ -63,12 +63,12 @@ const useDropdownState = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [focusedIndex, setFocusedIndex] = useState(-1)
-  
+
   const resetState = useCallback(() => {
     setSearchTerm('')
     setFocusedIndex(-1)
   }, [])
-  
+
   return {
     isOpen,
     setIsOpen,
@@ -80,14 +80,18 @@ const useDropdownState = () => {
   }
 }
 
-const useDropdownFiltering = (options: DropdownOption[], searchTerm: string) => {
+const useDropdownFiltering = (
+  options: DropdownOption[],
+  searchTerm: string
+) => {
   return React.useMemo(() => {
     if (!searchTerm.trim()) return options
-    
+
     const normalizedSearch = searchTerm.toLowerCase()
-    return options.filter(option =>
-      option.label.toLowerCase().includes(normalizedSearch) ||
-      option.description?.toLowerCase().includes(normalizedSearch)
+    return options.filter(
+      option =>
+        option.label.toLowerCase().includes(normalizedSearch) ||
+        option.description?.toLowerCase().includes(normalizedSearch)
     )
   }, [options, searchTerm])
 }
@@ -99,39 +103,42 @@ const useKeyboardNavigation = (
   onSelect: (option: DropdownOption) => void,
   onClose: () => void
 ) => {
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    switch (event.key) {
-      case KEYBOARD_KEYS.ARROW_DOWN:
-        event.preventDefault()
-        setFocusedIndex((prev: number) =>
-          prev < filteredOptions.length - 1 ? prev + 1 : 0
-        )
-        break
-        
-      case KEYBOARD_KEYS.ARROW_UP:
-        event.preventDefault()
-        setFocusedIndex((prev: number) =>
-          prev > 0 ? prev - 1 : filteredOptions.length - 1
-        )
-        break
-        
-      case KEYBOARD_KEYS.ENTER:
-      case KEYBOARD_KEYS.SPACE:
-        event.preventDefault()
-        if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
-          const option = filteredOptions[focusedIndex]
-          if (!option.disabled) {
-            onSelect(option)
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      switch (event.key) {
+        case KEYBOARD_KEYS.ARROW_DOWN:
+          event.preventDefault()
+          setFocusedIndex((prev: number) =>
+            prev < filteredOptions.length - 1 ? prev + 1 : 0
+          )
+          break
+
+        case KEYBOARD_KEYS.ARROW_UP:
+          event.preventDefault()
+          setFocusedIndex((prev: number) =>
+            prev > 0 ? prev - 1 : filteredOptions.length - 1
+          )
+          break
+
+        case KEYBOARD_KEYS.ENTER:
+        case KEYBOARD_KEYS.SPACE:
+          event.preventDefault()
+          if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+            const option = filteredOptions[focusedIndex]
+            if (!option.disabled) {
+              onSelect(option)
+            }
           }
-        }
-        break
-        
-      case KEYBOARD_KEYS.ESCAPE:
-        onClose()
-        break
-    }
-  }, [filteredOptions, focusedIndex, setFocusedIndex, onSelect, onClose])
-  
+          break
+
+        case KEYBOARD_KEYS.ESCAPE:
+          onClose()
+          break
+      }
+    },
+    [filteredOptions, focusedIndex, setFocusedIndex, onSelect, onClose]
+  )
+
   return { handleKeyDown }
 }
 
@@ -151,7 +158,7 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-  
+
   const {
     isOpen,
     setIsOpen,
@@ -161,30 +168,33 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
     setFocusedIndex,
     resetState,
   } = useDropdownState()
-  
+
   const filteredOptions = useDropdownFiltering(options, searchTerm)
-  
-  const handleSelect = useCallback((option: DropdownOption) => {
-    if (option.disabled) return
-    
-    if (multiSelect) {
-      const currentValues = Array.isArray(value) ? value : []
-      const newValues = currentValues.includes(option.value)
-        ? currentValues.filter(v => v !== option.value)
-        : [...currentValues, option.value]
-      onChange(newValues)
-    } else {
-      onChange(option.value)
-      setIsOpen(false)
-      resetState()
-    }
-  }, [multiSelect, value, onChange, setIsOpen, resetState])
-  
+
+  const handleSelect = useCallback(
+    (option: DropdownOption) => {
+      if (option.disabled) return
+
+      if (multiSelect) {
+        const currentValues = Array.isArray(value) ? value : []
+        const newValues = currentValues.includes(option.value)
+          ? currentValues.filter(v => v !== option.value)
+          : [...currentValues, option.value]
+        onChange(newValues)
+      } else {
+        onChange(option.value)
+        setIsOpen(false)
+        resetState()
+      }
+    },
+    [multiSelect, value, onChange, setIsOpen, resetState]
+  )
+
   const handleClose = useCallback(() => {
     setIsOpen(false)
     resetState()
   }, [setIsOpen, resetState])
-  
+
   const { handleKeyDown } = useKeyboardNavigation(
     filteredOptions,
     focusedIndex,
@@ -192,30 +202,36 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
     handleSelect,
     handleClose
   )
-  
+
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         handleClose()
       }
     }
-    
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-    
+
     return () => {} // Always return cleanup function
   }, [isOpen, handleClose])
-  
+
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && searchable && searchRef.current) {
-      setTimeout(() => searchRef.current?.focus(), DROPDOWN_CONFIG.FOCUS_TRAP_DELAY)
+      setTimeout(
+        () => searchRef.current?.focus(),
+        DROPDOWN_CONFIG.FOCUS_TRAP_DELAY
+      )
     }
   }, [isOpen, searchable])
-  
+
   const getDisplayText = () => {
     if (multiSelect && Array.isArray(value)) {
       if (value.length === 0) return placeholder
@@ -225,17 +241,17 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
       }
       return `${value.length} items selected`
     }
-    
+
     if (typeof value === 'string') {
       const option = options.find(opt => opt.value === value)
       return option?.label || value
     }
-    
+
     return placeholder
   }
-  
+
   return (
-    <div 
+    <div
       ref={dropdownRef}
       className={clsx('relative', className)}
       data-testid={testId}
@@ -262,26 +278,26 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
         )}
       >
         <span className="truncate">{getDisplayText()}</span>
-        <ChevronDownIcon 
+        <ChevronDownIcon
           className={clsx(
             'w-5 h-5 text-gray-400 transition-transform duration-200',
             { 'transform rotate-180': isOpen }
           )}
         />
       </button>
-      
+
       {/* Error Message */}
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
-      
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className={clsx(
-          'absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg',
-          maxHeight,
-          'overflow-hidden'
-        )}>
+        <div
+          className={clsx(
+            'absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg',
+            maxHeight,
+            'overflow-hidden'
+          )}
+        >
           {/* Search Input */}
           {searchable && (
             <div className="p-3 border-b border-gray-200">
@@ -291,7 +307,7 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
                   ref={searchRef}
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => {
+                  onChange={e => {
                     setSearchTerm(e.target.value)
                     setFocusedIndex(-1)
                   }}
@@ -302,7 +318,7 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Options List */}
           <div className="max-h-48 overflow-y-auto">
             {filteredOptions.length === 0 ? (
@@ -314,9 +330,10 @@ export const EnhancedDropdown: React.FC<EnhancedDropdownProps> = ({
                 <OptionItem
                   key={option.value}
                   option={option}
-                  isSelected={multiSelect 
-                    ? Array.isArray(value) && value.includes(option.value)
-                    : value === option.value
+                  isSelected={
+                    multiSelect
+                      ? Array.isArray(value) && value.includes(option.value)
+                      : value === option.value
                   }
                   isFocused={index === focusedIndex}
                   multiSelect={multiSelect}
@@ -368,7 +385,7 @@ const OptionItem: React.FC<OptionItemProps> = ({
         )}
       </div>
     </div>
-    
+
     {multiSelect && isSelected && (
       <CheckIcon className="w-4 h-4 text-blue-600" />
     )}

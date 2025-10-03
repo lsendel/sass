@@ -7,7 +7,7 @@ import {
   getPresenceService,
   getRealTimeDataService,
   initializeWebSocketServices,
-  PresenceData
+  PresenceData,
 } from '../services/websocketService'
 
 // Hook for real-time data synchronization
@@ -40,7 +40,7 @@ export function useRealTimeData<T>(
     setIsLive(true)
     setError(null)
 
-    const unsubscribe = realTimeService.subscribe(resource, (update) => {
+    const unsubscribe = realTimeService.subscribe(resource, update => {
       console.log(`[RealTimeData] Update for ${resource}:`, update)
 
       try {
@@ -61,8 +61,13 @@ export function useRealTimeData<T>(
         setLastUpdate(Date.now())
         setError(null)
       } catch (err) {
-        console.error(`[RealTimeData] Error processing update for ${resource}:`, err)
-        setError(err instanceof Error ? err.message : 'Update processing failed')
+        console.error(
+          `[RealTimeData] Error processing update for ${resource}:`,
+          err
+        )
+        setError(
+          err instanceof Error ? err.message : 'Update processing failed'
+        )
       }
     })
 
@@ -77,7 +82,7 @@ export function useRealTimeData<T>(
     isLive,
     lastUpdate,
     error,
-    forceRefresh
+    forceRefresh,
   }
 }
 
@@ -105,7 +110,7 @@ export function usePresence(): {
         userId: user.id,
         userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
         status: 'online' as const,
-        currentPage: window.location.pathname
+        currentPage: window.location.pathname,
       }
 
       presenceService.setCurrentUser(userData)
@@ -165,28 +170,37 @@ export function usePresence(): {
     }
   }, [window.location.pathname, presenceService])
 
-  const updatePresence = useCallback((data: Partial<PresenceData>) => {
-    if (presenceService) {
-      presenceService.updatePresence(data)
+  const updatePresence = useCallback(
+    (data: Partial<PresenceData>) => {
+      if (presenceService) {
+        presenceService.updatePresence(data)
 
-      if (currentUser) {
-        setCurrentUser({ ...currentUser, ...data, lastSeen: Date.now() })
+        if (currentUser) {
+          setCurrentUser({ ...currentUser, ...data, lastSeen: Date.now() })
+        }
       }
-    }
-  }, [presenceService, currentUser])
+    },
+    [presenceService, currentUser]
+  )
 
-  const updateCursor = useCallback((position: { x: number; y: number }) => {
-    if (presenceService) {
-      presenceService.updateCursor(position)
-    }
-  }, [presenceService])
+  const updateCursor = useCallback(
+    (position: { x: number; y: number }) => {
+      if (presenceService) {
+        presenceService.updateCursor(position)
+      }
+    },
+    [presenceService]
+  )
 
-  const setStatus = useCallback((status: PresenceData['status']) => {
-    if (presenceService) {
-      presenceService.setStatus(status)
-      updatePresence({ status })
-    }
-  }, [presenceService, updatePresence])
+  const setStatus = useCallback(
+    (status: PresenceData['status']) => {
+      if (presenceService) {
+        presenceService.setStatus(status)
+        updatePresence({ status })
+      }
+    },
+    [presenceService, updatePresence]
+  )
 
   return {
     onlineUsers: onlineUsers.filter(u => u.userId !== user?.id), // Exclude current user
@@ -194,7 +208,7 @@ export function usePresence(): {
     updatePresence,
     updateCursor,
     setStatus,
-    isConnected
+    isConnected,
   }
 }
 
@@ -222,7 +236,7 @@ export function useLiveNotifications(): {
         type: payload.type || 'info',
         title: payload.title || 'Notification',
         message: payload.message || '',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       setNotifications(prev => [...prev, notification])
@@ -253,7 +267,7 @@ export function useLiveNotifications(): {
   return {
     notifications,
     clearNotification,
-    clearAll
+    clearAll,
   }
 }
 
@@ -274,11 +288,17 @@ export function useCollaborativeCursors(): {
   // Generate colors for users
   const getUserColor = useCallback((userId: string): string => {
     const colors = [
-      '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
-      '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
+      '#3B82F6',
+      '#EF4444',
+      '#10B981',
+      '#F59E0B',
+      '#8B5CF6',
+      '#EC4899',
+      '#06B6D4',
+      '#84CC16',
     ]
     const hash = userId.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0)
+      a = (a << 5) - a + b.charCodeAt(0)
       return a & a
     }, 0)
     return colors[Math.abs(hash) % colors.length]
@@ -287,27 +307,32 @@ export function useCollaborativeCursors(): {
   // Update cursors from presence data
   useEffect(() => {
     const activeCursors = onlineUsers
-      .filter(user => user.cursor && user.currentPage === window.location.pathname)
+      .filter(
+        user => user.cursor && user.currentPage === window.location.pathname
+      )
       .map(user => ({
         userId: user.userId,
         userName: user.userName,
         position: user.cursor!,
-        color: getUserColor(user.userId)
+        color: getUserColor(user.userId),
       }))
 
     setCursors(activeCursors)
   }, [onlineUsers, getUserColor])
 
   // Throttled cursor update
-  const updateMyCursor = useCallback((position: { x: number; y: number }) => {
-    if (throttleRef.current) {
-      clearTimeout(throttleRef.current)
-    }
+  const updateMyCursor = useCallback(
+    (position: { x: number; y: number }) => {
+      if (throttleRef.current) {
+        clearTimeout(throttleRef.current)
+      }
 
-    throttleRef.current = setTimeout(() => {
-      updatePresenceCursor(position)
-    }, 100) // Throttle to 10 updates per second
-  }, [updatePresenceCursor])
+      throttleRef.current = setTimeout(() => {
+        updatePresenceCursor(position)
+      }, 100) // Throttle to 10 updates per second
+    },
+    [updatePresenceCursor]
+  )
 
   // Cleanup throttle on unmount
   useEffect(() => {
@@ -320,7 +345,7 @@ export function useCollaborativeCursors(): {
 
   return {
     cursors,
-    updateMyCursor
+    updateMyCursor,
   }
 }
 
@@ -350,7 +375,7 @@ export function useWebSocketConnection(): {
         token: 'mock-token', // In production, get from auth store
         reconnectInterval: 5000,
         maxReconnectAttempts: 10,
-        heartbeatInterval: 30000
+        heartbeatInterval: 30000,
       }
 
       const services = initializeWebSocketServices(config)
@@ -373,7 +398,7 @@ export function useWebSocketConnection(): {
       })
 
       // Auto-connect
-      services.websocket.connect().catch((error) => {
+      services.websocket.connect().catch(error => {
         console.error('[WebSocket] Initial connection failed:', error)
         setLastError(error?.message || 'Initial connection failed')
       })
@@ -394,7 +419,9 @@ export function useWebSocketConnection(): {
         await websocketService.connect()
         setLastError(null)
       } catch (error) {
-        setLastError(error instanceof Error ? error.message : 'Connection failed')
+        setLastError(
+          error instanceof Error ? error.message : 'Connection failed'
+        )
         throw error
       }
     }
@@ -411,7 +438,7 @@ export function useWebSocketConnection(): {
     connectionState,
     connect,
     disconnect,
-    lastError
+    lastError,
   }
 }
 
@@ -438,10 +465,13 @@ export function useOptimisticUpdates<T>(
   useEffect(() => {
     if (!realTimeService) return
 
-    const unsubscribe = realTimeService.subscribe(resource, (update) => {
+    const unsubscribe = realTimeService.subscribe(resource, update => {
       const { data: newData } = update
 
-      if (optimisticData && JSON.stringify(optimisticData) !== JSON.stringify(newData)) {
+      if (
+        optimisticData &&
+        JSON.stringify(optimisticData) !== JSON.stringify(newData)
+      ) {
         // Conflict detected
         setRemoteData(newData)
         setHasConflict(true)
@@ -454,50 +484,56 @@ export function useOptimisticUpdates<T>(
     return unsubscribe
   }, [resource, realTimeService, optimisticData])
 
-  const updateData = useCallback(async (newData: T, optimistic = true) => {
-    setIsUpdating(true)
+  const updateData = useCallback(
+    async (newData: T, optimistic = true) => {
+      setIsUpdating(true)
 
-    if (optimistic) {
-      setOptimisticData(newData)
-      setData(newData) // Show optimistic update immediately
-    }
-
-    try {
-      // Send update to server via WebSocket
-      if (realTimeService) {
-        realTimeService.publishUpdate(resource, newData, 'update')
-      }
-    } catch (error) {
-      // Revert optimistic update on error
       if (optimistic) {
-        setOptimisticData(undefined)
-        setData(data) // Revert to previous data
+        setOptimisticData(newData)
+        setData(newData) // Show optimistic update immediately
       }
-      throw error
-    } finally {
-      setIsUpdating(false)
-    }
-  }, [realTimeService, resource, data])
 
-  const resolveConflict = useCallback((resolution: 'local' | 'remote') => {
-    if (resolution === 'local' && optimisticData) {
-      setData(optimisticData)
-      // Send local version to server
-      updateData(optimisticData, false)
-    } else if (resolution === 'remote' && remoteData) {
-      setData(remoteData)
-    }
+      try {
+        // Send update to server via WebSocket
+        if (realTimeService) {
+          realTimeService.publishUpdate(resource, newData, 'update')
+        }
+      } catch (error) {
+        // Revert optimistic update on error
+        if (optimistic) {
+          setOptimisticData(undefined)
+          setData(data) // Revert to previous data
+        }
+        throw error
+      } finally {
+        setIsUpdating(false)
+      }
+    },
+    [realTimeService, resource, data]
+  )
 
-    setHasConflict(false)
-    setOptimisticData(undefined)
-    setRemoteData(undefined)
-  }, [optimisticData, remoteData, updateData])
+  const resolveConflict = useCallback(
+    (resolution: 'local' | 'remote') => {
+      if (resolution === 'local' && optimisticData) {
+        setData(optimisticData)
+        // Send local version to server
+        updateData(optimisticData, false)
+      } else if (resolution === 'remote' && remoteData) {
+        setData(remoteData)
+      }
+
+      setHasConflict(false)
+      setOptimisticData(undefined)
+      setRemoteData(undefined)
+    },
+    [optimisticData, remoteData, updateData]
+  )
 
   return {
     data: hasConflict ? optimisticData : data,
     updateData,
     hasConflict,
     resolveConflict,
-    isUpdating
+    isUpdating,
   }
 }

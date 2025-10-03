@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Loader2, Save } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import React, { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Loader2, Save } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
-import { useCreateProjectMutation } from '../../store/api/projectManagementApi';
-import { Button } from '../ui/button';
-import { Modal } from '../ui/Modal';
-import { Input } from '../ui/input';
-import { TextArea } from '../ui/TextArea';
-import { Select } from '../ui/Select';
+import { useCreateProjectMutation } from '../../store/api/projectManagementApi'
+import { Button } from '../ui/button'
+import { Modal } from '../ui/Modal'
+import { Input } from '../ui/input'
+import { TextArea } from '../ui/TextArea'
+import { Select } from '../ui/Select'
 
 interface CreateProjectModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onProjectCreated: () => void;
-  workspaceId: string;
+  isOpen: boolean
+  onClose: () => void
+  onProjectCreated: () => void
+  workspaceId: string
 }
 
 // Validation schema based on the data model
@@ -33,41 +33,63 @@ const createProjectSchema = z.object({
   color: z
     .string()
     .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid color format'),
-  template: z
-    .string(),
-  privacy: z
-    .enum(['PRIVATE', 'WORKSPACE', 'PUBLIC']),
-  startDate: z
-    .string()
-    .optional(),
-  endDate: z
-    .string()
-    .optional(),
-});
+  template: z.string(),
+  privacy: z.enum(['PRIVATE', 'WORKSPACE', 'PUBLIC']),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+})
 
-type CreateProjectFormData = z.infer<typeof createProjectSchema>;
+type CreateProjectFormData = z.infer<typeof createProjectSchema>
 
 // Project templates with predefined settings
 const PROJECT_TEMPLATES = [
-  { id: 'default', name: 'Default Project', description: 'Basic project setup' },
-  { id: 'web-development', name: 'Web Development', description: 'Frontend & backend development' },
-  { id: 'design', name: 'Design Project', description: 'UI/UX design workflows' },
-  { id: 'marketing', name: 'Marketing Campaign', description: 'Marketing and promotional activities' },
-  { id: 'research', name: 'Research Project', description: 'Research and analysis workflows' },
-];
+  {
+    id: 'default',
+    name: 'Default Project',
+    description: 'Basic project setup',
+  },
+  {
+    id: 'web-development',
+    name: 'Web Development',
+    description: 'Frontend & backend development',
+  },
+  {
+    id: 'design',
+    name: 'Design Project',
+    description: 'UI/UX design workflows',
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing Campaign',
+    description: 'Marketing and promotional activities',
+  },
+  {
+    id: 'research',
+    name: 'Research Project',
+    description: 'Research and analysis workflows',
+  },
+]
 
 // Predefined color options
 const COLOR_OPTIONS = [
-  '#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed',
-  '#db2777', '#0891b2', '#65a30d', '#ea580c', '#9333ea'
-];
+  '#2563eb',
+  '#dc2626',
+  '#059669',
+  '#d97706',
+  '#7c3aed',
+  '#db2777',
+  '#0891b2',
+  '#65a30d',
+  '#ea580c',
+  '#9333ea',
+]
 
 /**
  * CreateProjectModal Component
- * 
+ *
  * Modal dialog for creating new projects with comprehensive form validation.
  * Features auto-save drafts, template selection, and color customization.
- * 
+ *
  * Features:
  * - Form validation with Zod schema
  * - Auto-save to localStorage
@@ -82,8 +104,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   onProjectCreated,
   workspaceId,
 }) => {
-  const [createProject, { isLoading }] = useCreateProjectMutation();
-  const [autoSaveKey] = useState(`create-project-draft-${workspaceId}`);
+  const [createProject, { isLoading }] = useCreateProjectMutation()
+  const [autoSaveKey] = useState(`create-project-draft-${workspaceId}`)
 
   const {
     register,
@@ -101,37 +123,37 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       privacy: 'WORKSPACE',
       template: 'default',
     },
-  });
+  })
 
-  const watchedValues = watch();
+  const watchedValues = watch()
 
   // Auto-save draft to localStorage
   useEffect(() => {
     if (isOpen) {
-      const savedDraft = localStorage.getItem(autoSaveKey);
+      const savedDraft = localStorage.getItem(autoSaveKey)
       if (savedDraft) {
         try {
-          const draft = JSON.parse(savedDraft);
-          Object.keys(draft).forEach((key) => {
-            setValue(key as keyof CreateProjectFormData, draft[key]);
-          });
+          const draft = JSON.parse(savedDraft)
+          Object.keys(draft).forEach(key => {
+            setValue(key as keyof CreateProjectFormData, draft[key])
+          })
         } catch (error) {
-          console.error('Failed to load project draft:', error);
+          console.error('Failed to load project draft:', error)
         }
       }
     }
-  }, [isOpen, autoSaveKey, setValue]);
+  }, [isOpen, autoSaveKey, setValue])
 
   // Save draft on form changes
   useEffect(() => {
     if (isOpen) {
       const timeoutId = setTimeout(() => {
-        localStorage.setItem(autoSaveKey, JSON.stringify(watchedValues));
-      }, 1000);
-      return () => clearTimeout(timeoutId);
+        localStorage.setItem(autoSaveKey, JSON.stringify(watchedValues))
+      }, 1000)
+      return () => clearTimeout(timeoutId)
     }
-    return undefined;
-  }, [watchedValues, isOpen, autoSaveKey]);
+    return undefined
+  }, [watchedValues, isOpen, autoSaveKey])
 
   const onSubmit = async (data: CreateProjectFormData) => {
     try {
@@ -140,37 +162,37 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         name: data.name,
         slug: generateSlug(data.name),
         description: data.description,
-      }).unwrap();
+      }).unwrap()
 
-      toast.success('Project created successfully!');
-      
+      toast.success('Project created successfully!')
+
       // Clear draft
-      localStorage.removeItem(autoSaveKey);
-      
+      localStorage.removeItem(autoSaveKey)
+
       // Reset form and close modal
-      reset();
-      onProjectCreated();
+      reset()
+      onProjectCreated()
     } catch (error: any) {
-      const errorMessage = error?.data?.message ?? 'Failed to create project';
-      toast.error(errorMessage);
+      const errorMessage = error?.data?.message ?? 'Failed to create project'
+      toast.error(errorMessage)
     }
-  };
+  }
 
   const handleClose = () => {
     // Save current state as draft before closing
-    localStorage.setItem(autoSaveKey, JSON.stringify(getValues()));
-    onClose();
-  };
+    localStorage.setItem(autoSaveKey, JSON.stringify(getValues()))
+    onClose()
+  }
 
   const handleTemplateSelect = (templateId: string) => {
-    setValue('template', templateId);
-    
+    setValue('template', templateId)
+
     // Apply template-specific defaults
-    const template = PROJECT_TEMPLATES.find(t => t.id === templateId);
+    const template = PROJECT_TEMPLATES.find(t => t.id === templateId)
     if (template) {
-      toast.success(`Applied ${template.name} template`);
+      toast.success(`Applied ${template.name} template`)
     }
-  };
+  }
 
   const generateSlug = (name: string): string => {
     return name
@@ -178,17 +200,20 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       .trim()
       .replace(/[^\w\s-]/g, '')
       .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
+      .replace(/^-+|-+$/g, '')
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create New Project">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Project Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Project Name *
           </label>
           <Input
@@ -205,7 +230,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Description
           </label>
           <TextArea
@@ -217,7 +245,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             disabled={isLoading}
           />
           {errors.description && (
-            <p className="text-red-600 text-sm mt-1">{errors.description.message}</p>
+            <p className="text-red-600 text-sm mt-1">
+              {errors.description.message}
+            </p>
           )}
         </div>
 
@@ -227,7 +257,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             Project Template
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {PROJECT_TEMPLATES.map((template) => (
+            {PROJECT_TEMPLATES.map(template => (
               <div
                 key={template.id}
                 className={`p-3 border rounded-lg cursor-pointer transition-all ${
@@ -238,7 +268,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 onClick={() => handleTemplateSelect(template.id)}
               >
                 <h4 className="font-medium text-sm">{template.name}</h4>
-                <p className="text-xs text-gray-600 mt-1">{template.description}</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  {template.description}
+                </p>
               </div>
             ))}
           </div>
@@ -257,13 +289,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 style={{ backgroundColor: watchedValues.color }}
               />
               <div className="flex flex-wrap gap-1">
-                {COLOR_OPTIONS.map((color) => (
+                {COLOR_OPTIONS.map(color => (
                   <button
                     key={color}
                     type="button"
                     className={`w-6 h-6 rounded-full border-2 ${
-                      watchedValues.color === color 
-                        ? 'border-gray-900' 
+                      watchedValues.color === color
+                        ? 'border-gray-900'
                         : 'border-gray-200'
                     }`}
                     style={{ backgroundColor: color }}
@@ -277,14 +309,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
           {/* Privacy Level */}
           <div>
-            <label htmlFor="privacy" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="privacy"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Privacy Level
             </label>
-            <Select
-              id="privacy"
-              {...register('privacy')}
-              disabled={isLoading}
-            >
+            <Select id="privacy" {...register('privacy')} disabled={isLoading}>
               <option value="PRIVATE">Private (Only me)</option>
               <option value="WORKSPACE">Workspace (All members)</option>
               <option value="PUBLIC">Public (Everyone)</option>
@@ -295,7 +326,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         {/* Date Range */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="startDate"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Start Date (Optional)
             </label>
             <Input
@@ -306,7 +340,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             />
           </div>
           <div>
-            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="endDate"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               End Date (Optional)
             </label>
             <Input
@@ -351,5 +388,5 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         </div>
       </form>
     </Modal>
-  );
-};
+  )
+}

@@ -89,7 +89,14 @@ export const useRealTimeUpdates = (
       }
     }
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click',
+    ]
     events.forEach(event => {
       document.addEventListener(event, handleActivity, { passive: true })
     })
@@ -118,20 +125,35 @@ export const useRealTimeUpdates = (
     if (pauseWhenInactive && pauseAfterInactivity > 0) {
       const checkInactivity = () => {
         const now = new Date()
-        const timeSinceLastActivity = now.getTime() - lastActivityRef.current.getTime()
+        const timeSinceLastActivity =
+          now.getTime() - lastActivityRef.current.getTime()
 
         if (timeSinceLastActivity > pauseAfterInactivity) {
           setIsPaused(true)
         } else {
-          inactivityTimerRef.current = setTimeout(checkInactivity, pauseAfterInactivity / 10)
+          inactivityTimerRef.current = setTimeout(
+            checkInactivity,
+            pauseAfterInactivity / 10
+          )
         }
       }
 
-      inactivityTimerRef.current = setTimeout(checkInactivity, pauseAfterInactivity / 10)
+      inactivityTimerRef.current = setTimeout(
+        checkInactivity,
+        pauseAfterInactivity / 10
+      )
     }
 
     return clearIntervals
-  }, [enabled, isPaused, interval, performUpdate, pauseWhenInactive, pauseAfterInactivity, clearIntervals])
+  }, [
+    enabled,
+    isPaused,
+    interval,
+    performUpdate,
+    pauseWhenInactive,
+    pauseAfterInactivity,
+    clearIntervals,
+  ])
 
   // Cleanup on unmount
   useEffect(() => {

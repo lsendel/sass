@@ -5,7 +5,7 @@
  * Run with: npm run test src/test/api/runAllApiTests.ts
  */
 
-import { describe, it } from 'vitest';
+import { describe, it } from 'vitest'
 
 describe('API Test Suite', () => {
   it('should run all API tests', () => {
@@ -80,6 +80,6 @@ describe('API Test Suite', () => {
    4. Add E2E API workflow tests
    5. Add performance/load tests
 
-    `);
-  });
-});
+    `)
+  })
+})

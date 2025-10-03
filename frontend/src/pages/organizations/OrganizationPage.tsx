@@ -154,7 +154,7 @@ const OrganizationPage: React.FC = () => {
       <PageHeader
         title={organization.name}
         description="Organization settings and member management"
-        actions={(
+        actions={
           <button
             type="button"
             onClick={() => setShowInviteForm(true)}
@@ -163,7 +163,7 @@ const OrganizationPage: React.FC = () => {
             <UserPlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Invite Member
           </button>
-        )}
+        }
       />
 
       {/* Organization Details */}
@@ -197,19 +197,16 @@ const OrganizationPage: React.FC = () => {
                 {format(new Date(organization.createdAt), 'MMM d, yyyy')}
               </dd>
             </div>
-            {(
-              (organization.settings as { description?: string } | undefined)
-                ?.description
-            ) && (
+            {(organization.settings as { description?: string } | undefined)
+              ?.description && (
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">
                   Description
                 </dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                   {
-                    (
-                      organization.settings as { description?: string }
-                    ).description!
+                    (organization.settings as { description?: string })
+                      .description!
                   }
                 </dd>
               </div>
@@ -291,7 +288,10 @@ const OrganizationPage: React.FC = () => {
                     {member.role !== 'OWNER' && (
                       <button
                         onClick={() =>
-                          void handleRemoveMember(member.userId, member.userEmail)
+                          void handleRemoveMember(
+                            member.userId,
+                            member.userEmail
+                          )
                         }
                         className="text-red-600 hover:text-red-500"
                       >
@@ -327,7 +327,7 @@ const OrganizationPage: React.FC = () => {
               <p>Send an invitation to join this organization.</p>
             </div>
             <form
-              onSubmit={(e) => void handleSubmit(handleInviteMember)(e)}
+              onSubmit={e => void handleSubmit(handleInviteMember)(e)}
               className="mt-5 space-y-4"
             >
               <div>

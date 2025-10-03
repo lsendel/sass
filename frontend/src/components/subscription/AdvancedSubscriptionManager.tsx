@@ -107,12 +107,16 @@ interface AdvancedSubscriptionManagerProps {
   className?: string
 }
 
-const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = ({
+const AdvancedSubscriptionManager: React.FC<
+  AdvancedSubscriptionManagerProps
+> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   organizationId: _organizationId,
   className,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'billing' | 'usage' | 'analytics' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'billing' | 'usage' | 'analytics' | 'settings'
+  >('overview')
   const [showPlanSelector, setShowPlanSelector] = useState(false)
 
   // Mock data - in real app, this would come from API
@@ -236,19 +240,48 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
 
   const getStatusBadge = (status: Subscription['status']) => {
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircleIcon, label: 'Active' },
-      trialing: { color: 'bg-blue-100 text-blue-800', icon: ClockIcon, label: 'Trial' },
-      past_due: { color: 'bg-yellow-100 text-yellow-800', icon: ExclamationTriangleIcon, label: 'Past Due' },
-      canceled: { color: 'bg-gray-100 text-gray-800', icon: ExclamationTriangleIcon, label: 'Canceled' },
-      unpaid: { color: 'bg-red-100 text-red-800', icon: ExclamationTriangleIcon, label: 'Unpaid' },
-      paused: { color: 'bg-gray-100 text-gray-800', icon: ClockIcon, label: 'Paused' },
+      active: {
+        color: 'bg-green-100 text-green-800',
+        icon: CheckCircleIcon,
+        label: 'Active',
+      },
+      trialing: {
+        color: 'bg-blue-100 text-blue-800',
+        icon: ClockIcon,
+        label: 'Trial',
+      },
+      past_due: {
+        color: 'bg-yellow-100 text-yellow-800',
+        icon: ExclamationTriangleIcon,
+        label: 'Past Due',
+      },
+      canceled: {
+        color: 'bg-gray-100 text-gray-800',
+        icon: ExclamationTriangleIcon,
+        label: 'Canceled',
+      },
+      unpaid: {
+        color: 'bg-red-100 text-red-800',
+        icon: ExclamationTriangleIcon,
+        label: 'Unpaid',
+      },
+      paused: {
+        color: 'bg-gray-100 text-gray-800',
+        icon: ClockIcon,
+        label: 'Paused',
+      },
     }
 
     const config = statusConfig[status]
     const IconComponent = config.icon
 
     return (
-      <span className={clsx('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', config.color)}>
+      <span
+        className={clsx(
+          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+          config.color
+        )}
+      >
         <IconComponent className="w-3 h-3 mr-1" />
         {config.label}
       </span>
@@ -272,10 +305,10 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
-            <h3 className="text-lg font-medium text-gray-900">Current Subscription</h3>
-            <div className="ml-3">
-              {getStatusBadge(subscription.status)}
-            </div>
+            <h3 className="text-lg font-medium text-gray-900">
+              Current Subscription
+            </h3>
+            <div className="ml-3">{getStatusBadge(subscription.status)}</div>
           </div>
           <Button onClick={() => setShowPlanSelector(true)} size="sm">
             Change Plan
@@ -288,21 +321,30 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
               {subscription.plan.name}
             </div>
             <div className="text-sm text-gray-500">
-              ${subscription.billing.amount}/{subscription.plan.pricing.billingCycle}
+              ${subscription.billing.amount}/
+              {subscription.plan.pricing.billingCycle}
             </div>
           </div>
 
           <div>
-            <div className="text-sm font-medium text-gray-700">Next Billing</div>
+            <div className="text-sm font-medium text-gray-700">
+              Next Billing
+            </div>
             <div className="text-lg text-gray-900">
-              {format(new Date(subscription.billing.nextBillingDate), 'MMM d, yyyy')}
+              {format(
+                new Date(subscription.billing.nextBillingDate),
+                'MMM d, yyyy'
+              )}
             </div>
           </div>
 
           <div>
-            <div className="text-sm font-medium text-gray-700">Payment Method</div>
+            <div className="text-sm font-medium text-gray-700">
+              Payment Method
+            </div>
             <div className="text-lg text-gray-900">
-              {subscription.billing.paymentMethod?.brand} ****{subscription.billing.paymentMethod?.last4}
+              {subscription.billing.paymentMethod?.brand} ****
+              {subscription.billing.paymentMethod?.last4}
             </div>
           </div>
         </div>
@@ -316,7 +358,11 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
                   Active Discount: {subscription.discounts[0].name}
                 </div>
                 <div className="text-sm text-green-700">
-                  {subscription.discounts[0].amount}% off until {format(new Date(subscription.discounts[0].validUntil!), 'MMM d, yyyy')}
+                  {subscription.discounts[0].amount}% off until{' '}
+                  {format(
+                    new Date(subscription.discounts[0].validUntil!),
+                    'MMM d, yyyy'
+                  )}
                 </div>
               </div>
             </div>
@@ -327,7 +373,9 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
       {/* Usage Overview */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Usage This Period</h3>
+          <h3 className="text-lg font-medium text-gray-900">
+            Usage This Period
+          </h3>
           <ChartBarIcon className="w-5 h-5 text-gray-400" />
         </div>
 
@@ -338,7 +386,9 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
                 <span className="text-sm font-medium text-gray-700">Users</span>
                 <span className="text-sm text-gray-500">
                   {subscription.usage?.users || 0}
-                  {subscription.plan.limits.users === -1 ? '' : `/${subscription.plan.limits.users}`}
+                  {subscription.plan.limits.users === -1
+                    ? ''
+                    : `/${subscription.plan.limits.users}`}
                 </span>
               </div>
               {subscription.plan.limits.users !== -1 && (
@@ -346,9 +396,16 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
                   <div
                     className={clsx(
                       'h-2 rounded-full',
-                      getUsageColor(calculateUsagePercentage(subscription.usage?.users || 0, subscription.plan.limits.users))
+                      getUsageColor(
+                        calculateUsagePercentage(
+                          subscription.usage?.users || 0,
+                          subscription.plan.limits.users
+                        )
+                      )
                     )}
-                    style={{ width: `${calculateUsagePercentage(subscription.usage?.users || 0, subscription.plan.limits.users)}%` }}
+                    style={{
+                      width: `${calculateUsagePercentage(subscription.usage?.users || 0, subscription.plan.limits.users)}%`,
+                    }}
                   />
                 </div>
               )}
@@ -357,18 +414,28 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">API Calls</span>
+              <span className="text-sm font-medium text-gray-700">
+                API Calls
+              </span>
               <span className="text-sm text-gray-500">
-                {subscription.usage?.apiCalls.toLocaleString() || 0}/{subscription.plan.limits.apiCalls?.toLocaleString()}
+                {subscription.usage?.apiCalls.toLocaleString() || 0}/
+                {subscription.plan.limits.apiCalls?.toLocaleString()}
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className={clsx(
                   'h-2 rounded-full',
-                  getUsageColor(calculateUsagePercentage(subscription.usage?.apiCalls || 0, subscription.plan.limits.apiCalls || 0))
+                  getUsageColor(
+                    calculateUsagePercentage(
+                      subscription.usage?.apiCalls || 0,
+                      subscription.plan.limits.apiCalls || 0
+                    )
+                  )
                 )}
-                style={{ width: `${calculateUsagePercentage(subscription.usage?.apiCalls || 0, subscription.plan.limits.apiCalls || 0)}%` }}
+                style={{
+                  width: `${calculateUsagePercentage(subscription.usage?.apiCalls || 0, subscription.plan.limits.apiCalls || 0)}%`,
+                }}
               />
             </div>
           </div>
@@ -377,16 +444,24 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700">Storage</span>
               <span className="text-sm text-gray-500">
-                {subscription.usage?.storage}GB/{subscription.plan.limits.storage}GB
+                {subscription.usage?.storage}GB/
+                {subscription.plan.limits.storage}GB
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className={clsx(
                   'h-2 rounded-full',
-                  getUsageColor(calculateUsagePercentage(subscription.usage?.storage || 0, subscription.plan.limits.storage || 0))
+                  getUsageColor(
+                    calculateUsagePercentage(
+                      subscription.usage?.storage || 0,
+                      subscription.plan.limits.storage || 0
+                    )
+                  )
                 )}
-                style={{ width: `${calculateUsagePercentage(subscription.usage?.storage || 0, subscription.plan.limits.storage || 0)}%` }}
+                style={{
+                  width: `${calculateUsagePercentage(subscription.usage?.storage || 0, subscription.plan.limits.storage || 0)}%`,
+                }}
               />
             </div>
           </div>
@@ -394,7 +469,11 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
           <div className="md:col-span-2 lg:col-span-1">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {Math.ceil((new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))}
+                {Math.ceil(
+                  (new Date(subscription.currentPeriodEnd).getTime() -
+                    Date.now()) /
+                    (1000 * 60 * 60 * 24)
+                )}
               </div>
               <div className="text-sm text-blue-700">Days Remaining</div>
             </div>
@@ -404,7 +483,9 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
 
       {/* Analytics Summary */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription Analytics</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Subscription Analytics
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center">
@@ -432,12 +513,16 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
           </div>
 
           <div className="text-center">
-            <div className={clsx(
-              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-1',
-              subscription.analytics.churnRisk === 'low' ? 'bg-green-100 text-green-800' :
-              subscription.analytics.churnRisk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
-            )}>
+            <div
+              className={clsx(
+                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-1',
+                subscription.analytics.churnRisk === 'low'
+                  ? 'bg-green-100 text-green-800'
+                  : subscription.analytics.churnRisk === 'medium'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-red-100 text-red-800'
+              )}
+            >
               {subscription.analytics.churnRisk.toUpperCase()} RISK
             </div>
             <div className="text-sm text-gray-500">Churn Risk</div>
@@ -452,13 +537,29 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
       case 'overview':
         return renderOverview()
       case 'billing':
-        return <div className="p-8 text-center text-gray-500">Billing management coming soon</div>
+        return (
+          <div className="p-8 text-center text-gray-500">
+            Billing management coming soon
+          </div>
+        )
       case 'usage':
-        return <div className="p-8 text-center text-gray-500">Detailed usage analytics coming soon</div>
+        return (
+          <div className="p-8 text-center text-gray-500">
+            Detailed usage analytics coming soon
+          </div>
+        )
       case 'analytics':
-        return <div className="p-8 text-center text-gray-500">Advanced analytics dashboard coming soon</div>
+        return (
+          <div className="p-8 text-center text-gray-500">
+            Advanced analytics dashboard coming soon
+          </div>
+        )
       case 'settings':
-        return <div className="p-8 text-center text-gray-500">Subscription settings coming soon</div>
+        return (
+          <div className="p-8 text-center text-gray-500">
+            Subscription settings coming soon
+          </div>
+        )
       default:
         return renderOverview()
     }
@@ -502,7 +603,9 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Choose Your Plan</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Choose Your Plan
+                </h3>
                 <button
                   onClick={() => setShowPlanSelector(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -514,7 +617,7 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
 
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {availablePlans.map((plan) => (
+                {availablePlans.map(plan => (
                   <div
                     key={plan.id}
                     className={clsx(
@@ -525,7 +628,9 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-xl font-semibold text-gray-900">{plan.name}</h4>
+                      <h4 className="text-xl font-semibold text-gray-900">
+                        {plan.name}
+                      </h4>
                       {plan.isPopular && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                           Popular
@@ -555,10 +660,14 @@ const AdvancedSubscriptionManager: React.FC<AdvancedSubscriptionManagerProps> = 
 
                     <Button
                       className="w-full"
-                      variant={plan.id === subscription.planId ? 'outline' : 'default'}
+                      variant={
+                        plan.id === subscription.planId ? 'outline' : 'default'
+                      }
                       disabled={plan.id === subscription.planId}
                     >
-                      {plan.id === subscription.planId ? 'Current Plan' : 'Select Plan'}
+                      {plan.id === subscription.planId
+                        ? 'Current Plan'
+                        : 'Select Plan'}
                     </Button>
                   </div>
                 ))}

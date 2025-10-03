@@ -10,7 +10,12 @@ import {
 // Animation replacements using CSS transitions
 
 // Enhanced notification types
-export type NotificationVariant = 'success' | 'error' | 'warning' | 'info' | 'loading'
+export type NotificationVariant =
+  | 'success'
+  | 'error'
+  | 'warning'
+  | 'info'
+  | 'loading'
 
 export interface NotificationData {
   id: string
@@ -40,10 +45,14 @@ const NotificationContext = React.createContext<{
 })
 
 // Notification provider component
-export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [notifications, setNotifications] = useState<NotificationData[]>([])
 
-  const addNotification = (notification: Omit<NotificationData, 'id'>): string => {
+  const addNotification = (
+    notification: Omit<NotificationData, 'id'>
+  ): string => {
     const id = Math.random().toString(36).substr(2, 9)
     const newNotification: NotificationData = {
       id,
@@ -67,9 +76,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
-  const updateNotification = (id: string, updates: Partial<NotificationData>) => {
+  const updateNotification = (
+    id: string,
+    updates: Partial<NotificationData>
+  ) => {
     setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, ...updates } : n)
+      prev.map(n => (n.id === id ? { ...n, ...updates } : n))
     )
   }
 
@@ -243,24 +255,45 @@ export const createNotificationHelpers = () => {
   const { addNotification, updateNotification } = useNotifications()
 
   const showSuccess = (title: string, message?: string) =>
-    addNotification({ variant: 'success', title, ...(message ? { message } : {}) })
+    addNotification({
+      variant: 'success',
+      title,
+      ...(message ? { message } : {}),
+    })
 
   const showError = (title: string, message?: string) =>
-    addNotification({ variant: 'error', title, ...(message ? { message } : {}) })
+    addNotification({
+      variant: 'error',
+      title,
+      ...(message ? { message } : {}),
+    })
 
   const showWarning = (title: string, message?: string) =>
-    addNotification({ variant: 'warning', title, ...(message ? { message } : {}) })
+    addNotification({
+      variant: 'warning',
+      title,
+      ...(message ? { message } : {}),
+    })
 
   const showInfo = (title: string, message?: string) =>
     addNotification({ variant: 'info', title, ...(message ? { message } : {}) })
 
   const showLoading = (title: string, message?: string) =>
-    addNotification({ variant: 'loading', title, persistent: true, ...(message ? { message } : {}) })
+    addNotification({
+      variant: 'loading',
+      title,
+      persistent: true,
+      ...(message ? { message } : {}),
+    })
 
   const showActionable = (
     title: string,
     message: string,
-    actions: Array<{ label: string; onClick: () => void; variant?: 'primary' | 'secondary' }>
+    actions: Array<{
+      label: string
+      onClick: () => void
+      variant?: 'primary' | 'secondary'
+    }>
   ) =>
     addNotification({
       variant: 'info',

@@ -1,21 +1,21 @@
-import React from 'react';
-import { Clock, MessageSquare, Paperclip, Calendar } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import React from 'react'
+import { Clock, MessageSquare, Paperclip, Calendar } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 
-import type { Task } from '../../store/api/projectManagementApi';
-import { Badge } from '../ui/Badge';
+import type { Task } from '../../store/api/projectManagementApi'
+import { Badge } from '../ui/Badge'
 
 interface TaskCardProps {
-  task: Task;
-  isDragging?: boolean;
+  task: Task
+  isDragging?: boolean
 }
 
 /**
  * TaskCard Component
- * 
+ *
  * Displays a task as a card in the Kanban board with key task information.
  * Shows assignee, priority, due date, and interaction counts.
- * 
+ *
  * Features:
  * - Priority color coding
  * - Due date highlighting for overdue tasks
@@ -24,18 +24,22 @@ interface TaskCardProps {
  * - Responsive layout
  * - Hover and dragging states
  */
-export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) => {
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
-  const isDueSoon = task.dueDate && 
-    new Date(task.dueDate) <= new Date(Date.now() + 24 * 60 * 60 * 1000) && 
-    !isOverdue;
+export const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  isDragging = false,
+}) => {
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
+  const isDueSoon =
+    task.dueDate &&
+    new Date(task.dueDate) <= new Date(Date.now() + 24 * 60 * 60 * 1000) &&
+    !isOverdue
 
   const priorityColors: Record<Task['priority'], string> = {
     LOW: 'bg-gray-100 text-gray-800',
     MEDIUM: 'bg-yellow-100 text-yellow-800',
     HIGH: 'bg-orange-100 text-orange-800',
     CRITICAL: 'bg-red-100 text-red-800',
-  };
+  }
 
   return (
     <div
@@ -71,19 +75,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
 
       {/* Due Date */}
       {task.dueDate && (
-        <div className={`flex items-center mb-3 text-xs ${
-          isOverdue 
-            ? 'text-red-600' 
-            : isDueSoon 
-            ? 'text-yellow-600' 
-            : 'text-gray-600'
-        }`}>
+        <div
+          className={`flex items-center mb-3 text-xs ${
+            isOverdue
+              ? 'text-red-600'
+              : isDueSoon
+                ? 'text-yellow-600'
+                : 'text-gray-600'
+          }`}
+        >
           <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
           <span>
-            {isOverdue 
+            {isOverdue
               ? `Overdue by ${formatDistanceToNow(new Date(task.dueDate))}`
-              : `Due ${formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}`
-            }
+              : `Due ${formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}`}
           </span>
         </div>
       )}
@@ -92,9 +97,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
       {task.estimatedHours && (
         <div className="flex items-center mb-3 text-xs text-gray-600">
           <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span>
-            {task.estimatedHours}h estimated
-          </span>
+          <span>{task.estimatedHours}h estimated</span>
         </div>
       )}
 
@@ -123,16 +126,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, isDragging = false }) 
               <span>{task.commentCount}</span>
             </div>
           )}
-          {'attachmentCount' in task && ((task as any).attachmentCount || 0) > 0 && (
-            <div className="flex items-center">
-              <Paperclip className="h-3 w-3 mr-1" />
-              <span>{(task as any).attachmentCount}</span>
-            </div>
-          )}
+          {'attachmentCount' in task &&
+            ((task as any).attachmentCount || 0) > 0 && (
+              <div className="flex items-center">
+                <Paperclip className="h-3 w-3 mr-1" />
+                <span>{(task as any).attachmentCount}</span>
+              </div>
+            )}
         </div>
       </div>
 
       {/* Subtask Progress - Feature not yet in API */}
     </div>
-  );
-};
+  )
+}

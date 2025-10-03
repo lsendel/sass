@@ -26,53 +26,55 @@ const AccessibleFormField: React.FC<AccessibleFormFieldProps> = ({
   labelClassName,
   inputClassName,
   errorClassName,
-  helpClassName
+  helpClassName,
 }) => {
   const fieldId = id || useId()
   const errorId = `${fieldId}-error`
   const helpId = `${fieldId}-help`
 
   // Calculate describedBy IDs
-  const describedByIds = [
-    error ? errorId : null,
-    helpText ? helpId : null
-  ].filter(Boolean).join(' ')
+  const describedByIds = [error ? errorId : null, helpText ? helpId : null]
+    .filter(Boolean)
+    .join(' ')
 
   // Clone the input element with accessibility attributes
-  const enhancedInput = React.cloneElement(children as React.ReactElement<any>, {
-    id: fieldId,
-    'aria-invalid': !!error,
-    'aria-describedby': describedByIds || undefined,
-    'aria-required': required,
-    className: clsx(
-      // Base input styles with proper focus indicators
-      'block w-full rounded-lg border border-gray-300 px-3 py-2',
-      'text-gray-900 placeholder-gray-500',
-      'transition-all duration-200',
+  const enhancedInput = React.cloneElement(
+    children as React.ReactElement<any>,
+    {
+      id: fieldId,
+      'aria-invalid': !!error,
+      'aria-describedby': describedByIds || undefined,
+      'aria-required': required,
+      className: clsx(
+        // Base input styles with proper focus indicators
+        'block w-full rounded-lg border border-gray-300 px-3 py-2',
+        'text-gray-900 placeholder-gray-500',
+        'transition-all duration-200',
 
-      // Focus styles for accessibility
-      'focus:outline-none focus:ring-3 focus:ring-blue-500 focus:ring-offset-2',
-      'focus:border-blue-500',
+        // Focus styles for accessibility
+        'focus:outline-none focus:ring-3 focus:ring-blue-500 focus:ring-offset-2',
+        'focus:border-blue-500',
 
-      // Error styles
-      error && [
-        'border-red-300 bg-red-50',
-        'focus:border-red-500 focus:ring-red-500'
-      ],
+        // Error styles
+        error && [
+          'border-red-300 bg-red-50',
+          'focus:border-red-500 focus:ring-red-500',
+        ],
 
-      // Success styles (when no error and has value)
-      !error && (children as any).props?.value && 'border-green-300',
+        // Success styles (when no error and has value)
+        !error && (children as any).props?.value && 'border-green-300',
 
-      // High contrast mode
-      'forced-colors:border forced-colors:border-solid',
+        // High contrast mode
+        'forced-colors:border forced-colors:border-solid',
 
-      // Ensure minimum touch target for mobile inputs
-      'min-h-[44px]',
+        // Ensure minimum touch target for mobile inputs
+        'min-h-[44px]',
 
-      inputClassName,
-      (children as any).props?.className
-    )
-  })
+        inputClassName,
+        (children as any).props?.className
+      ),
+    }
+  )
 
   return (
     <div className={clsx('space-y-1', className)} role="group">
@@ -86,9 +88,7 @@ const AccessibleFormField: React.FC<AccessibleFormFieldProps> = ({
         )}
       >
         {label}
-        {required && (
-          <span className="sr-only">(required)</span>
-        )}
+        {required && <span className="sr-only">(required)</span>}
       </label>
 
       {/* Input */}
@@ -96,13 +96,7 @@ const AccessibleFormField: React.FC<AccessibleFormFieldProps> = ({
 
       {/* Help text */}
       {helpText && (
-        <p
-          id={helpId}
-          className={clsx(
-            'text-sm text-gray-600',
-            helpClassName
-          )}
-        >
+        <p id={helpId} className={clsx('text-sm text-gray-600', helpClassName)}>
           {helpText}
         </p>
       )}
@@ -140,12 +134,19 @@ const AccessibleFormField: React.FC<AccessibleFormFieldProps> = ({
 export default AccessibleFormField
 
 // Specialized field components
-export const EmailField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & {
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  autoComplete?: string
-}> = ({ placeholder = "you@example.com", autoComplete = "email", helpText, ...props }) => (
+export const EmailField: React.FC<
+  Omit<AccessibleFormFieldProps, 'children'> & {
+    value?: string
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+    placeholder?: string
+    autoComplete?: string
+  }
+> = ({
+  placeholder = 'you@example.com',
+  autoComplete = 'email',
+  helpText,
+  ...props
+}) => (
   <AccessibleFormField
     helpText={helpText || "We'll never share your email with anyone else"}
     {...props}
@@ -160,15 +161,17 @@ export const EmailField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & {
   </AccessibleFormField>
 )
 
-export const PasswordField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & {
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  autoComplete?: string
-  showToggle?: boolean
-}> = ({
-  placeholder = "Enter your password",
-  autoComplete = "current-password",
+export const PasswordField: React.FC<
+  Omit<AccessibleFormFieldProps, 'children'> & {
+    value?: string
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+    placeholder?: string
+    autoComplete?: string
+    showToggle?: boolean
+  }
+> = ({
+  placeholder = 'Enter your password',
+  autoComplete = 'current-password',
   showToggle = false,
   helpText,
   ...props
@@ -177,7 +180,7 @@ export const PasswordField: React.FC<Omit<AccessibleFormFieldProps, 'children'> 
 
   return (
     <AccessibleFormField
-      helpText={helpText || "Password must be at least 8 characters long"}
+      helpText={helpText || 'Password must be at least 8 characters long'}
       {...props}
     >
       <div className="relative">
@@ -202,13 +205,38 @@ export const PasswordField: React.FC<Omit<AccessibleFormFieldProps, 'children'> 
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? (
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                />
               </svg>
             ) : (
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
               </svg>
             )}
           </button>
@@ -218,21 +246,23 @@ export const PasswordField: React.FC<Omit<AccessibleFormFieldProps, 'children'> 
   )
 }
 
-export const TextAreaField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & {
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  placeholder?: string
-  rows?: number
-  maxLength?: number
-}> = ({ rows = 4, maxLength, ...props }) => (
+export const TextAreaField: React.FC<
+  Omit<AccessibleFormFieldProps, 'children'> & {
+    value?: string
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+    placeholder?: string
+    rows?: number
+    maxLength?: number
+  }
+> = ({ rows = 4, maxLength, ...props }) => (
   <AccessibleFormField
     {...props}
     helpText={
       maxLength && props.helpText
         ? `${props.helpText} Maximum ${maxLength} characters.`
         : maxLength
-        ? `Maximum ${maxLength} characters.`
-        : props.helpText || ''
+          ? `Maximum ${maxLength} characters.`
+          : props.helpText || ''
     }
   >
     <textarea
@@ -246,12 +276,14 @@ export const TextAreaField: React.FC<Omit<AccessibleFormFieldProps, 'children'> 
   </AccessibleFormField>
 )
 
-export const SelectField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & {
-  options: Array<{ value: string; label: string; disabled?: boolean }>
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void
-  placeholder?: string
-}> = ({ options, placeholder = "Select an option...", ...props }) => (
+export const SelectField: React.FC<
+  Omit<AccessibleFormFieldProps, 'children'> & {
+    options: Array<{ value: string; label: string; disabled?: boolean }>
+    value?: string
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void
+    placeholder?: string
+  }
+> = ({ options, placeholder = 'Select an option...', ...props }) => (
   <AccessibleFormField {...props}>
     <select
       className="cursor-pointer"
@@ -263,7 +295,7 @@ export const SelectField: React.FC<Omit<AccessibleFormFieldProps, 'children'> & 
           {placeholder}
         </option>
       )}
-      {options.map((option) => (
+      {options.map(option => (
         <option
           key={option.value}
           value={option.value}

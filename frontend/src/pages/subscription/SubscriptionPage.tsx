@@ -15,7 +15,11 @@ import {
   useReactivateSubscriptionMutation,
   useGetOrganizationInvoicesQuery,
 } from '../../store/api/subscriptionApi'
-import { LoadingCard, ListSkeleton, LoadingButton } from '../../components/ui/LoadingStates'
+import {
+  LoadingCard,
+  ListSkeleton,
+  LoadingButton,
+} from '../../components/ui/LoadingStates'
 import { ApiErrorDisplay, EmptyState } from '../../components/ui/ErrorStates'
 import UpgradePlanModal from '../../components/subscription/UpgradePlanModal'
 import PageHeader from '../../components/ui/PageHeader'
@@ -23,15 +27,22 @@ import StatsCard from '../../components/ui/StatsCard'
 
 const SubscriptionPage: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const { data: organizations, isLoading: orgsLoading, error: orgsError } =
-    useGetUserOrganizationsQuery()
+  const {
+    data: organizations,
+    isLoading: orgsLoading,
+    error: orgsError,
+  } = useGetUserOrganizationsQuery()
   const { data: availablePlans } = useGetAvailablePlansQuery()
 
   const primaryOrg = organizations?.[0]
 
   const headerDescription = 'Manage your subscription plan and view invoices.'
   const renderHeader = (actions?: React.ReactNode) => (
-    <PageHeader title="Subscription" description={headerDescription} actions={actions} />
+    <PageHeader
+      title="Subscription"
+      description={headerDescription}
+      actions={actions}
+    />
   )
 
   const {
@@ -85,7 +96,10 @@ const SubscriptionPage: React.FC = () => {
           </div>
           <div className="border-t border-gray-200">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="px-4 py-5 sm:px-6 border-b border-gray-100 last:border-b-0">
+              <div
+                key={i}
+                className="px-4 py-5 sm:px-6 border-b border-gray-100 last:border-b-0"
+              >
                 <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
                 <div className="h-5 bg-gray-200 rounded w-32" />
               </div>
@@ -147,8 +161,8 @@ const SubscriptionPage: React.FC = () => {
           title="No organization found"
           message="Please create an organization first to manage subscriptions."
           action={{
-            label: "Go to Organizations",
-            onClick: () => window.location.href = '/organizations'
+            label: 'Go to Organizations',
+            onClick: () => (window.location.href = '/organizations'),
           }}
         />
       </div>
@@ -156,7 +170,9 @@ const SubscriptionPage: React.FC = () => {
   }
 
   const handleCancelSubscription = async () => {
-    if (!subscription) {return}
+    if (!subscription) {
+      return
+    }
 
     if (
       !confirm(
@@ -182,7 +198,9 @@ const SubscriptionPage: React.FC = () => {
   }
 
   const handleReactivateSubscription = async () => {
-    if (!subscription) {return}
+    if (!subscription) {
+      return
+    }
 
     try {
       await reactivateSubscription({
@@ -235,7 +253,7 @@ const SubscriptionPage: React.FC = () => {
           description="Your subscription details and billing information."
           className="shadow overflow-hidden sm:rounded-lg"
           contentClassName="px-4 py-5 sm:px-6"
-          footer={(
+          footer={
             <div className="flex justify-end space-x-3">
               {subscription.status === 'ACTIVE' && !subscription.cancelAt && (
                 <>
@@ -266,7 +284,7 @@ const SubscriptionPage: React.FC = () => {
                 </LoadingButton>
               )}
             </div>
-          )}
+          }
         >
           <div className="mt-4 border-t border-gray-200">
             <dl>
@@ -324,8 +342,8 @@ const SubscriptionPage: React.FC = () => {
           title="No Active Subscription"
           message="You don't have an active subscription. Choose a plan to get started and unlock all features."
           action={{
-            label: "Choose a Plan",
-            onClick: () => setShowUpgradeModal(true)
+            label: 'Choose a Plan',
+            onClick: () => setShowUpgradeModal(true),
           }}
           showRetry={false}
         />

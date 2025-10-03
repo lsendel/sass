@@ -53,7 +53,9 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
 
   const hasUnsavedChanges = useCallback(() => {
     const currentData = JSON.stringify(data)
-    const hasData = currentData !== JSON.stringify({}) && currentData !== initialDataRef.current
+    const hasData =
+      currentData !== JSON.stringify({}) &&
+      currentData !== initialDataRef.current
     const isNotSaved = currentData !== lastSavedRef.current
     return hasData && isNotSaved && status !== 'saving'
   }, [data, status])
@@ -65,7 +67,10 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
 
     // Only auto-save if there's actual content
     const currentData = JSON.stringify(data)
-    if (currentData !== JSON.stringify({}) && currentData !== initialDataRef.current) {
+    if (
+      currentData !== JSON.stringify({}) &&
+      currentData !== initialDataRef.current
+    ) {
       timeoutRef.current = setTimeout(() => void save(), delay)
     }
 
@@ -82,6 +87,6 @@ export const useAutoSave = (data: any, options: AutoSaveOptions) => {
     error,
     hasUnsavedChanges: hasUnsavedChanges(),
     save: () => save(),
-    retry
+    retry,
   }
 }

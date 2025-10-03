@@ -64,7 +64,7 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
         <input
           type="text"
           value={localValue}
-          onChange={(e) => setLocalValue(e.target.value)}
+          onChange={e => setLocalValue(e.target.value)}
           placeholder={placeholder}
           className={clsx(
             'block w-full pl-10 pr-10 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500',
@@ -115,7 +115,10 @@ export const ResultsCounter: React.FC<ResultsCounterProps> = ({
           <span>
             <strong>{filtered}</strong> results found
             {query && (
-              <span> for "<strong>{query}</strong>"</span>
+              <span>
+                {' '}
+                for "<strong>{query}</strong>"
+              </span>
             )}
             <span className="text-gray-400"> ({total} total)</span>
           </span>
@@ -166,11 +169,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     onChange(newValues)
   }
 
-  const displayText = selectedValues.length === 0
-    ? placeholder
-    : selectedValues.length === 1
-    ? options.find(opt => opt.value === selectedValues[0])?.label
-    : `${selectedValues.length} selected`
+  const displayText =
+    selectedValues.length === 0
+      ? placeholder
+      : selectedValues.length === 1
+        ? options.find(opt => opt.value === selectedValues[0])?.label
+        : `${selectedValues.length} selected`
 
   return (
     <div className={clsx('relative inline-block text-left', className)}>
@@ -184,16 +188,18 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
           <span>{label}:</span>
           <span className="ml-1 font-normal">{displayText}</span>
         </div>
-        <ChevronDownIcon className={clsx(
-          'h-4 w-4 text-gray-400 transition-transform',
-          isOpen && 'rotate-180'
-        )} />
+        <ChevronDownIcon
+          className={clsx(
+            'h-4 w-4 text-gray-400 transition-transform',
+            isOpen && 'rotate-180'
+          )}
+        />
       </button>
 
       {isOpen && (
         <div className="absolute right-0 z-10 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
           <div className={clsx('py-1 overflow-y-auto', maxHeight)}>
-            {options.map((option) => (
+            {options.map(option => (
               <button
                 key={option.value}
                 type="button"
@@ -201,17 +207,22 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 <div className="flex items-center flex-1">
-                  <div className={clsx(
-                    'w-4 h-4 mr-3 border border-gray-300 rounded flex items-center justify-center',
-                    selectedValues.includes(option.value) && 'bg-primary-600 border-primary-600'
-                  )}>
+                  <div
+                    className={clsx(
+                      'w-4 h-4 mr-3 border border-gray-300 rounded flex items-center justify-center',
+                      selectedValues.includes(option.value) &&
+                        'bg-primary-600 border-primary-600'
+                    )}
+                  >
                     {selectedValues.includes(option.value) && (
                       <CheckIcon className="h-3 w-3 text-white" />
                     )}
                   </div>
                   <span className="flex-1 text-left">{option.label}</span>
                   {option.count !== undefined && (
-                    <span className="text-xs text-gray-400">({option.count})</span>
+                    <span className="text-xs text-gray-400">
+                      ({option.count})
+                    </span>
                   )}
                 </div>
               </button>
@@ -232,10 +243,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
       )}
 
       {isOpen && (
-        <div
-          className="fixed inset-0 z-5"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 z-5" onClick={() => setIsOpen(false)} />
       )}
     </div>
   )
@@ -264,9 +272,10 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
     return new Date(date).toLocaleDateString()
   }
 
-  const displayText = startDate || endDate
-    ? `${formatDate(startDate)} - ${formatDate(endDate)}`
-    : 'All dates'
+  const displayText =
+    startDate || endDate
+      ? `${formatDate(startDate)} - ${formatDate(endDate)}`
+      : 'All dates'
 
   const presetRanges = [
     {
@@ -275,8 +284,11 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         const end = new Date()
         const start = new Date()
         start.setDate(start.getDate() - 7)
-        return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] }
-      }
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        }
+      },
     },
     {
       label: 'Last 30 days',
@@ -284,8 +296,11 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         const end = new Date()
         const start = new Date()
         start.setDate(start.getDate() - 30)
-        return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] }
-      }
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        }
+      },
     },
     {
       label: 'Last 3 months',
@@ -293,9 +308,12 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         const end = new Date()
         const start = new Date()
         start.setMonth(start.getMonth() - 3)
-        return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] }
-      }
-    }
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        }
+      },
+    },
   ]
 
   return (
@@ -308,12 +326,16 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         <div className="flex items-center">
           <CalendarDaysIcon className="h-4 w-4 mr-2 text-gray-400" />
           <span>{label}:</span>
-          <span className="ml-1 font-normal truncate max-w-32">{displayText}</span>
+          <span className="ml-1 font-normal truncate max-w-32">
+            {displayText}
+          </span>
         </div>
-        <ChevronDownIcon className={clsx(
-          'h-4 w-4 text-gray-400 transition-transform ml-2',
-          isOpen && 'rotate-180'
-        )} />
+        <ChevronDownIcon
+          className={clsx(
+            'h-4 w-4 text-gray-400 transition-transform ml-2',
+            isOpen && 'rotate-180'
+          )}
+        />
       </button>
 
       {isOpen && (
@@ -322,9 +344,11 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
             <div className="space-y-4">
               {/* Preset ranges */}
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Quick Select</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                  Quick Select
+                </h4>
                 <div className="space-y-1">
-                  {presetRanges.map((preset) => (
+                  {presetRanges.map(preset => (
                     <button
                       key={preset.label}
                       type="button"
@@ -343,23 +367,29 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
 
               {/* Custom range */}
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Custom Range</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                  Custom Range
+                </h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">From</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      From
+                    </label>
                     <input
                       type="date"
                       value={startDate}
-                      onChange={(e) => onChange(e.target.value, endDate)}
+                      onChange={e => onChange(e.target.value, endDate)}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">To</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      To
+                    </label>
                     <input
                       type="date"
                       value={endDate}
-                      onChange={(e) => onChange(startDate, e.target.value)}
+                      onChange={e => onChange(startDate, e.target.value)}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
                     />
                   </div>
@@ -392,10 +422,7 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
       )}
 
       {isOpen && (
-        <div
-          className="fixed inset-0 z-5"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 z-5" onClick={() => setIsOpen(false)} />
       )}
     </div>
   )
@@ -430,18 +457,12 @@ export const SearchAndFilterBar: React.FC<SearchAndFilterBarProps> = ({
             placeholder={searchPlaceholder}
           />
         </div>
-        {filters && (
-          <div className="flex flex-wrap gap-2">
-            {filters}
-          </div>
-        )}
+        {filters && <div className="flex flex-wrap gap-2">{filters}</div>}
       </div>
 
       {/* Results counter */}
       {resultsCount && (
-        <div className="flex justify-between items-center">
-          {resultsCount}
-        </div>
+        <div className="flex justify-between items-center">{resultsCount}</div>
       )}
     </div>
   )

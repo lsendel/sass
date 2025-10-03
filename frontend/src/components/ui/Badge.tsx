@@ -1,6 +1,6 @@
-import React from 'react';
+import React from 'react'
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils'
 
 /**
  * Badge Component
@@ -17,26 +17,43 @@ import { cn } from '@/lib/utils';
 
 export interface BadgeProps {
   /** The content to display inside the badge */
-  children: React.ReactNode;
+  children: React.ReactNode
 
   /** Visual variant of the badge */
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' | 'secondary';
+  variant?:
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'error'
+    | 'info'
+    | 'primary'
+    | 'secondary'
 
   /** Size of the badge */
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg'
 
   /** Additional CSS classes */
-  className?: string;
+  className?: string
 
   /** Whether the badge should have a dot indicator */
-  dot?: boolean;
+  dot?: boolean
 
   /** Optional click handler */
-  onClick?: () => void;
+  onClick?: () => void
 }
 
 export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ children, variant = 'default', size = 'md', className, dot = false, onClick }, ref) => {
+  (
+    {
+      children,
+      variant = 'default',
+      size = 'md',
+      className,
+      dot = false,
+      onClick,
+    },
+    ref
+  ) => {
     const variantStyles = {
       default: 'bg-gray-100 text-gray-800 border-gray-200',
       primary: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -45,13 +62,13 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       error: 'bg-red-100 text-red-800 border-red-200',
       info: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    };
+    }
 
     const sizeStyles = {
       sm: 'text-xs px-2 py-0.5',
       md: 'text-sm px-2.5 py-0.5',
       lg: 'text-base px-3 py-1',
-    };
+    }
 
     const dotStyles = {
       default: 'bg-gray-500',
@@ -61,7 +78,7 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       warning: 'bg-yellow-500',
       error: 'bg-red-500',
       info: 'bg-cyan-500',
-    };
+    }
 
     return (
       <span
@@ -79,10 +96,10 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         tabIndex={onClick ? 0 : undefined}
         onKeyDown={
           onClick
-            ? (e) => {
+            ? e => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onClick();
+                  e.preventDefault()
+                  onClick()
                 }
               }
             : undefined
@@ -96,10 +113,10 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         )}
         {children}
       </span>
-    );
+    )
   }
-);
+)
 
-Badge.displayName = 'Badge';
+Badge.displayName = 'Badge'
 
-export default Badge;
+export default Badge

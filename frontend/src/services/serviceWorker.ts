@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/dashboard',
   '/organizations',
   '/subscription',
-  '/settings'
+  '/settings',
 ]
 
 // Cache strategies
@@ -26,14 +26,13 @@ interface CacheStrategy {
   maxEntries?: number
 }
 
-
-
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   console.log('[ServiceWorker] Installing...')
 
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches
+      .open(CACHE_NAME)
       .then(cache => {
         console.log('[ServiceWorker] Caching static assets')
         return cache.addAll(STATIC_ASSETS)
@@ -43,18 +42,21 @@ self.addEventListener('install', (event) => {
 })
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   console.log('[ServiceWorker] Activating...')
 
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then(cacheNames => {
         return Promise.all(
           cacheNames
             .filter(cacheName => {
-              return cacheName !== CACHE_NAME &&
-                     cacheName !== RUNTIME_CACHE &&
-                     cacheName !== API_CACHE
+              return (
+                cacheName !== CACHE_NAME &&
+                cacheName !== RUNTIME_CACHE &&
+                cacheName !== API_CACHE
+              )
             })
             .map(cacheName => {
               console.log('[ServiceWorker] Deleting old cache:', cacheName)
@@ -67,7 +69,7 @@ self.addEventListener('activate', (event) => {
 })
 
 // Fetch event - implement cache strategies
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const { request } = event
   const url = new URL(request.url)
 
@@ -111,7 +113,10 @@ async function handleApiRequest(request: Request): Promise<Response> {
 
     return response
   } catch (error) {
-    console.log('[ServiceWorker] API request failed, checking cache:', request.url)
+    console.log(
+      '[ServiceWorker] API request failed, checking cache:',
+      request.url
+    )
 
     // Try to get from cache
     const cachedResponse = await caches.match(request)
@@ -124,7 +129,7 @@ async function handleApiRequest(request: Request): Promise<Response> {
       return new Response(cachedResponse.body, {
         status: cachedResponse.status,
         statusText: cachedResponse.statusText,
-        headers
+        headers,
       })
     }
 
@@ -207,15 +212,28 @@ async function handleDefaultRequest(request: Request): Promise<Response> {
 // Helper function to check if a path is a static asset
 function isStaticAsset(pathname: string): boolean {
   const staticExtensions = [
-    '.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg',
-    '.woff', '.woff2', '.ttf', '.eot', '.ico'
+    '.js',
+    '.css',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.svg',
+    '.woff',
+    '.woff2',
+    '.ttf',
+    '.eot',
+    '.ico',
   ]
 
   return staticExtensions.some(ext => pathname.endsWith(ext))
 }
 
 // Helper function to fetch and cache in background
-async function fetchAndCache(request: Request, cacheName: string): Promise<void> {
+async function fetchAndCache(
+  request: Request,
+  cacheName: string
+): Promise<void> {
   try {
     const response = await fetch(request)
     if (response.ok) {
@@ -238,14 +256,14 @@ function createOfflineResponse(request: Request): Response {
         error: 'Offline',
         message: 'You are currently offline. This data may be outdated.',
         offline: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }),
       {
         status: 503,
         headers: {
           'Content-Type': 'application/json',
-          'X-Offline-Response': 'true'
-        }
+          'X-Offline-Response': 'true',
+        },
       }
     )
   }
@@ -315,14 +333,14 @@ function createOfflineResponse(request: Request): Response {
       status: 503,
       headers: {
         'Content-Type': 'text/html',
-        'X-Offline-Response': 'true'
-      }
+        'X-Offline-Response': 'true',
+      },
     }
   )
 }
 
 // Message event - handle messages from the main thread
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   const { type, payload } = event.data
 
   switch (type) {

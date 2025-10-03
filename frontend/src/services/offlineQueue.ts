@@ -37,11 +37,11 @@ export class OfflineQueue {
     this.db = await openDB<OfflineQueueDB>('offline-queue', 1, {
       upgrade(db) {
         const store = db.createObjectStore('requests', {
-          keyPath: 'id'
+          keyPath: 'id',
         })
         store.createIndex('by-timestamp', 'timestamp')
         store.createIndex('by-retry-count', 'retryCount')
-      }
+      },
     })
   }
 
@@ -90,11 +90,11 @@ export class OfflineQueue {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       url,
       method: options.method || 'GET',
-      headers: options.headers as Record<string, string> || {},
+      headers: (options.headers as Record<string, string>) || {},
       body: options.body,
       timestamp: Date.now(),
       retryCount: 0,
-      maxRetries
+      maxRetries,
     }
 
     await this.db!.add('requests', request)
@@ -117,7 +117,9 @@ export class OfflineQueue {
       const tx = this.db.transaction('requests', 'readonly')
       const requests = await tx.store.index('by-timestamp').getAll()
 
-      console.log(`[OfflineQueue] Processing ${requests.length} queued requests`)
+      console.log(
+        `[OfflineQueue] Processing ${requests.length} queued requests`
+      )
 
       for (const request of requests) {
         if (request.retryCount >= request.maxRetries) {
@@ -130,7 +132,7 @@ export class OfflineQueue {
           const response = await fetch(request.url, {
             method: request.method,
             headers: request.headers,
-            body: request.body
+            body: request.body,
           })
 
           if (response.ok) {
@@ -141,9 +143,14 @@ export class OfflineQueue {
             this.notifyRequestSuccess(request, response)
           } else if (response.status >= 400 && response.status < 500) {
             // Client error, don't retry
-            console.log(`[OfflineQueue] Request ${request.id} failed with client error`)
+            console.log(
+              `[OfflineQueue] Request ${request.id} failed with client error`
+            )
             await this.removeRequest(request.id)
-            this.notifyRequestFailure(request, new Error(`HTTP ${response.status}`))
+            this.notifyRequestFailure(
+              request,
+              new Error(`HTTP ${response.status}`)
+            )
           } else {
             // Server error, retry
             await this.incrementRetryCount(request.id)
@@ -179,15 +186,19 @@ export class OfflineQueue {
   }
 
   private notifyRequestSuccess(request: QueuedRequest, response: Response) {
-    window.dispatchEvent(new CustomEvent('offline-queue-success', {
-      detail: { request, response }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('offline-queue-success', {
+        detail: { request, response },
+      })
+    )
   }
 
   private notifyRequestFailure(request: QueuedRequest, error: Error) {
-    window.dispatchEvent(new CustomEvent('offline-queue-failure', {
-      detail: { request, error }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('offline-queue-failure', {
+        detail: { request, error },
+      })
+    )
   }
 
   public async getQueuedRequests(): Promise<QueuedRequest[]> {
@@ -221,7 +232,7 @@ export function useOfflineStatus() {
       setQueueLength(requests.length)
     }
 
-    const unsubscribe = offlineQueue.onStatusChange((online) => {
+    const unsubscribe = offlineQueue.onStatusChange(online => {
       setIsOnline(online)
       updateQueueLength()
     })

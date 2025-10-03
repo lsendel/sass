@@ -2,9 +2,7 @@ import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  XMarkIcon
-} from '@heroicons/react/24/outline'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import { clsx } from 'clsx'
 
@@ -17,7 +15,10 @@ const createOrganizationSchema = z.object({
     .string()
     .min(3, 'Name must be at least 3 characters')
     .max(50, 'Name must be less than 50 characters')
-    .regex(/^[a-zA-Z0-9\s-_.]+$/, 'Name can only contain letters, numbers, spaces, hyphens, underscores, and periods'),
+    .regex(
+      /^[a-zA-Z0-9\s-_.]+$/,
+      'Name can only contain letters, numbers, spaces, hyphens, underscores, and periods'
+    ),
   slug: z
     .string()
     .min(3, 'Slug must be at least 3 characters')
@@ -93,9 +94,14 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
   const getFieldState = (fieldName: keyof CreateOrganizationForm) => {
     const hasError = !!errors[fieldName]
     const isTouched = !!dirtyFields[fieldName]
-    const hasValue = fieldName === 'name' ? !!watchedName.trim() :
-                    fieldName === 'slug' ? !!watchedSlug.trim() :
-                    fieldName === 'description' ? !!watchedDescription?.trim() : false
+    const hasValue =
+      fieldName === 'name'
+        ? !!watchedName.trim()
+        : fieldName === 'slug'
+          ? !!watchedSlug.trim()
+          : fieldName === 'description'
+            ? !!watchedDescription?.trim()
+            : false
 
     if (hasError && isTouched) return 'error'
     if (!hasError && isTouched && hasValue) return 'valid'
@@ -162,7 +168,8 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
 
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
-                  Create a new organization to manage your team and subscriptions.
+                  Create a new organization to manage your team and
+                  subscriptions.
                 </p>
               </div>
 
@@ -184,9 +191,12 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
                       className={clsx(
                         'shadow-sm block w-full sm:text-sm border rounded-md pr-10',
                         {
-                          'border-gray-300 focus:ring-primary-500 focus:border-primary-500': getFieldState('name') === 'default',
-                          'border-green-500 focus:ring-green-500 focus:border-green-500': getFieldState('name') === 'valid',
-                          'border-red-500 focus:ring-red-500 focus:border-red-500': getFieldState('name') === 'error',
+                          'border-gray-300 focus:ring-primary-500 focus:border-primary-500':
+                            getFieldState('name') === 'default',
+                          'border-green-500 focus:ring-green-500 focus:border-green-500':
+                            getFieldState('name') === 'valid',
+                          'border-red-500 focus:ring-red-500 focus:border-red-500':
+                            getFieldState('name') === 'error',
                         }
                       )}
                       placeholder="e.g., Acme Corporation"
@@ -225,9 +235,12 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
                         className={clsx(
                           'flex-1 block w-full rounded-none rounded-r-md sm:text-sm border pr-10',
                           {
-                            'border-gray-300 focus:ring-primary-500 focus:border-primary-500': getFieldState('slug') === 'default',
-                            'border-green-500 focus:ring-green-500 focus:border-green-500': getFieldState('slug') === 'valid',
-                            'border-red-500 focus:ring-red-500 focus:border-red-500': getFieldState('slug') === 'error',
+                            'border-gray-300 focus:ring-primary-500 focus:border-primary-500':
+                              getFieldState('slug') === 'default',
+                            'border-green-500 focus:ring-green-500 focus:border-green-500':
+                              getFieldState('slug') === 'valid',
+                            'border-red-500 focus:ring-red-500 focus:border-red-500':
+                              getFieldState('slug') === 'error',
                           }
                         )}
                         placeholder="acme-corp"
@@ -279,7 +292,8 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({
                     className={clsx(
                       'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:col-start-2 sm:text-sm',
                       {
-                        'bg-primary-600 hover:bg-primary-700 focus:ring-primary-500': isValid && !isLoading,
+                        'bg-primary-600 hover:bg-primary-700 focus:ring-primary-500':
+                          isValid && !isLoading,
                         'bg-gray-400 cursor-not-allowed': !isValid || isLoading,
                       }
                     )}

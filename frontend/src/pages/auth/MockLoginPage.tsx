@@ -34,15 +34,17 @@ const MockLoginPage: React.FC = () => {
         organizationId: 'b48e719b-3116-423e-b114-c9791e296a8d',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
-        lastLoginAt: '2024-01-01T00:00:00Z'
+        lastLoginAt: '2024-01-01T00:00:00Z',
       }
 
       const mockToken = 'mock-jwt-token-' + Date.now()
 
       // Update Redux store
-      dispatch(setCredentials({
-        user: mockUser
-      }))
+      dispatch(
+        setCredentials({
+          user: mockUser,
+        })
+      )
 
       // Store in localStorage for persistence
       localStorage.setItem('auth_token', mockToken)
@@ -78,8 +80,18 @@ const MockLoginPage: React.FC = () => {
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
                 <div className="w-12 h-12 bg-gradient-to-tr from-indigo-400 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
                   </svg>
                 </div>
               </div>
@@ -93,20 +105,35 @@ const MockLoginPage: React.FC = () => {
               {/* Mock login badge */}
               <div className="inline-flex items-center px-2 py-1 rounded-full bg-green-500 bg-opacity-15 border border-green-400 border-opacity-20">
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5 animate-pulse"></div>
-                <span className="text-green-100 text-xs font-medium">Demo Mode</span>
+                <span className="text-green-100 text-xs font-medium">
+                  Demo Mode
+                </span>
               </div>
             </div>
 
             <form onSubmit={handleMockLogin} className="space-y-4">
               {/* Email input */}
               <div className="space-y-2">
-                <label htmlFor="email-address" className="text-white text-sm font-medium block">
+                <label
+                  htmlFor="email-address"
+                  className="text-white text-sm font-medium block"
+                >
                   Email Address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-white text-opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    <svg
+                      className="h-4 w-4 text-white text-opacity-50"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                      />
                     </svg>
                   </div>
                   <input
@@ -117,7 +144,7 @@ const MockLoginPage: React.FC = () => {
                     required
                     data-testid="email-input"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-1 focus:ring-purple-400 focus:border-transparent transition-all duration-200 text-sm"
                     placeholder="Enter your email"
                   />
@@ -126,13 +153,26 @@ const MockLoginPage: React.FC = () => {
 
               {/* Password input */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-white text-sm font-medium block">
+                <label
+                  htmlFor="password"
+                  className="text-white text-sm font-medium block"
+                >
                   Password
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-white text-opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    <svg
+                      className="h-4 w-4 text-white text-opacity-50"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
                     </svg>
                   </div>
                   <input
@@ -143,7 +183,7 @@ const MockLoginPage: React.FC = () => {
                     required
                     data-testid="password-input"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-1 focus:ring-purple-400 focus:border-transparent transition-all duration-200 text-sm"
                     placeholder="Enter your password"
                   />
@@ -154,8 +194,18 @@ const MockLoginPage: React.FC = () => {
               {error && (
                 <div className="bg-red-500 bg-opacity-20 border border-red-400 border-opacity-30 rounded-xl p-4">
                   <div className="flex items-center">
-                    <svg className="w-5 h-5 text-red-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5 text-red-300 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <p className="text-red-100 text-sm">{error}</p>
                   </div>
@@ -177,8 +227,18 @@ const MockLoginPage: React.FC = () => {
                 ) : (
                   <div className="flex items-center justify-center">
                     <span>Sign in to Platform</span>
-                    <svg className="ml-2 w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    <svg
+                      className="ml-2 w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                      />
                     </svg>
                   </div>
                 )}
@@ -186,10 +246,16 @@ const MockLoginPage: React.FC = () => {
 
               {/* Demo credentials info */}
               <div className="bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-3 text-center">
-                <h3 className="text-white text-xs font-medium mb-1.5">Demo Credentials</h3>
+                <h3 className="text-white text-xs font-medium mb-1.5">
+                  Demo Credentials
+                </h3>
                 <div className="space-y-0.5">
-                  <p className="text-white text-opacity-70 text-xs font-mono">demo@example.com</p>
-                  <p className="text-white text-opacity-70 text-xs font-mono">DemoPassword123!</p>
+                  <p className="text-white text-opacity-70 text-xs font-mono">
+                    demo@example.com
+                  </p>
+                  <p className="text-white text-opacity-70 text-xs font-mono">
+                    DemoPassword123!
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -214,7 +280,6 @@ const MockLoginPage: React.FC = () => {
           </div>
         </div>
       </div>
-
     </div>
   )
 }

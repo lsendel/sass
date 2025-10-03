@@ -12,13 +12,13 @@ export function useTenant() {
   const currentTenant: Tenant = {
     id: 'default',
     name: 'Default Organization',
-    slug: 'default'
+    slug: 'default',
   }
 
   return {
     currentTenant,
     // Add other tenant-related functionality as needed
     isLoading: false,
-    error: null
+    error: null,
   }
 }

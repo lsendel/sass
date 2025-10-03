@@ -7,7 +7,6 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
-
 interface OptimisticIndicatorProps {
   status: 'pending' | 'confirmed' | 'failed' | 'rolledBack'
   className?: string
@@ -17,12 +16,12 @@ interface OptimisticIndicatorProps {
 export const OptimisticIndicator: React.FC<OptimisticIndicatorProps> = ({
   status,
   className,
-  size = 'md'
+  size = 'md',
 }) => {
   const sizeClasses = {
     sm: 'h-3 w-3',
     md: 'h-4 w-4',
-    lg: 'h-5 w-5'
+    lg: 'h-5 w-5',
   }
 
   const getStatusConfig = () => {
@@ -32,25 +31,25 @@ export const OptimisticIndicator: React.FC<OptimisticIndicatorProps> = ({
           icon: ArrowPathIcon,
           color: 'text-blue-500',
           animate: 'animate-spin',
-          title: 'Processing...'
+          title: 'Processing...',
         }
       case 'confirmed':
         return {
           icon: CheckCircleIcon,
           color: 'text-green-500',
-          title: 'Confirmed'
+          title: 'Confirmed',
         }
       case 'failed':
         return {
           icon: ExclamationTriangleIcon,
           color: 'text-red-500',
-          title: 'Failed'
+          title: 'Failed',
         }
       case 'rolledBack':
         return {
           icon: XMarkIcon,
           color: 'text-gray-500',
-          title: 'Rolled back'
+          title: 'Rolled back',
         }
     }
   }
@@ -81,7 +80,7 @@ interface OptimisticBadgeProps {
 export const OptimisticBadge: React.FC<OptimisticBadgeProps> = ({
   status,
   className,
-  showText = true
+  showText = true,
 }) => {
   const getStatusConfig = () => {
     switch (status) {
@@ -90,28 +89,28 @@ export const OptimisticBadge: React.FC<OptimisticBadgeProps> = ({
           text: 'Processing',
           bg: 'bg-blue-100',
           textColor: 'text-blue-800',
-          border: 'border-blue-200'
+          border: 'border-blue-200',
         }
       case 'confirmed':
         return {
           text: 'Saved',
           bg: 'bg-green-100',
           textColor: 'text-green-800',
-          border: 'border-green-200'
+          border: 'border-green-200',
         }
       case 'failed':
         return {
           text: 'Failed',
           bg: 'bg-red-100',
           textColor: 'text-red-800',
-          border: 'border-red-200'
+          border: 'border-red-200',
         }
       case 'rolledBack':
         return {
           text: 'Reverted',
           bg: 'bg-gray-100',
           textColor: 'text-gray-800',
-          border: 'border-gray-200'
+          border: 'border-gray-200',
         }
     }
   }
@@ -147,7 +146,7 @@ export const OptimisticListItem: React.FC<OptimisticListItemProps> = ({
   status,
   onRetry,
   onCancel,
-  className
+  className,
 }) => {
   const getItemClasses = () => {
     switch (status) {
@@ -219,7 +218,7 @@ export const OptimisticOverlay: React.FC<OptimisticOverlayProps> = ({
   isActive,
   pendingCount,
   failedCount,
-  className
+  className,
 }) => {
   if (!isActive) return null
 
@@ -243,9 +242,7 @@ export const OptimisticOverlay: React.FC<OptimisticOverlayProps> = ({
         {failedCount > 0 && (
           <div className="flex items-center text-red-600">
             <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-            <span className="text-sm font-medium">
-              {failedCount} failed
-            </span>
+            <span className="text-sm font-medium">{failedCount} failed</span>
           </div>
         )}
       </div>
@@ -264,7 +261,7 @@ export const OptimisticProgress: React.FC<OptimisticProgressProps> = ({
   total,
   completed,
   failed,
-  className
+  className,
 }) => {
   const completedPercentage = total > 0 ? (completed / total) * 100 : 0
   const failedPercentage = total > 0 ? (failed / total) * 100 : 0

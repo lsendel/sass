@@ -14,7 +14,6 @@ import { ApiErrorDisplay } from '../../components/ui/ErrorStates'
 import CreateOrganizationModal from '../../components/organizations/CreateOrganizationModal'
 import { getIconClasses, getCardClasses } from '../../lib/theme'
 
-
 const OrganizationsPage: React.FC = () => {
   const {
     data: organizations,
@@ -52,10 +51,13 @@ const OrganizationsPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                <span className="gradient-brand bg-clip-text text-transparent">Organizations</span>
+                <span className="gradient-brand bg-clip-text text-transparent">
+                  Organizations
+                </span>
               </h1>
               <p className="text-sm text-gray-600">
-                Manage your organization memberships and create new organizations.
+                Manage your organization memberships and create new
+                organizations.
               </p>
             </div>
           </div>
@@ -77,7 +79,9 @@ const OrganizationsPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              <span className="gradient-brand bg-clip-text text-transparent">Organizations</span>
+              <span className="gradient-brand bg-clip-text text-transparent">
+                Organizations
+              </span>
             </h1>
             <p className="text-sm text-gray-600">
               Manage your organization memberships and create new organizations.
@@ -103,12 +107,16 @@ const OrganizationsPage: React.FC = () => {
               to={`/organizations/${organization.slug}`}
               className="block group transition-transform hover:scale-[1.02]"
             >
-              <div className={`${getCardClasses('elevated')} group-hover:shadow-xl transition-all duration-200`}>
+              <div
+                className={`${getCardClasses('elevated')} group-hover:shadow-xl transition-all duration-200`}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 gradient-brand bg-[#2563eb] rounded-lg flex items-center justify-center">
-                        <BuildingOfficeIcon className={`${getIconClasses('sm')} text-white`} />
+                        <BuildingOfficeIcon
+                          className={`${getIconClasses('sm')} text-white`}
+                        />
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
@@ -123,7 +131,11 @@ const OrganizationsPage: React.FC = () => {
                       <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
                         <CalendarDaysIcon className={getIconClasses('xs')} />
                         <span>
-                          Created {format(new Date(organization.createdAt), 'MMM d, yyyy')}
+                          Created{' '}
+                          {format(
+                            new Date(organization.createdAt),
+                            'MMM d, yyyy'
+                          )}
                         </span>
                       </div>
                     </div>
@@ -157,13 +169,16 @@ const OrganizationsPage: React.FC = () => {
       ) : (
         <div className={`${getCardClasses('subtle')} text-center py-8`}>
           <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-200 rounded-lg mb-4">
-            <BuildingOfficeIcon className={`${getIconClasses('lg')} text-gray-500`} />
+            <BuildingOfficeIcon
+              className={`${getIconClasses('lg')} text-gray-500`}
+            />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             No organizations yet
           </h3>
           <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
-            Get started by creating your first organization and begin managing your team.
+            Get started by creating your first organization and begin managing
+            your team.
           </p>
           <LoadingButton
             onClick={() => setIsCreateModalOpen(true)}

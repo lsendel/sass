@@ -34,31 +34,31 @@ const navigation = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: HomeIcon,
-    description: 'View your dashboard overview and statistics'
+    description: 'View your dashboard overview and statistics',
   },
   {
     name: 'Organizations',
     href: '/organizations',
     icon: BuildingOfficeIcon,
-    description: 'Manage your organizations and memberships'
+    description: 'Manage your organizations and memberships',
   },
   {
     name: 'Payments',
     href: '/payments',
     icon: CreditCardIcon,
-    description: 'View payment history and manage payment methods'
+    description: 'View payment history and manage payment methods',
   },
   {
     name: 'Subscription',
     href: '/subscription',
     icon: DocumentTextIcon,
-    description: 'Manage your subscription and billing'
+    description: 'Manage your subscription and billing',
   },
   {
     name: 'Settings',
     href: '/settings',
     icon: Cog6ToothIcon,
-    description: 'Configure your account settings and preferences'
+    description: 'Configure your account settings and preferences',
   },
 ]
 
@@ -72,17 +72,20 @@ const AccessibleDashboardLayout: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
   // Accessibility hooks
-  const { announce, components: { AnnouncementRegion, StatusRegion, SkipLink } } = useAccessibilityContext()
+  const {
+    announce,
+    components: { AnnouncementRegion, StatusRegion, SkipLink },
+  } = useAccessibilityContext()
   const sidebarFocusTrap = useFocusTrap(sidebarOpen)
   const { containerRef: navRef } = useKeyboardNavigation({
     direction: 'vertical',
-    onSelect: (index) => {
+    onSelect: index => {
       const link = navigation[index]
       if (link) {
         navigate(link.href)
         announce(`Navigating to ${link.name}`)
       }
-    }
+    },
   })
 
   const handleLogout = async () => {
@@ -136,7 +139,7 @@ const AccessibleDashboardLayout: React.FC = () => {
       subtitle: item.description,
       action: () => navigate(item.href),
       icon: item.icon,
-      group: 'Navigation'
+      group: 'Navigation',
     })),
     {
       id: 'logout',
@@ -144,16 +147,18 @@ const AccessibleDashboardLayout: React.FC = () => {
       subtitle: 'Log out of your account',
       action: handleLogout,
       icon: ArrowRightOnRectangleIcon,
-      group: 'Account'
-    }
+      group: 'Account',
+    },
   ]
 
   // Get current page title for accessibility
   const getCurrentPageTitle = () => {
-    const current = navigation.find(item =>
-      location.pathname === item.href ||
-      (item.href !== '/dashboard' && location.pathname.startsWith(item.href + '/')) ||
-      (item.href === '/dashboard' && location.pathname === '/')
+    const current = navigation.find(
+      item =>
+        location.pathname === item.href ||
+        (item.href !== '/dashboard' &&
+          location.pathname.startsWith(item.href + '/')) ||
+        (item.href === '/dashboard' && location.pathname === '/')
     )
     return current ? current.name : 'Payment Platform'
   }
@@ -215,7 +220,7 @@ const AccessibleDashboardLayout: React.FC = () => {
                   user={user}
                   isMobile
                   navRef={navRef as React.RefObject<HTMLElement>}
-                  onNavigate={(path) => {
+                  onNavigate={path => {
                     navigate(path)
                     closeSidebar()
                   }}
@@ -254,15 +259,23 @@ const AccessibleDashboardLayout: React.FC = () => {
                 </button>
                 <div className="flex-1 px-4 flex justify-between items-center">
                   <div className="flex items-center space-x-3">
-                    <LockClosedIcon className="h-6 w-6 text-gray-700" aria-hidden="true" />
+                    <LockClosedIcon
+                      className="h-6 w-6 text-gray-700"
+                      aria-hidden="true"
+                    />
                     <h1 className="text-lg font-semibold text-gray-900">
                       Payment Platform
                     </h1>
                   </div>
                   {user && (
                     <div className="flex items-center space-x-3">
-                      <span className="text-sm text-gray-700">{user.firstName ?? user.email}</span>
-                      <UserCircleIcon className="h-8 w-8 text-gray-500" aria-hidden="true" />
+                      <span className="text-sm text-gray-700">
+                        {user.firstName ?? user.email}
+                      </span>
+                      <UserCircleIcon
+                        className="h-8 w-8 text-gray-500"
+                        aria-hidden="true"
+                      />
                     </div>
                   )}
 
@@ -319,10 +332,10 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   user,
   isMobile: _isMobile = false, // Reserved for future mobile optimizations
   navRef,
-  onNavigate
+  onNavigate,
 }) => {
   // Suppress unused variable warning - reserved for future use
-  void _isMobile;
+  void _isMobile
   return (
     <>
       {/* Logo */}
@@ -346,8 +359,10 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
       >
         <ul className="flex-1 space-y-1" role="list">
           {navigation.map((item, index) => {
-            const isActive = currentPath === item.href ||
-              (item.href !== '/dashboard' && currentPath.startsWith(item.href + '/')) ||
+            const isActive =
+              currentPath === item.href ||
+              (item.href !== '/dashboard' &&
+                currentPath.startsWith(item.href + '/')) ||
               (item.href === '/dashboard' && currentPath === '/')
 
             return (

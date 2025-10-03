@@ -19,9 +19,9 @@ import { useLogoutMutation } from '../../store/api/authApi'
 import { logger } from '../../utils/logger'
 import type { User } from '../../store/slices/authSlice'
 
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
@@ -61,7 +61,7 @@ const DashboardLayout: React.FC = () => {
           <div
             className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === 'Escape') {
                 setSidebarOpen(false)
               }
@@ -126,7 +126,7 @@ const DashboardLayout: React.FC = () => {
                     <span className="text-sm text-gray-700">
                       {user.firstName && user.lastName
                         ? `${user.firstName} ${user.lastName}`
-                        : user.firstName ?? user.lastName ?? 'User'}
+                        : (user.firstName ?? user.lastName ?? 'User')}
                     </span>
                     <UserCircleIcon className="h-8 w-8 text-gray-500" />
                   </div>
@@ -159,7 +159,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
   isMobile: _isMobile = false, // Future mobile optimization
 }) => {
   // Suppress unused variable warning - reserved for future use
-  void _isMobile;
+  void _isMobile
   return (
     <>
       {/* Logo */}
@@ -178,8 +178,10 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
       <div className="flex-1 flex flex-col overflow-y-auto px-3 py-3">
         <nav className="flex-1 space-y-1">
           {navigation.map(item => {
-            const isActive = currentPath === item.href || 
-              (item.href !== '/dashboard' && currentPath.startsWith(item.href + '/')) ||
+            const isActive =
+              currentPath === item.href ||
+              (item.href !== '/dashboard' &&
+                currentPath.startsWith(item.href + '/')) ||
               (item.href === '/dashboard' && currentPath === '/')
 
             return (
@@ -221,7 +223,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
             <p className="text-xs font-medium text-gray-900 truncate">
               {user?.firstName && user?.lastName
                 ? `${user.firstName} ${user.lastName}`
-                : user?.firstName ?? user?.lastName ?? 'Demo User'}
+                : (user?.firstName ?? user?.lastName ?? 'Demo User')}
             </p>
             <p className="text-xs text-gray-600 truncate">
               {user?.email ?? 'demo@example.com'}

@@ -53,12 +53,12 @@ export const createMemoizedSelector = <T>(
 // Optimized data selectors
 export const selectCurrentUserWithOrganizations = createSelector(
   [(state: RootState) => state.auth.user],
-  (user) => user
+  user => user
 )
 
 export const selectPrimaryOrganization = createSelector(
   [(state: RootState) => state.auth.user],
-  (user) => user ? null : null
+  user => (user ? null : null)
 )
 
 // Background data prefetching utility
@@ -139,10 +139,9 @@ class RequestDeduplicator {
       return this.pendingRequests.get(key)!
     }
 
-    const promise = requestFn()
-      .finally(() => {
-        this.pendingRequests.delete(key)
-      })
+    const promise = requestFn().finally(() => {
+      this.pendingRequests.delete(key)
+    })
 
     this.pendingRequests.set(key, promise)
     return promise
@@ -154,7 +153,10 @@ export const requestDeduplicator = RequestDeduplicator.getInstance()
 // Performance monitoring utility
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor
-  private metrics = new Map<string, { count: number; totalTime: number; errors: number }>()
+  private metrics = new Map<
+    string,
+    { count: number; totalTime: number; errors: number }
+  >()
 
   static getInstance(): PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
@@ -174,20 +176,34 @@ export class PerformanceMonitor {
   }
 
   recordError(operation: string): void {
-    const metric = this.metrics.get(operation) || { count: 0, totalTime: 0, errors: 0 }
+    const metric = this.metrics.get(operation) || {
+      count: 0,
+      totalTime: 0,
+      errors: 0,
+    }
     metric.errors++
     this.metrics.set(operation, metric)
   }
 
   private recordMetric(operation: string, duration: number): void {
-    const metric = this.metrics.get(operation) || { count: 0, totalTime: 0, errors: 0 }
+    const metric = this.metrics.get(operation) || {
+      count: 0,
+      totalTime: 0,
+      errors: 0,
+    }
     metric.count++
     metric.totalTime += duration
     this.metrics.set(operation, metric)
   }
 
-  getMetrics(): Record<string, { avgTime: number; count: number; errorRate: number }> {
-    const result: Record<string, { avgTime: number; count: number; errorRate: number }> = {}
+  getMetrics(): Record<
+    string,
+    { avgTime: number; count: number; errorRate: number }
+  > {
+    const result: Record<
+      string,
+      { avgTime: number; count: number; errorRate: number }
+    > = {}
 
     this.metrics.forEach((metric, operation) => {
       result[operation] = {
@@ -243,7 +259,9 @@ export class ConnectionMonitor {
     return this.connectionQuality
   }
 
-  onConnectionChange(callback: (quality: 'fast' | 'slow' | 'offline') => void): () => void {
+  onConnectionChange(
+    callback: (quality: 'fast' | 'slow' | 'offline') => void
+  ): () => void {
     this.listeners.push(callback)
     return () => {
       const index = this.listeners.indexOf(callback)

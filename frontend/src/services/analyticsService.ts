@@ -17,12 +17,25 @@ class AnalyticsService {
   private flushTimer: number | null = null
 
   constructor() {
-    this.endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT || '/api/v1/analytics'
+    this.endpoint =
+      import.meta.env.VITE_ANALYTICS_ENDPOINT || '/api/v1/analytics'
     this.sessionId = this.generateSessionId()
   }
 
   private generateSessionId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // Use crypto.randomUUID() for cryptographically secure random session IDs
+    // Fallback to timestamp-based ID if crypto API is not available
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return `${Date.now()}-${crypto.randomUUID()}`
+    }
+    // Fallback: generate secure random bytes
+    const randomBytes = new Uint8Array(16)
+    crypto.getRandomValues(randomBytes)
+    const randomString = Array.from(randomBytes)
+      .map(b => b.toString(36))
+      .join('')
+      .substr(0, 9)
+    return `${Date.now()}-${randomString}`
   }
 
   async sendMetrics(metrics: any[]): Promise<void> {
@@ -30,7 +43,7 @@ class AnalyticsService {
       type: 'performance',
       data: metric,
       timestamp: Date.now(),
-      sessionId: this.sessionId
+      sessionId: this.sessionId,
     }))
 
     this.queue.push(...events)
@@ -39,7 +52,7 @@ class AnalyticsService {
 
   private scheduleFlush(): void {
     if (this.flushTimer) return
-    
+
     this.flushTimer = window.setTimeout(() => {
       this.flush()
       this.flushTimer = null
@@ -56,7 +69,7 @@ class AnalyticsService {
       await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events })
+        body: JSON.stringify({ events }),
       })
     } catch (error) {
       console.warn('Analytics send failed:', error)

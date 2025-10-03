@@ -1,14 +1,14 @@
-import React from 'react';
-import clsx from 'clsx';
+import React from 'react'
+import clsx from 'clsx'
 
-import { RealTimeStatus } from './RealTimeStatus';
+import { RealTimeStatus } from './RealTimeStatus'
 
 interface DashboardHeaderProps {
-  userName?: string;
-  isRealTimeActive: boolean;
-  onRefresh: () => void;
-  lastUpdated?: Date;
-  className?: string;
+  userName?: string
+  isRealTimeActive: boolean
+  onRefresh: () => void
+  lastUpdated?: Date
+  className?: string
 }
 
 /**
@@ -20,15 +20,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   isRealTimeActive,
   onRefresh,
   lastUpdated,
-  className
+  className,
 }) => {
   return (
     <div className={clsx('flex justify-between items-start', className)}>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back{userName && (
-            <span className="brand-element">, {userName}</span>
-          )}! 👋
+          Welcome back
+          {userName && <span className="brand-element">, {userName}</span>}! 👋
         </h1>
         <p className="text-sm text-gray-600">
           Here's your dashboard overview with the latest insights and metrics.
@@ -41,8 +40,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         {...(lastUpdated ? { lastUpdated } : {})}
       />
     </div>
-  );
-};
+  )
+}
 
 /**
  * Simplified version for loading state.
@@ -59,5 +58,5 @@ export const DashboardHeaderSkeleton: React.FC = () => {
         <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
       </div>
     </div>
-  );
-};
+  )
+}

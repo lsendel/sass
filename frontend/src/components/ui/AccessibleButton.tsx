@@ -1,7 +1,8 @@
 import React, { forwardRef } from 'react'
 import { clsx } from 'clsx'
 
-export interface AccessibleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface AccessibleButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   isLoading?: boolean
@@ -43,14 +44,14 @@ const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(
       'forced-colors:border forced-colors:border-solid',
 
       // Reduced motion support
-      'motion-reduce:transition-none'
+      'motion-reduce:transition-none',
     ]
 
     // Size variants with proper touch targets
     const sizeClasses = {
       sm: 'px-3 py-2 text-sm min-h-[44px]', // Still meets 44px minimum
       md: 'px-4 py-2.5 text-sm min-h-[48px]', // 48px for better usability
-      lg: 'px-6 py-3 text-base min-h-[52px]'  // 52px for large buttons
+      lg: 'px-6 py-3 text-base min-h-[52px]', // 52px for large buttons
     }
 
     // Variant styles with proper contrast
@@ -59,32 +60,32 @@ const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(
         'bg-blue-600 text-white',
         'hover:bg-blue-700 active:bg-blue-800',
         'focus:ring-blue-500',
-        'shadow-sm hover:shadow-md'
+        'shadow-sm hover:shadow-md',
       ],
       secondary: [
         'bg-gray-600 text-white',
         'hover:bg-gray-700 active:bg-gray-800',
         'focus:ring-gray-500',
-        'shadow-sm hover:shadow-md'
+        'shadow-sm hover:shadow-md',
       ],
       outline: [
         'bg-transparent text-blue-600 border-blue-600',
         'hover:bg-blue-50 hover:text-blue-700',
         'active:bg-blue-100',
-        'focus:ring-blue-500'
+        'focus:ring-blue-500',
       ],
       ghost: [
         'bg-transparent text-gray-700',
         'hover:bg-gray-100 hover:text-gray-900',
         'active:bg-gray-200',
-        'focus:ring-gray-500'
+        'focus:ring-gray-500',
       ],
       danger: [
         'bg-red-600 text-white',
         'hover:bg-red-700 active:bg-red-800',
         'focus:ring-red-500',
-        'shadow-sm hover:shadow-md'
-      ]
+        'shadow-sm hover:shadow-md',
+      ],
     }
 
     // Full width option
@@ -158,17 +159,17 @@ AccessibleButton.displayName = 'AccessibleButton'
 export default AccessibleButton
 
 // Export variants for convenience
-export const PrimaryButton = (props: Omit<AccessibleButtonProps, 'variant'>) => (
-  <AccessibleButton variant="primary" {...props} />
-)
+export const PrimaryButton = (
+  props: Omit<AccessibleButtonProps, 'variant'>
+) => <AccessibleButton variant="primary" {...props} />
 
-export const SecondaryButton = (props: Omit<AccessibleButtonProps, 'variant'>) => (
-  <AccessibleButton variant="secondary" {...props} />
-)
+export const SecondaryButton = (
+  props: Omit<AccessibleButtonProps, 'variant'>
+) => <AccessibleButton variant="secondary" {...props} />
 
-export const OutlineButton = (props: Omit<AccessibleButtonProps, 'variant'>) => (
-  <AccessibleButton variant="outline" {...props} />
-)
+export const OutlineButton = (
+  props: Omit<AccessibleButtonProps, 'variant'>
+) => <AccessibleButton variant="outline" {...props} />
 
 export const GhostButton = (props: Omit<AccessibleButtonProps, 'variant'>) => (
   <AccessibleButton variant="ghost" {...props} />

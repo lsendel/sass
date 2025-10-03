@@ -1,24 +1,27 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Loader2, Plus, X } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Loader2, Plus, X } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
-import { useCreateTaskMutation, type Task } from '../../store/api/projectManagementApi';
-import { Modal } from '../ui/Modal';
-import { Input } from '../ui/input';
-import { TextArea } from '../ui/TextArea';
-import { Select } from '../ui/Select';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/Badge';
+import {
+  useCreateTaskMutation,
+  type Task,
+} from '../../store/api/projectManagementApi'
+import { Modal } from '../ui/Modal'
+import { Input } from '../ui/input'
+import { TextArea } from '../ui/TextArea'
+import { Select } from '../ui/Select'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/Badge'
 
 interface CreateTaskModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onTaskCreated: () => void;
-  projectId: string;
-  initialStatus?: Task['status'];
+  isOpen: boolean
+  onClose: () => void
+  onTaskCreated: () => void
+  projectId: string
+  initialStatus?: Task['status']
 }
 
 const createTaskSchema = z.object({
@@ -36,16 +39,16 @@ const createTaskSchema = z.object({
   dueDate: z.string().optional(),
   estimatedHours: z.number().min(0).optional(),
   tags: z.array(z.string()),
-});
+})
 
-type CreateTaskFormData = z.infer<typeof createTaskSchema>;
+type CreateTaskFormData = z.infer<typeof createTaskSchema>
 
 /**
  * CreateTaskModal Component
- * 
+ *
  * Modal for creating new tasks with comprehensive form validation.
  * Supports task assignment, priority setting, and tag management.
- * 
+ *
  * Features:
  * - Form validation with Zod schema
  * - Tag input with dynamic addition/removal
@@ -61,8 +64,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   projectId,
   initialStatus = 'TODO',
 }) => {
-  const [createTask, { isLoading }] = useCreateTaskMutation();
-  const [tagInput, setTagInput] = useState('');
+  const [createTask, { isLoading }] = useCreateTaskMutation()
+  const [tagInput, setTagInput] = useState('')
 
   const {
     register,
@@ -79,9 +82,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       priority: 'MEDIUM',
       tags: [],
     },
-  });
+  })
 
-  const watchedTags = watch('tags');
+  const watchedTags = watch('tags')
 
   const onSubmit = async (data: CreateTaskFormData) => {
     try {
@@ -93,39 +96,42 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         assigneeId: data.assigneeId,
         dueDate: data.dueDate,
         estimatedHours: data.estimatedHours,
-      }).unwrap();
+      }).unwrap()
 
-      toast.success('Task created successfully!');
-      reset();
-      onTaskCreated();
+      toast.success('Task created successfully!')
+      reset()
+      onTaskCreated()
     } catch (error: any) {
-      const errorMessage = error?.data?.message || 'Failed to create task';
-      toast.error(errorMessage);
+      const errorMessage = error?.data?.message || 'Failed to create task'
+      toast.error(errorMessage)
     }
-  };
+  }
 
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const tag = tagInput.trim();
+      e.preventDefault()
+      const tag = tagInput.trim()
       if (tag && !watchedTags.includes(tag)) {
-        setValue('tags', [...watchedTags, tag]);
-        setTagInput('');
+        setValue('tags', [...watchedTags, tag])
+        setTagInput('')
       }
     }
-  };
+  }
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setValue('tags', watchedTags.filter(tag => tag !== tagToRemove));
-  };
+    setValue(
+      'tags',
+      watchedTags.filter(tag => tag !== tagToRemove)
+    )
+  }
 
   const handleClose = () => {
-    reset();
-    setTagInput('');
-    onClose();
-  };
+    reset()
+    setTagInput('')
+    onClose()
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create New Task">
@@ -158,10 +164,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
-            <Select
-              {...register('status')}
-              disabled={isLoading}
-            >
+            <Select {...register('status')} disabled={isLoading}>
               <option value="TODO">To Do</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="REVIEW">Review</option>
@@ -172,10 +175,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Priority
             </label>
-            <Select
-              {...register('priority')}
-              disabled={isLoading}
-            >
+            <Select {...register('priority')} disabled={isLoading}>
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
@@ -190,11 +190,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Due Date (Optional)
             </label>
-            <Input
-              type="date"
-              {...register('dueDate')}
-              disabled={isLoading}
-            />
+            <Input type="date" {...register('dueDate')} disabled={isLoading} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -216,11 +212,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Tags
           </label>
-          
+
           {/* Existing Tags */}
           {watchedTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {watchedTags.map((tag) => (
+              {watchedTags.map(tag => (
                 <Badge
                   key={tag}
                   variant="secondary"
@@ -243,7 +239,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           {/* Tag Input */}
           <Input
             value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
+            onChange={e => setTagInput(e.target.value)}
             onKeyDown={handleAddTag}
             placeholder="Type a tag and press Enter..."
             disabled={isLoading}
@@ -283,5 +279,5 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         </div>
       </form>
     </Modal>
-  );
-};
+  )
+}

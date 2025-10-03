@@ -22,10 +22,19 @@ export const createTenantSlug = (slug: string): TenantSlug => slug as TenantSlug
 export type TenantIsolationLevel = 'shared' | 'dedicated' | 'hybrid'
 
 // Tenant subscription tiers
-export type TenantTier = 'starter' | 'professional' | 'enterprise' | 'white_label'
+export type TenantTier =
+  | 'starter'
+  | 'professional'
+  | 'enterprise'
+  | 'white_label'
 
 // Tenant status types
-export type TenantStatus = 'active' | 'suspended' | 'trial' | 'pending_setup' | 'archived'
+export type TenantStatus =
+  | 'active'
+  | 'suspended'
+  | 'trial'
+  | 'pending_setup'
+  | 'archived'
 
 // Core tenant interface
 export interface Tenant {
@@ -440,7 +449,11 @@ export const TenantQuotasSchema = z.object({
 
 export const TenantSchema = z.object({
   id: z.string(),
-  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(100),
   displayName: z.string().min(1).max(100),
   description: z.string().optional(),
@@ -464,7 +477,11 @@ export const TenantSchema = z.object({
 
 // Request/Response schemas
 export const CreateTenantRequestSchema = z.object({
-  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(100),
   displayName: z.string().min(1).max(100),
   description: z.string().optional(),
@@ -480,9 +497,13 @@ export const UpdateTenantRequestSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   displayName: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
-  status: z.enum(['active', 'suspended', 'trial', 'pending_setup', 'archived']).optional(),
+  status: z
+    .enum(['active', 'suspended', 'trial', 'pending_setup', 'archived'])
+    .optional(),
   branding: TenantBrandingSchema.partial().optional(),
-  tier: z.enum(['starter', 'professional', 'enterprise', 'white_label']).optional(),
+  tier: z
+    .enum(['starter', 'professional', 'enterprise', 'white_label'])
+    .optional(),
 })
 
 export const TenantAnalyticsRequestSchema = z.object({
@@ -496,7 +517,9 @@ export const TenantAnalyticsRequestSchema = z.object({
 // Type inference helpers
 export type CreateTenantRequest = z.infer<typeof CreateTenantRequestSchema>
 export type UpdateTenantRequest = z.infer<typeof UpdateTenantRequestSchema>
-export type TenantAnalyticsRequest = z.infer<typeof TenantAnalyticsRequestSchema>
+export type TenantAnalyticsRequest = z.infer<
+  typeof TenantAnalyticsRequestSchema
+>
 
 // Utility types
 export interface TenantListResponse {

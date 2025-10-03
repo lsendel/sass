@@ -1,7 +1,14 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react'
 
-import { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './card';
-import { Button } from './button';
+import {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from './card'
+import { Button } from './button'
 
 const meta = {
   title: 'UI/Card',
@@ -16,10 +23,10 @@ const meta = {
       options: ['default', 'glass', 'glass-subtle'],
     },
   },
-} satisfies Meta<typeof Card>;
+} satisfies Meta<typeof Card>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
@@ -28,7 +35,9 @@ export const Default: Story = {
       <>
         <CardHeader>
           <CardTitle>Card Title</CardTitle>
-          <CardDescription>This is a description of the card content.</CardDescription>
+          <CardDescription>
+            This is a description of the card content.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p>Card content goes here. This could be any type of content.</p>
@@ -39,7 +48,7 @@ export const Default: Story = {
       </>
     ),
   },
-};
+}
 
 export const Glass: Story = {
   args: {
@@ -64,11 +73,14 @@ export const Glass: Story = {
     backgrounds: {
       default: 'gradient',
       values: [
-        { name: 'gradient', value: 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)' },
+        {
+          name: 'gradient',
+          value: 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)',
+        },
       ],
     },
   },
-};
+}
 
 export const GlassSubtle: Story = {
   args: {
@@ -78,7 +90,9 @@ export const GlassSubtle: Story = {
       <>
         <CardHeader>
           <CardTitle>Subtle Glass Card</CardTitle>
-          <CardDescription>A card with subtle glass morphism effect.</CardDescription>
+          <CardDescription>
+            A card with subtle glass morphism effect.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p>This card has a more subtle frosted glass appearance.</p>
@@ -93,11 +107,14 @@ export const GlassSubtle: Story = {
     backgrounds: {
       default: 'gradient',
       values: [
-        { name: 'gradient', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+        {
+          name: 'gradient',
+          value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        },
       ],
     },
   },
-};
+}
 
 export const SimpleContent: Story = {
   render: () => (
@@ -110,7 +127,7 @@ export const SimpleContent: Story = {
       </CardContent>
     </Card>
   ),
-};
+}
 
 export const WithMultipleActions: Story = {
   render: () => (
@@ -126,19 +143,26 @@ export const WithMultipleActions: Story = {
         </div>
       </CardContent>
       <CardFooter className="gap-2">
-        <Button variant="outline" size="sm">Edit</Button>
-        <Button variant="destructive" size="sm">Remove</Button>
+        <Button variant="outline" size="sm">
+          Edit
+        </Button>
+        <Button variant="destructive" size="sm">
+          Remove
+        </Button>
       </CardFooter>
     </Card>
   ),
-};
+}
 
 export const AllVariants: Story = {
   render: () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8"
-         style={{
-           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
-         }}>
+    <div
+      className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8"
+      style={{
+        background:
+          'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      }}
+    >
       <Card variant="default" className="w-72">
         <CardHeader>
           <CardTitle>Default Card</CardTitle>
@@ -173,4 +197,4 @@ export const AllVariants: Story = {
   parameters: {
     layout: 'fullscreen',
   },
-};
+}

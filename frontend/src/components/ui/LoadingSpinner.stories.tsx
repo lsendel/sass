@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react'
 
-import LoadingSpinner from './LoadingSpinner';
+import LoadingSpinner from './LoadingSpinner'
 
 const meta = {
   title: 'UI/LoadingSpinner',
@@ -19,39 +19,39 @@ const meta = {
       options: ['primary', 'white', 'gray'],
     },
   },
-} satisfies Meta<typeof LoadingSpinner>;
+} satisfies Meta<typeof LoadingSpinner>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {},
-};
+}
 
 export const Small: Story = {
   args: {
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     size: 'lg',
   },
-};
+}
 
 export const Primary: Story = {
   args: {
     color: 'primary',
     size: 'lg',
   },
-};
+}
 
 export const White: Story = {
   args: {
@@ -61,19 +61,17 @@ export const White: Story = {
   parameters: {
     backgrounds: {
       default: 'dark',
-      values: [
-        { name: 'dark', value: '#1f2937' },
-      ],
+      values: [{ name: 'dark', value: '#1f2937' }],
     },
   },
-};
+}
 
 export const Gray: Story = {
   args: {
     color: 'gray',
     size: 'lg',
   },
-};
+}
 
 export const AllSizes: Story = {
   render: () => (
@@ -92,7 +90,7 @@ export const AllSizes: Story = {
       </div>
     </div>
   ),
-};
+}
 
 export const AllColors: Story = {
   render: () => (
@@ -111,12 +109,15 @@ export const AllColors: Story = {
       </div>
     </div>
   ),
-};
+}
 
 export const InButton: Story = {
   render: () => (
     <div className="flex gap-4">
-      <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+      <button
+        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled
+      >
         <LoadingSpinner size="sm" color="white" className="mr-2" />
         Loading...
       </button>
@@ -126,4 +127,4 @@ export const InButton: Story = {
       </button>
     </div>
   ),
-};
+}

@@ -1,43 +1,49 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react'
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 // Error types that can be handled differently
 interface ErrorDetails {
-  name: string;
-  message: string;
-  stack?: string;
-  componentStack?: string;
-  correlationId?: string;
-  timestamp: number;
-  userAgent: string;
-  url: string;
-  userId?: string;
+  name: string
+  message: string
+  stack?: string
+  componentStack?: string
+  correlationId?: string
+  timestamp: number
+  userAgent: string
+  url: string
+  userId?: string
 }
 
 interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-  errorDetails: ErrorDetails | null;
-  errorId: string | null;
-  retryCount: number;
+  hasError: boolean
+  error: Error | null
+  errorDetails: ErrorDetails | null
+  errorId: string | null
+  retryCount: number
 }
 
 interface ErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: (error: ErrorDetails, retry: () => void) => ReactNode;
-  onError?: (error: ErrorDetails) => void;
-  maxRetries?: number;
-  enableErrorReporting?: boolean;
+  children: ReactNode
+  fallback?: (error: ErrorDetails, retry: () => void) => ReactNode
+  onError?: (error: ErrorDetails) => void
+  maxRetries?: number
+  enableErrorReporting?: boolean
 }
 
 // Error reporting service
 class ErrorReportingService {
-  private static correlationId: string | null = null;
+  private static correlationId: string | null = null
 
   static setCorrelationId(id: string): void {
-    this.correlationId = id;
+    this.correlationId = id
   }
 
   static async reportError(errorDetails: ErrorDetails): Promise<void> {
@@ -51,25 +57,28 @@ class ErrorReportingService {
             'X-Correlation-ID': this.correlationId ?? crypto.randomUUID(),
           },
           body: JSON.stringify(errorDetails),
-        });
+        })
       } else {
-        console.error('Error Boundary Report:', errorDetails);
+        console.error('Error Boundary Report:', errorDetails)
       }
     } catch (reportingError) {
-      console.error('Failed to report error:', reportingError);
+      console.error('Failed to report error:', reportingError)
     }
   }
 
   static generateErrorId(): string {
-    return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 }
 
-export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  private retryTimeouts: Array<number | NodeJS.Timeout> = [];
+export class EnhancedErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  private retryTimeouts: Array<number | NodeJS.Timeout> = []
 
   constructor(props: ErrorBoundaryProps) {
-    super(props);
+    super(props)
 
     this.state = {
       hasError: false,
@@ -77,93 +86,94 @@ export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       errorDetails: null,
       errorId: null,
       retryCount: 0,
-    };
+    }
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return {
       hasError: true,
       error,
-    };
+    }
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    const correlationId = this.generateCorrelationId();
-    const userId = this.getCurrentUserId();
+    const correlationId = this.generateCorrelationId()
+    const userId = this.getCurrentUserId()
 
     const errorDetails: ErrorDetails = {
       name: error.name,
       message: error.message,
       ...(error.stack ? { stack: error.stack } : {}),
-      ...(errorInfo.componentStack ? { componentStack: errorInfo.componentStack } : {}),
+      ...(errorInfo.componentStack
+        ? { componentStack: errorInfo.componentStack }
+        : {}),
       ...(correlationId ? { correlationId } : {}),
       timestamp: Date.now(),
       userAgent: navigator.userAgent,
       url: window.location.href,
       ...(userId ? { userId } : {}),
-    };
+    }
 
-    const errorId = ErrorReportingService.generateErrorId();
+    const errorId = ErrorReportingService.generateErrorId()
 
     this.setState({
       errorDetails,
       errorId,
-    });
+    })
 
     // Report error if enabled
     if (this.props.enableErrorReporting !== false) {
-      ErrorReportingService.reportError(errorDetails)
-        .catch(reportingError => {
-          console.error('Error reporting failed:', reportingError);
-        });
+      ErrorReportingService.reportError(errorDetails).catch(reportingError => {
+        console.error('Error reporting failed:', reportingError)
+      })
     }
 
     // Call custom error handler
-    this.props.onError?.(errorDetails);
+    this.props.onError?.(errorDetails)
 
     // Log to console in development
     if (import.meta.env.DEV) {
-      console.group('🚨 Error Boundary Caught Error');
-      console.error('Error:', error);
-      console.error('Component Stack:', errorInfo.componentStack);
-      console.error('Error Details:', errorDetails);
-      console.groupEnd();
+      console.group('🚨 Error Boundary Caught Error')
+      console.error('Error:', error)
+      console.error('Component Stack:', errorInfo.componentStack)
+      console.error('Error Details:', errorDetails)
+      console.groupEnd()
     }
   }
 
   override componentWillUnmount(): void {
     // Clean up any pending retry timeouts
-    this.retryTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.retryTimeouts.forEach(timeout => clearTimeout(timeout))
   }
 
   private generateCorrelationId(): string {
-    return crypto.randomUUID();
+    return crypto.randomUUID()
   }
 
   private getCurrentUserId(): string | undefined {
     // Get from your auth store/context
     try {
-      const userData = localStorage.getItem('user');
+      const userData = localStorage.getItem('user')
       if (userData) {
-        const user = JSON.parse(userData) as { id?: string };
-        return user.id;
+        const user = JSON.parse(userData) as { id?: string }
+        return user.id
       }
     } catch (error) {
       // Ignore parsing errors
-      console.warn('Failed to parse user data from localStorage:', error);
+      console.warn('Failed to parse user data from localStorage:', error)
     }
-    return undefined;
+    return undefined
   }
 
   private handleRetry = (): void => {
-    const maxRetries = this.props.maxRetries ?? 3;
+    const maxRetries = this.props.maxRetries ?? 3
 
     if (this.state.retryCount >= maxRetries) {
-      return;
+      return
     }
 
     // Add exponential backoff
-    const delay = Math.pow(2, this.state.retryCount) * 1000;
+    const delay = Math.pow(2, this.state.retryCount) * 1000
 
     const timeout = setTimeout(() => {
       this.setState(prevState => ({
@@ -172,20 +182,20 @@ export class EnhancedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         errorDetails: null,
         errorId: null,
         retryCount: prevState.retryCount + 1,
-      }));
-    }, delay);
+      }))
+    }, delay)
 
-    this.retryTimeouts.push(timeout);
-  };
+    this.retryTimeouts.push(timeout)
+  }
 
   private handleReload = (): void => {
-    window.location.reload();
-  };
+    window.location.reload()
+  }
 
   private handleReportIssue = (): void => {
-    const { errorDetails, errorId } = this.state;
+    const { errorDetails, errorId } = this.state
 
-    if (!errorDetails || !errorId) return;
+    if (!errorDetails || !errorId) return
 
     const issueBody = `
 Error ID: ${errorId}
@@ -201,23 +211,23 @@ ${errorDetails.stack}
 
 Component Stack:
 ${errorDetails.componentStack}
-    `.trim();
+    `.trim()
 
     const githubUrl = `https://github.com/your-org/your-repo/issues/new?title=${encodeURIComponent(
       `Error: ${errorDetails.name} - ${errorDetails.message}`
-    )}&body=${encodeURIComponent(issueBody)}`;
+    )}&body=${encodeURIComponent(issueBody)}`
 
-    window.open(githubUrl, '_blank');
-  };
+    window.open(githubUrl, '_blank')
+  }
 
   override render(): ReactNode {
-    const { hasError, errorDetails, errorId, retryCount } = this.state;
-    const { children, fallback, maxRetries = 3 } = this.props;
+    const { hasError, errorDetails, errorId, retryCount } = this.state
+    const { children, fallback, maxRetries = 3 } = this.props
 
     if (hasError && errorDetails) {
       // Use custom fallback if provided
       if (fallback) {
-        return fallback(errorDetails, this.handleRetry);
+        return fallback(errorDetails, this.handleRetry)
       }
 
       // Default error UI
@@ -239,7 +249,8 @@ ${errorDetails.componentStack}
                 Something went wrong
               </CardTitle>
               <CardDescription className="text-gray-600">
-                We encountered an unexpected error. Don&apos;t worry, we&apos;ve been notified.
+                We encountered an unexpected error. Don&apos;t worry, we&apos;ve
+                been notified.
               </CardDescription>
             </CardHeader>
 
@@ -252,11 +263,22 @@ ${errorDetails.componentStack}
                       Error Details (Development)
                     </summary>
                     <div className="mt-2 space-y-2 text-xs font-mono text-gray-600">
-                      <div><strong>Error ID:</strong> {errorId}</div>
-                      <div><strong>Correlation ID:</strong> {errorDetails.correlationId}</div>
-                      <div><strong>Type:</strong> {errorDetails.name}</div>
-                      <div><strong>Message:</strong> {errorDetails.message}</div>
-                      <div><strong>Retry Count:</strong> {retryCount}/{maxRetries}</div>
+                      <div>
+                        <strong>Error ID:</strong> {errorId}
+                      </div>
+                      <div>
+                        <strong>Correlation ID:</strong>{' '}
+                        {errorDetails.correlationId}
+                      </div>
+                      <div>
+                        <strong>Type:</strong> {errorDetails.name}
+                      </div>
+                      <div>
+                        <strong>Message:</strong> {errorDetails.message}
+                      </div>
+                      <div>
+                        <strong>Retry Count:</strong> {retryCount}/{maxRetries}
+                      </div>
                     </div>
                   </details>
                 </div>
@@ -265,17 +287,18 @@ ${errorDetails.componentStack}
               {/* Action buttons */}
               <div className="flex flex-col space-y-2">
                 {retryCount < maxRetries && (
-          <Button
-            onClick={this.handleRetry}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                this.handleRetry();
-              }
-            }}
-            className="w-full"
-          >
-            Try Again {retryCount > 0 && `(${retryCount}/${maxRetries})`}
-          </Button>
+                  <Button
+                    onClick={this.handleRetry}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        this.handleRetry()
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    Try Again{' '}
+                    {retryCount > 0 && `(${retryCount}/${maxRetries})`}
+                  </Button>
                 )}
 
                 <Button
@@ -300,7 +323,8 @@ ${errorDetails.componentStack}
               {/* Error ID for user reference */}
               <div className="text-center">
                 <p className="text-xs text-gray-500">
-                  Error ID: <code className="bg-gray-100 px-1 rounded">{errorId}</code>
+                  Error ID:{' '}
+                  <code className="bg-gray-100 px-1 rounded">{errorId}</code>
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
                   Reference this ID when contacting support
@@ -309,10 +333,10 @@ ${errorDetails.componentStack}
             </CardContent>
           </Card>
         </div>
-      );
+      )
     }
 
-    return children;
+    return children
   }
 }
 
@@ -325,65 +349,73 @@ export function withErrorBoundary<P extends object>(
     <EnhancedErrorBoundary {...errorBoundaryProps}>
       <Component {...props} />
     </EnhancedErrorBoundary>
-  );
+  )
 
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
+  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`
 
-  return WrappedComponent;
+  return WrappedComponent
 }
 
 // Hook for throwing errors that will be caught by error boundaries
 export function useErrorHandler() {
   return React.useCallback((error: Error | string) => {
-    const errorToThrow = typeof error === 'string' ? new Error(error) : error;
+    const errorToThrow = typeof error === 'string' ? new Error(error) : error
 
     // Use React's error boundary mechanism
-    throw errorToThrow;
-  }, []);
+    throw errorToThrow
+  }, [])
 }
 
 // Async error handler hook
 export function useAsyncErrorHandler() {
-  const throwError = useErrorHandler();
+  const throwError = useErrorHandler()
 
-  return React.useCallback((asyncFn: () => Promise<void>) => {
-    return asyncFn().catch(error => {
-      // Convert async errors to sync errors for error boundaries
-      setTimeout(() => throwError(error), 0);
-    });
-  }, [throwError]);
+  return React.useCallback(
+    (asyncFn: () => Promise<void>) => {
+      return asyncFn().catch(error => {
+        // Convert async errors to sync errors for error boundaries
+        setTimeout(() => throwError(error), 0)
+      })
+    },
+    [throwError]
+  )
 }
 
 // Context for error boundary configuration
 export const ErrorBoundaryContext = React.createContext<{
-  reportError: (error: ErrorDetails) => void;
-  setCorrelationId: (id: string) => void;
+  reportError: (error: ErrorDetails) => void
+  setCorrelationId: (id: string) => void
 }>({
   reportError: ErrorReportingService.reportError,
   setCorrelationId: ErrorReportingService.setCorrelationId,
-});
+})
 
 // Provider component
 export function ErrorBoundaryProvider({ children }: { children: ReactNode }) {
-  const contextValue = React.useMemo(() => ({
-    reportError: ErrorReportingService.reportError,
-    setCorrelationId: ErrorReportingService.setCorrelationId,
-  }), []);
+  const contextValue = React.useMemo(
+    () => ({
+      reportError: ErrorReportingService.reportError,
+      setCorrelationId: ErrorReportingService.setCorrelationId,
+    }),
+    []
+  )
 
   return (
     <ErrorBoundaryContext.Provider value={contextValue}>
       {children}
     </ErrorBoundaryContext.Provider>
-  );
+  )
 }
 
 // Hook to access error boundary context
 export function useErrorBoundary() {
-  const context = React.useContext(ErrorBoundaryContext);
+  const context = React.useContext(ErrorBoundaryContext)
 
   if (!context) {
-    throw new Error('useErrorBoundary must be used within an ErrorBoundaryProvider');
+    throw new Error(
+      'useErrorBoundary must be used within an ErrorBoundaryProvider'
+    )
   }
 
-  return context;
+  return context
 }

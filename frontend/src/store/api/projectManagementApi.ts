@@ -1,9 +1,10 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-import type { RootState } from '../index';
+import type { RootState } from '../index'
 
 // API base URL configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
 
 /**
  * RTK Query API for Project Management endpoints.
@@ -19,192 +20,192 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 
 // Types matching the backend DTOs
 export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  avatar?: string;
-  timezone: string;
-  language: string;
-  isActive: boolean;
-  emailVerified: boolean;
-  createdAt: string;
-  lastLoginAt: string;
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  avatar?: string
+  timezone: string
+  language: string
+  isActive: boolean
+  emailVerified: boolean
+  createdAt: string
+  lastLoginAt: string
 }
 
 export interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  logoUrl?: string;
-  storageUsed: number;
-  storageLimit: number;
-  memberCount: number;
-  projectCount: number;
-  userRole: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
-  createdAt: string;
+  id: string
+  name: string
+  slug: string
+  description?: string
+  logoUrl?: string
+  storageUsed: number
+  storageLimit: number
+  memberCount: number
+  projectCount: number
+  userRole: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
+  createdAt: string
 }
 
 export interface Project {
-  id: string;
-  workspaceId: string;
-  name: string;
-  slug: string;
-  description?: string;
-  status: 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  dueDate?: string;
-  createdAt: string;
-  updatedAt: string;
-  ownerName: string;
-  memberCount: number;
-  taskCount: number;
-  completedTaskCount: number;
+  id: string
+  workspaceId: string
+  name: string
+  slug: string
+  description?: string
+  status: 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED'
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  dueDate?: string
+  createdAt: string
+  updatedAt: string
+  ownerName: string
+  memberCount: number
+  taskCount: number
+  completedTaskCount: number
 }
 
 export interface Task {
-  id: string;
-  projectId: string;
-  title: string;
-  description?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'ARCHIVED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  assigneeId?: string;
-  assigneeName?: string;
-  dueDate?: string;
-  createdAt: string;
-  updatedAt: string;
-  commentCount: number;
-  estimatedHours?: number;
+  id: string
+  projectId: string
+  title: string
+  description?: string
+  status: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED' | 'ARCHIVED'
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  assigneeId?: string
+  assigneeName?: string
+  dueDate?: string
+  createdAt: string
+  updatedAt: string
+  commentCount: number
+  estimatedHours?: number
 }
 
 export interface TaskComment {
-  id: string;
-  taskId: string;
-  authorId: string;
-  authorName: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  taskId: string
+  authorId: string
+  authorName: string
+  content: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface SearchResult {
-  id: string;
-  type: 'PROJECT' | 'TASK' | 'USER' | 'WORKSPACE' | 'COMMENT' | 'FILE';
-  title: string;
-  description: string;
-  url: string;
-  contextName?: string;
-  lastModified: string;
-  relevanceScore: number;
+  id: string
+  type: 'PROJECT' | 'TASK' | 'USER' | 'WORKSPACE' | 'COMMENT' | 'FILE'
+  title: string
+  description: string
+  url: string
+  contextName?: string
+  lastModified: string
+  relevanceScore: number
 }
 
 export interface DashboardOverview {
   workspaceStats: {
-    totalWorkspaces: number;
-    totalProjects: number;
-    totalTasks: number;
-    completedTasks: number;
-    activeMembers: number;
-  };
+    totalWorkspaces: number
+    totalProjects: number
+    totalTasks: number
+    completedTasks: number
+    activeMembers: number
+  }
   activitySummary: {
-    tasksCreatedThisWeek: number;
-    tasksCompletedThisWeek: number;
-    projectsStartedThisWeek: number;
-    projectsCompletedThisWeek: number;
-  };
+    tasksCreatedThisWeek: number
+    tasksCompletedThisWeek: number
+    projectsStartedThisWeek: number
+    projectsCompletedThisWeek: number
+  }
   productivityMetrics: {
-    completionRate: number;
-    averageTasksPerDay: number;
-    averageHoursPerTask: number;
-    velocityScore: number;
-  };
+    completionRate: number
+    averageTasksPerDay: number
+    averageHoursPerTask: number
+    velocityScore: number
+  }
   recentActivity: Array<{
-    id: string;
-    type: string;
-    description: string;
-    actorName: string;
-    contextName: string;
-    timestamp: string;
-  }>;
+    id: string
+    type: string
+    description: string
+    actorName: string
+    contextName: string
+    timestamp: string
+  }>
 }
 
 export interface Notification {
-  id: string;
-  type: string;
-  message: string;
-  title: string;
-  unread: boolean;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  createdAt: string;
+  id: string
+  type: string
+  message: string
+  title: string
+  unread: boolean
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  createdAt: string
 }
 
 // Page interface for paginated responses
 export interface Page<T> {
-  content: T[];
+  content: T[]
   pageable: {
-    pageNumber: number;
-    pageSize: number;
-    sort: string[];
-  };
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+    pageNumber: number
+    pageSize: number
+    sort: string[]
+  }
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+  empty: boolean
 }
 
 // Request types
 export interface CreateWorkspaceRequest {
-  name: string;
-  slug: string;
-  description?: string;
-  logoUrl?: string;
+  name: string
+  slug: string
+  description?: string
+  logoUrl?: string
 }
 
 export interface UpdateWorkspaceRequest {
-  name?: string;
-  description?: string;
-  logoUrl?: string;
-  settings?: Record<string, any>;
+  name?: string
+  description?: string
+  logoUrl?: string
+  settings?: Record<string, any>
 }
 
 export interface CreateProjectRequest {
-  workspaceId: string;
-  name: string;
-  slug: string;
-  description?: string | undefined;
-  priority?: Project['priority'] | undefined;
-  dueDate?: string | undefined;
+  workspaceId: string
+  name: string
+  slug: string
+  description?: string | undefined
+  priority?: Project['priority'] | undefined
+  dueDate?: string | undefined
 }
 
 export interface UpdateProjectRequest {
-  name?: string | undefined;
-  description?: string | undefined;
-  status?: Project['status'] | undefined;
-  priority?: Project['priority'] | undefined;
-  dueDate?: string | undefined;
+  name?: string | undefined
+  description?: string | undefined
+  status?: Project['status'] | undefined
+  priority?: Project['priority'] | undefined
+  dueDate?: string | undefined
 }
 
 export interface CreateTaskRequest {
-  projectId: string;
-  title: string;
-  description?: string | undefined;
-  priority?: Task['priority'] | undefined;
-  assigneeId?: string | undefined;
-  dueDate?: string | undefined;
-  estimatedHours?: number | undefined;
+  projectId: string
+  title: string
+  description?: string | undefined
+  priority?: Task['priority'] | undefined
+  assigneeId?: string | undefined
+  dueDate?: string | undefined
+  estimatedHours?: number | undefined
 }
 
 export interface UpdateTaskRequest {
-  title?: string | undefined;
-  description?: string | undefined;
-  status?: Task['status'] | undefined;
-  priority?: Task['priority'] | undefined;
-  assigneeId?: string | undefined;
-  dueDate?: string | undefined;
-  estimatedHours?: number | undefined;
+  title?: string | undefined
+  description?: string | undefined
+  status?: Task['status'] | undefined
+  priority?: Task['priority'] | undefined
+  assigneeId?: string | undefined
+  dueDate?: string | undefined
+  estimatedHours?: number | undefined
 }
 
 export const projectManagementApi = createApi({
@@ -213,15 +214,15 @@ export const projectManagementApi = createApi({
     baseUrl: API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       // Add authentication headers if available
-      const state = getState() as RootState;
-      const token = state.auth?.token;
+      const state = getState() as RootState
+      const token = state.auth?.token
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set('Authorization', `Bearer ${token}`)
       }
 
-      headers.set('Content-Type', 'application/json');
-      return headers;
+      headers.set('Content-Type', 'application/json')
+      return headers
     },
   }),
   tagTypes: [
@@ -232,16 +233,16 @@ export const projectManagementApi = createApi({
     'TaskComment',
     'SearchResult',
     'Dashboard',
-    'Notification'
+    'Notification',
   ],
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     // User endpoints
     getCurrentUser: builder.query<User, void>({
       query: () => 'users/me',
       providesTags: ['User'],
     }),
     updateCurrentUser: builder.mutation<User, Partial<User>>({
-      query: (user) => ({
+      query: user => ({
         url: 'users/me',
         method: 'PUT',
         body: user,
@@ -255,20 +256,23 @@ export const projectManagementApi = createApi({
       providesTags: ['Workspace'],
     }),
     getWorkspace: builder.query<Workspace, string>({
-      query: (workspaceId) => `workspaces/${workspaceId}`,
+      query: workspaceId => `workspaces/${workspaceId}`,
       providesTags: (_result, _error, workspaceId) => [
-        { type: 'Workspace', id: workspaceId }
+        { type: 'Workspace', id: workspaceId },
       ],
     }),
     createWorkspace: builder.mutation<Workspace, CreateWorkspaceRequest>({
-      query: (workspace) => ({
+      query: workspace => ({
         url: 'workspaces',
         method: 'POST',
         body: workspace,
       }),
       invalidatesTags: ['Workspace'],
     }),
-    updateWorkspace: builder.mutation<Workspace, { workspaceId: string; workspace: UpdateWorkspaceRequest }>({
+    updateWorkspace: builder.mutation<
+      Workspace,
+      { workspaceId: string; workspace: UpdateWorkspaceRequest }
+    >({
       query: ({ workspaceId, workspace }) => ({
         url: `workspaces/${workspaceId}`,
         method: 'PUT',
@@ -276,17 +280,20 @@ export const projectManagementApi = createApi({
       }),
       invalidatesTags: (_result, _error, { workspaceId }) => [
         'Workspace',
-        { type: 'Workspace', id: workspaceId }
+        { type: 'Workspace', id: workspaceId },
       ],
     }),
 
     // Project endpoints
-    getWorkspaceProjects: builder.query<Page<Project>, {
-      workspaceId: string;
-      status?: Project['status'];
-      page?: number;
-      size?: number;
-    }>({
+    getWorkspaceProjects: builder.query<
+      Page<Project>,
+      {
+        workspaceId: string
+        status?: Project['status']
+        page?: number
+        size?: number
+      }
+    >({
       query: ({ workspaceId, status, page = 0, size = 20 }) => ({
         url: 'projects',
         params: {
@@ -298,24 +305,27 @@ export const projectManagementApi = createApi({
       }),
       providesTags: (_result, _error, { workspaceId }) => [
         'Project',
-        { type: 'Workspace', id: workspaceId }
+        { type: 'Workspace', id: workspaceId },
       ],
     }),
     getProject: builder.query<Project, string>({
-      query: (projectId) => `projects/${projectId}`,
+      query: projectId => `projects/${projectId}`,
       providesTags: (_result, _error, projectId) => [
-        { type: 'Project', id: projectId }
+        { type: 'Project', id: projectId },
       ],
     }),
     createProject: builder.mutation<Project, CreateProjectRequest>({
-      query: (project) => ({
+      query: project => ({
         url: 'projects',
         method: 'POST',
         body: project,
       }),
       invalidatesTags: ['Project', 'Workspace'],
     }),
-    updateProject: builder.mutation<Project, { projectId: string; project: UpdateProjectRequest }>({
+    updateProject: builder.mutation<
+      Project,
+      { projectId: string; project: UpdateProjectRequest }
+    >({
       query: ({ projectId, project }) => ({
         url: `projects/${projectId}`,
         method: 'PUT',
@@ -323,11 +333,11 @@ export const projectManagementApi = createApi({
       }),
       invalidatesTags: (_result, _error, { projectId }) => [
         'Project',
-        { type: 'Project', id: projectId }
+        { type: 'Project', id: projectId },
       ],
     }),
     deleteProject: builder.mutation<void, string>({
-      query: (projectId) => ({
+      query: projectId => ({
         url: `projects/${projectId}`,
         method: 'DELETE',
       }),
@@ -335,15 +345,25 @@ export const projectManagementApi = createApi({
     }),
 
     // Task endpoints
-    getProjectTasks: builder.query<Page<Task>, {
-      projectId: string;
-      status?: Task['status'];
-      priority?: Task['priority'];
-      assigneeId?: string;
-      page?: number;
-      size?: number;
-    }>({
-      query: ({ projectId, status, priority, assigneeId, page = 0, size = 20 }) => ({
+    getProjectTasks: builder.query<
+      Page<Task>,
+      {
+        projectId: string
+        status?: Task['status']
+        priority?: Task['priority']
+        assigneeId?: string
+        page?: number
+        size?: number
+      }
+    >({
+      query: ({
+        projectId,
+        status,
+        priority,
+        assigneeId,
+        page = 0,
+        size = 20,
+      }) => ({
         url: 'tasks',
         params: {
           projectId,
@@ -356,24 +376,25 @@ export const projectManagementApi = createApi({
       }),
       providesTags: (_result, _error, { projectId }) => [
         'Task',
-        { type: 'Project', id: projectId }
+        { type: 'Project', id: projectId },
       ],
     }),
     getTask: builder.query<Task, string>({
-      query: (taskId) => `tasks/${taskId}`,
-      providesTags: (_result, _error, taskId) => [
-        { type: 'Task', id: taskId }
-      ],
+      query: taskId => `tasks/${taskId}`,
+      providesTags: (_result, _error, taskId) => [{ type: 'Task', id: taskId }],
     }),
     createTask: builder.mutation<Task, CreateTaskRequest>({
-      query: (task) => ({
+      query: task => ({
         url: 'tasks',
         method: 'POST',
         body: task,
       }),
       invalidatesTags: ['Task', 'Project'],
     }),
-    updateTask: builder.mutation<Task, { taskId: string; task: UpdateTaskRequest }>({
+    updateTask: builder.mutation<
+      Task,
+      { taskId: string; task: UpdateTaskRequest }
+    >({
       query: ({ taskId, task }) => ({
         url: `tasks/${taskId}`,
         method: 'PUT',
@@ -382,11 +403,11 @@ export const projectManagementApi = createApi({
       invalidatesTags: (_result, _error, { taskId }) => [
         'Task',
         { type: 'Task', id: taskId },
-        'Project'
+        'Project',
       ],
     }),
     deleteTask: builder.mutation<void, string>({
-      query: (taskId) => ({
+      query: taskId => ({
         url: `tasks/${taskId}`,
         method: 'DELETE',
       }),
@@ -395,13 +416,16 @@ export const projectManagementApi = createApi({
 
     // Task Comments
     getTaskComments: builder.query<TaskComment[], string>({
-      query: (taskId) => `tasks/${taskId}/comments`,
+      query: taskId => `tasks/${taskId}/comments`,
       providesTags: (_result, _error, taskId) => [
         'TaskComment',
-        { type: 'Task', id: taskId }
+        { type: 'Task', id: taskId },
       ],
     }),
-    addTaskComment: builder.mutation<TaskComment, { taskId: string; content: string }>({
+    addTaskComment: builder.mutation<
+      TaskComment,
+      { taskId: string; content: string }
+    >({
       query: ({ taskId, content }) => ({
         url: `tasks/${taskId}/comments`,
         method: 'POST',
@@ -409,18 +433,21 @@ export const projectManagementApi = createApi({
       }),
       invalidatesTags: (_result, _error, { taskId }) => [
         'TaskComment',
-        { type: 'Task', id: taskId }
+        { type: 'Task', id: taskId },
       ],
     }),
 
     // Search endpoints
-    searchAll: builder.query<Page<SearchResult>, {
-      query: string;
-      workspaceId?: string;
-      type?: SearchResult['type'];
-      page?: number;
-      size?: number;
-    }>({
+    searchAll: builder.query<
+      Page<SearchResult>,
+      {
+        query: string
+        workspaceId?: string
+        type?: SearchResult['type']
+        page?: number
+        size?: number
+      }
+    >({
       query: ({ query, workspaceId, type, page = 0, size = 20 }) => ({
         url: 'search',
         params: {
@@ -433,21 +460,27 @@ export const projectManagementApi = createApi({
       }),
       providesTags: ['SearchResult'],
     }),
-    getSearchSuggestions: builder.query<Array<{
-      suggestion: string;
-      type: SearchResult['type'];
-      description: string;
-      matchCount: number;
-    }>, { query: string; workspaceId?: string; limit?: number }>({
+    getSearchSuggestions: builder.query<
+      Array<{
+        suggestion: string
+        type: SearchResult['type']
+        description: string
+        matchCount: number
+      }>,
+      { query: string; workspaceId?: string; limit?: number }
+    >({
       query: ({ query, workspaceId, limit = 10 }) => ({
         url: 'search/suggestions',
         params: { query, workspaceId, limit },
       }),
     }),
-    getRecentItems: builder.query<SearchResult[], {
-      workspaceId?: string;
-      limit?: number;
-    }>({
+    getRecentItems: builder.query<
+      SearchResult[],
+      {
+        workspaceId?: string
+        limit?: number
+      }
+    >({
       query: ({ workspaceId, limit = 10 }) => ({
         url: 'search/recent',
         params: { workspaceId, limit },
@@ -456,25 +489,31 @@ export const projectManagementApi = createApi({
     }),
 
     // Dashboard endpoints
-    getDashboardOverview: builder.query<DashboardOverview, { workspaceId?: string }>({
+    getDashboardOverview: builder.query<
+      DashboardOverview,
+      { workspaceId?: string }
+    >({
       query: ({ workspaceId }) => ({
         url: 'dashboard/overview',
         params: { workspaceId },
       }),
       providesTags: ['Dashboard'],
     }),
-    getRecentActivity: builder.query<Array<{
-      id: string;
-      type: string;
-      description: string;
-      actorName: string;
-      contextName: string;
-      timestamp: string;
-    }>, {
-      workspaceId?: string;
-      projectId?: string;
-      limit?: number;
-    }>({
+    getRecentActivity: builder.query<
+      Array<{
+        id: string
+        type: string
+        description: string
+        actorName: string
+        contextName: string
+        timestamp: string
+      }>,
+      {
+        workspaceId?: string
+        projectId?: string
+        limit?: number
+      }
+    >({
       query: ({ workspaceId, projectId, limit = 20 }) => ({
         url: 'dashboard/activity',
         params: { workspaceId, projectId, limit },
@@ -483,10 +522,13 @@ export const projectManagementApi = createApi({
     }),
 
     // Notification endpoints
-    getNotifications: builder.query<Notification[], {
-      unreadOnly?: boolean;
-      limit?: number;
-    }>({
+    getNotifications: builder.query<
+      Notification[],
+      {
+        unreadOnly?: boolean
+        limit?: number
+      }
+    >({
       query: ({ unreadOnly = false, limit = 20 }) => ({
         url: 'dashboard/notifications',
         params: { unreadOnly, limit },
@@ -494,14 +536,14 @@ export const projectManagementApi = createApi({
       providesTags: ['Notification'],
     }),
     markNotificationAsRead: builder.mutation<void, string>({
-      query: (notificationId) => ({
+      query: notificationId => ({
         url: `dashboard/notifications/${notificationId}/read`,
         method: 'PUT',
       }),
       invalidatesTags: ['Notification'],
     }),
   }),
-});
+})
 
 // Export hooks for usage in functional components
 export const {
@@ -545,10 +587,10 @@ export const {
   // Notification hooks
   useGetNotificationsQuery,
   useMarkNotificationAsReadMutation,
-} = projectManagementApi;
+} = projectManagementApi
 
 // Compatibility aliases for components
-export const useGetProjectsQuery = useGetWorkspaceProjectsQuery;
-export const useGetTasksQuery = useGetProjectTasksQuery;
-export const useGetDashboardStatsQuery = useGetDashboardOverviewQuery;
-export const useSearchQuery = useSearchAllQuery;
+export const useGetProjectsQuery = useGetWorkspaceProjectsQuery
+export const useGetTasksQuery = useGetProjectTasksQuery
+export const useGetDashboardStatsQuery = useGetDashboardOverviewQuery
+export const useSearchQuery = useSearchAllQuery

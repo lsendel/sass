@@ -40,7 +40,8 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           iconColor: 'text-orange-600',
           bgColor: 'bg-orange-100',
           title: 'Network Error',
-          message: 'Unable to connect to the server. Please check your internet connection.',
+          message:
+            'Unable to connect to the server. Please check your internet connection.',
         }
       case 'server':
         return {
@@ -48,7 +49,8 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           iconColor: 'text-red-600',
           bgColor: 'bg-red-100',
           title: 'Server Error',
-          message: 'The server is currently unavailable. Please try again later.',
+          message:
+            'The server is currently unavailable. Please try again later.',
         }
       case 'not-found':
         return {
@@ -82,7 +84,9 @@ const ErrorState: React.FC<ErrorStateProps> = ({
 
   return (
     <div className={`${getCardClasses('subtle')} text-center py-12`}>
-      <div className={`inline-flex items-center justify-center w-16 h-16 ${config.bgColor} rounded-full mb-6`}>
+      <div
+        className={`inline-flex items-center justify-center w-16 h-16 ${config.bgColor} rounded-full mb-6`}
+      >
         <Icon className={`w-8 h-8 ${config.iconColor}`} />
       </div>
 
@@ -90,9 +94,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         {config.title}
       </h3>
 
-      <p className="text-gray-600 mb-6 max-w-md mx-auto">
-        {config.message}
-      </p>
+      <p className="text-gray-600 mb-6 max-w-md mx-auto">{config.message}</p>
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         {showRetry && onRetry && (
@@ -109,7 +111,11 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         )}
 
         {variant === 'not-found' && (
-          <Button onClick={() => window.location.href = '/'} variant="secondary" size="default">
+          <Button
+            onClick={() => (window.location.href = '/')}
+            variant="secondary"
+            size="default"
+          >
             <HomeIcon className="w-4 h-4 mr-2" />
             Go Home
           </Button>
@@ -120,19 +126,19 @@ const ErrorState: React.FC<ErrorStateProps> = ({
 }
 
 // Specific error state components
-export const NetworkError: React.FC<Omit<ErrorStateProps, 'variant'>> = (props) => (
-  <ErrorState {...props} variant="network" />
-)
+export const NetworkError: React.FC<
+  Omit<ErrorStateProps, 'variant'>
+> = props => <ErrorState {...props} variant="network" />
 
-export const ServerError: React.FC<Omit<ErrorStateProps, 'variant'>> = (props) => (
-  <ErrorState {...props} variant="server" />
-)
+export const ServerError: React.FC<
+  Omit<ErrorStateProps, 'variant'>
+> = props => <ErrorState {...props} variant="server" />
 
-export const NotFoundError: React.FC<Omit<ErrorStateProps, 'variant'>> = (props) => (
-  <ErrorState {...props} variant="not-found" />
-)
+export const NotFoundError: React.FC<
+  Omit<ErrorStateProps, 'variant'>
+> = props => <ErrorState {...props} variant="not-found" />
 
-export const EmptyState: React.FC<Omit<ErrorStateProps, 'variant'>> = (props) => (
+export const EmptyState: React.FC<Omit<ErrorStateProps, 'variant'>> = props => (
   <ErrorState {...props} variant="empty" />
 )
 
@@ -168,8 +174,13 @@ export const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
           return { variant: 'network' as const }
         default:
           return {
-            message: typeof rtqError.data === 'object' && rtqError.data !== null && 'message' in rtqError.data ? String(rtqError.data.message) : fallbackMessage,
-            variant: 'error' as const
+            message:
+              typeof rtqError.data === 'object' &&
+              rtqError.data !== null &&
+              'message' in rtqError.data
+                ? String(rtqError.data.message)
+                : fallbackMessage,
+            variant: 'error' as const,
           }
       }
     }

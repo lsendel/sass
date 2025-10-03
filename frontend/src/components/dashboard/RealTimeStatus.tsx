@@ -1,11 +1,11 @@
-import React from 'react';
-import clsx from 'clsx';
+import React from 'react'
+import clsx from 'clsx'
 
 interface RealTimeStatusProps {
-  isActive: boolean;
-  onRefresh: () => void;
-  className?: string;
-  lastUpdated?: Date;
+  isActive: boolean
+  onRefresh: () => void
+  className?: string
+  lastUpdated?: Date
 }
 
 /**
@@ -16,22 +16,22 @@ export const RealTimeStatus: React.FC<RealTimeStatusProps> = ({
   isActive,
   onRefresh,
   className,
-  lastUpdated
+  lastUpdated,
 }) => {
   const formatLastUpdated = (date: Date) => {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
     if (diffInSeconds < 60) {
-      return 'Just now';
+      return 'Just now'
     } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes}m ago`;
+      const minutes = Math.floor(diffInSeconds / 60)
+      return `${minutes}m ago`
     } else {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours}h ago`;
+      const hours = Math.floor(diffInSeconds / 3600)
+      return `${hours}h ago`
     }
-  };
+  }
 
   return (
     <div className={clsx('text-right', className)}>
@@ -66,33 +66,33 @@ export const RealTimeStatus: React.FC<RealTimeStatusProps> = ({
         Refresh now
       </button>
     </div>
-  );
-};
+  )
+}
 
 /**
  * Hook for managing real-time status state and actions.
  */
 export const useRealTimeStatus = (onRefresh: () => Promise<void>) => {
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [lastUpdated, setLastUpdated] = React.useState<Date | undefined>();
+  const [isRefreshing, setIsRefreshing] = React.useState(false)
+  const [lastUpdated, setLastUpdated] = React.useState<Date | undefined>()
 
   const handleRefresh = React.useCallback(async () => {
-    if (isRefreshing) return;
+    if (isRefreshing) return
 
-    setIsRefreshing(true);
+    setIsRefreshing(true)
     try {
-      await onRefresh();
-      setLastUpdated(new Date());
+      await onRefresh()
+      setLastUpdated(new Date())
     } catch (error) {
-      console.error('Failed to refresh:', error);
+      console.error('Failed to refresh:', error)
     } finally {
-      setIsRefreshing(false);
+      setIsRefreshing(false)
     }
-  }, [onRefresh, isRefreshing]);
+  }, [onRefresh, isRefreshing])
 
   return {
     isRefreshing,
     lastUpdated,
     handleRefresh,
-  };
-};
+  }
+}

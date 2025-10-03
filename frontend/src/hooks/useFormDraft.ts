@@ -1,30 +1,30 @@
-import { useEffect, useCallback } from 'react';
-import { UseFormSetValue, FieldValues, Path } from 'react-hook-form';
-import { toast } from 'sonner';
+import { useEffect, useCallback } from 'react'
+import { UseFormSetValue, FieldValues, Path } from 'react-hook-form'
+import { toast } from 'sonner'
 
 /**
  * Configuration options for the form draft hook
  */
 export interface UseFormDraftOptions {
   /** Duration in milliseconds before draft expires (default: 24 hours) */
-  expiryDuration?: number;
+  expiryDuration?: number
   /** Whether to show toast notifications (default: true) */
-  showNotifications?: boolean;
+  showNotifications?: boolean
   /** Callback when draft is restored */
-  onDraftRestored?: () => void;
+  onDraftRestored?: () => void
   /** Callback when draft is saved */
-  onDraftSaved?: () => void;
+  onDraftSaved?: () => void
 }
 
 /**
  * Stored draft data structure
  */
 interface DraftData<T> {
-  data: Partial<T>;
-  timestamp: number;
+  data: Partial<T>
+  timestamp: number
 }
 
-const DEFAULT_EXPIRY_DURATION = 86400000; // 24 hours in milliseconds
+const DEFAULT_EXPIRY_DURATION = 86400000 // 24 hours in milliseconds
 
 /**
  * Custom hook for managing form drafts in localStorage with automatic save and restore.
@@ -74,44 +74,51 @@ export function useFormDraft<T extends FieldValues>(
     showNotifications = true,
     onDraftRestored,
     onDraftSaved,
-  } = options;
+  } = options
 
   /**
    * Restore draft from localStorage on mount
    */
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
 
-    const draftJson = localStorage.getItem(storageKey);
-    if (!draftJson) return;
+    const draftJson = localStorage.getItem(storageKey)
+    if (!draftJson) return
 
     try {
-      const draft: DraftData<T> = JSON.parse(draftJson);
-      const isExpired = Date.now() - draft.timestamp > expiryDuration;
+      const draft: DraftData<T> = JSON.parse(draftJson)
+      const isExpired = Date.now() - draft.timestamp > expiryDuration
 
       if (isExpired) {
-        localStorage.removeItem(storageKey);
-        return;
+        localStorage.removeItem(storageKey)
+        return
       }
 
       // Restore each field from draft
       Object.entries(draft.data).forEach(([key, value]) => {
-        setValue(key as Path<T>, value);
-      });
+        setValue(key as Path<T>, value)
+      })
 
       if (showNotifications) {
-        toast.success('Draft restored from your last session');
+        toast.success('Draft restored from your last session')
       }
-      onDraftRestored?.();
+      onDraftRestored?.()
     } catch (error) {
-      console.error(`Failed to restore draft from ${storageKey}:`, error);
-      localStorage.removeItem(storageKey);
+      console.error(`Failed to restore draft from ${storageKey}:`, error)
+      localStorage.removeItem(storageKey)
 
       if (showNotifications) {
-        toast.error('Failed to restore draft');
+        toast.error('Failed to restore draft')
       }
     }
-  }, [isOpen, setValue, storageKey, expiryDuration, showNotifications, onDraftRestored]);
+  }, [
+    isOpen,
+    setValue,
+    storageKey,
+    expiryDuration,
+    showNotifications,
+    onDraftRestored,
+  ])
 
   /**
    * Save draft to localStorage
@@ -122,46 +129,46 @@ export function useFormDraft<T extends FieldValues>(
         const draft: DraftData<T> = {
           data,
           timestamp: Date.now(),
-        };
-        localStorage.setItem(storageKey, JSON.stringify(draft));
-        onDraftSaved?.();
+        }
+        localStorage.setItem(storageKey, JSON.stringify(draft))
+        onDraftSaved?.()
       } catch (error) {
-        console.error(`Failed to save draft to ${storageKey}:`, error);
+        console.error(`Failed to save draft to ${storageKey}:`, error)
       }
     },
     [storageKey, onDraftSaved]
-  );
+  )
 
   /**
    * Clear draft from localStorage
    */
   const clearDraft = useCallback(() => {
     try {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKey)
     } catch (error) {
-      console.error(`Failed to clear draft from ${storageKey}:`, error);
+      console.error(`Failed to clear draft from ${storageKey}:`, error)
     }
-  }, [storageKey]);
+  }, [storageKey])
 
   /**
    * Check if draft exists
    */
   const hasDraft = useCallback((): boolean => {
-    const draftJson = localStorage.getItem(storageKey);
-    if (!draftJson) return false;
+    const draftJson = localStorage.getItem(storageKey)
+    if (!draftJson) return false
 
     try {
-      const draft: DraftData<T> = JSON.parse(draftJson);
-      const isExpired = Date.now() - draft.timestamp > expiryDuration;
-      return !isExpired;
+      const draft: DraftData<T> = JSON.parse(draftJson)
+      const isExpired = Date.now() - draft.timestamp > expiryDuration
+      return !isExpired
     } catch {
-      return false;
+      return false
     }
-  }, [storageKey, expiryDuration]);
+  }, [storageKey, expiryDuration])
 
   return {
     saveDraft,
     clearDraft,
     hasDraft,
-  };
+  }
 }

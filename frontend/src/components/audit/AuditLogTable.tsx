@@ -1,15 +1,20 @@
-import React from 'react';
-import { format } from 'date-fns';
-import { ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
+import React from 'react'
+import { format } from 'date-fns'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+} from '@heroicons/react/20/solid'
 
-import type { AuditLogResponse, AuditLogEntry } from '../../store/api/auditApi';
+import type { AuditLogResponse, AuditLogEntry } from '../../store/api/auditApi'
 
 interface AuditLogTableProps {
-  auditLogs?: AuditLogResponse;
-  currentPage: number;
-  onPageChange: (page: number) => void;
-  onSortChange: (field: string, direction: 'ASC' | 'DESC') => void;
-  onRowClick?: (entryId: string) => void;
+  auditLogs?: AuditLogResponse
+  currentPage: number
+  onPageChange: (page: number) => void
+  onSortChange: (field: string, direction: 'ASC' | 'DESC') => void
+  onRowClick?: (entryId: string) => void
 }
 
 /**
@@ -24,85 +29,101 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
 }) => {
   const formatTimestamp = (timestamp: string) => {
     try {
-      return format(new Date(timestamp), 'MMM dd, yyyy HH:mm:ss');
+      return format(new Date(timestamp), 'MMM dd, yyyy HH:mm:ss')
     } catch {
-      return timestamp;
+      return timestamp
     }
-  };
+  }
 
   const getOutcomeBadgeClass = (outcome: string) => {
     switch (outcome) {
       case 'SUCCESS':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800'
       case 'FAILURE':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800'
       case 'PARTIAL':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800'
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800'
     }
-  };
+  }
 
   const getSensitivityBadgeClass = (sensitivity: string) => {
     switch (sensitivity) {
       case 'PUBLIC':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800'
       case 'INTERNAL':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800'
       case 'CONFIDENTIAL':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800'
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800'
     }
-  };
+  }
 
-  const SortIcon: React.FC<{ field: string; currentSort?: string; direction?: string }> = ({
-    field,
-    currentSort,
-    direction,
-  }) => {
+  const SortIcon: React.FC<{
+    field: string
+    currentSort?: string
+    direction?: string
+  }> = ({ field, currentSort, direction }) => {
     if (currentSort !== field) {
-      return <ChevronUpIcon className="h-4 w-4 text-gray-400" />;
+      return <ChevronUpIcon className="h-4 w-4 text-gray-400" />
     }
     return direction === 'DESC' ? (
       <ChevronDownIcon className="h-4 w-4 text-gray-600" />
     ) : (
       <ChevronUpIcon className="h-4 w-4 text-gray-600" />
-    );
-  };
+    )
+  }
 
-  const handleSort = (field: string, currentSort?: string, currentDirection?: string) => {
+  const handleSort = (
+    field: string,
+    currentSort?: string,
+    currentDirection?: string
+  ) => {
     if (currentSort === field) {
       // Toggle direction
-      onSortChange(field, currentDirection === 'DESC' ? 'ASC' : 'DESC');
+      onSortChange(field, currentDirection === 'DESC' ? 'ASC' : 'DESC')
     } else {
       // New field, default to DESC
-      onSortChange(field, 'DESC');
+      onSortChange(field, 'DESC')
     }
-  };
+  }
 
   if (!auditLogs) {
     return (
       <div className="p-8 text-center text-gray-500">
         No audit logs available
       </div>
-    );
+    )
   }
 
-  const { content: entries, totalElements, totalPages, first, last } = auditLogs;
+  const { content: entries, totalElements, totalPages, first, last } = auditLogs
 
   if (entries.length === 0) {
     return (
       <div className="p-8 text-center">
-        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg
+          className="mx-auto h-12 w-12 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No audit logs found</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          No audit logs found
+        </h3>
         <p className="mt-1 text-sm text-gray-500">
           Try adjusting your filters to see more results.
         </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -187,12 +208,16 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getOutcomeBadgeClass(entry.outcome)}`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getOutcomeBadgeClass(entry.outcome)}`}
+                  >
                     {entry.outcome}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSensitivityBadgeClass(entry.sensitivity)}`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSensitivityBadgeClass(entry.sensitivity)}`}
+                  >
                     {entry.sensitivity}
                   </span>
                 </td>
@@ -231,13 +256,14 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
               <span className="font-medium">
                 {Math.min((currentPage + 1) * auditLogs.size, totalElements)}
               </span>{' '}
-              of{' '}
-              <span className="font-medium">{totalElements}</span>{' '}
-              results
+              of <span className="font-medium">{totalElements}</span> results
             </p>
           </div>
           <div>
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            <nav
+              className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+              aria-label="Pagination"
+            >
               <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={first}
@@ -262,5 +288,5 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

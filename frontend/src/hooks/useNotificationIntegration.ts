@@ -1,8 +1,14 @@
 import { useCallback } from 'react'
 
-import { useNotifications, createNotificationHelpers } from '../components/ui/FeedbackSystem'
+import {
+  useNotifications,
+  createNotificationHelpers,
+} from '../components/ui/FeedbackSystem'
 
-import { useOptimisticUpdates, type OptimisticUpdateOptions } from './useOptimisticUpdates'
+import {
+  useOptimisticUpdates,
+  type OptimisticUpdateOptions,
+} from './useOptimisticUpdates'
 
 /**
  * Enhanced hook that integrates optimistic updates with the notification system
@@ -44,7 +50,10 @@ export const useOptimisticNotifications = <T>() => {
 
       // Show loading notification
       if (showLoadingNotification) {
-        loadingNotificationId = helpers.showLoading(loadingTitle, loadingMessage)
+        loadingNotificationId = helpers.showLoading(
+          loadingTitle,
+          loadingMessage
+        )
       }
 
       try {
@@ -53,7 +62,7 @@ export const useOptimisticNotifications = <T>() => {
           mutationFn,
           {
             ...optimisticOptions,
-            onSuccess: (data) => {
+            onSuccess: data => {
               // Close loading notification
               if (loadingNotificationId && autoCloseLoading) {
                 notifications.removeNotification(loadingNotificationId)
@@ -82,9 +91,13 @@ export const useOptimisticNotifications = <T>() => {
                     label: 'Retry',
                     onClick: () => {
                       // Retry the operation
-                      void addOptimisticUpdateWithNotifications(data, mutationFn, options)
+                      void addOptimisticUpdateWithNotifications(
+                        data,
+                        mutationFn,
+                        options
+                      )
                     },
-                    variant: 'primary'
+                    variant: 'primary',
                   },
                   {
                     label: 'Undo',
@@ -92,11 +105,11 @@ export const useOptimisticNotifications = <T>() => {
                       // Trigger rollback through original callback
                       optimisticOptions.onError?.(error, rollbackData)
                     },
-                    variant: 'secondary'
-                  }
+                    variant: 'secondary',
+                  },
                 ]
               )
-            }
+            },
           }
         )
 
@@ -116,7 +129,7 @@ export const useOptimisticNotifications = <T>() => {
     (notificationId: string, progress: number, message?: string) => {
       notifications.updateNotification(notificationId, {
         title: `Processing... ${progress}%`,
-        ...(message ? { message } : {})
+        ...(message ? { message } : {}),
       })
     },
     [notifications]
@@ -127,7 +140,7 @@ export const useOptimisticNotifications = <T>() => {
     addOptimisticUpdateWithNotifications,
     updateLoadingNotification,
     notifications,
-    ...helpers
+    ...helpers,
   }
 }
 
@@ -158,7 +171,7 @@ export const useFormSubmissionNotifications = () => {
         errorTitle = 'Submission failed',
         onSuccess,
         onError,
-        validateBeforeSubmit
+        validateBeforeSubmit,
       } = options
 
       // Pre-submission validation
@@ -180,7 +193,7 @@ export const useFormSubmissionNotifications = () => {
           title: successTitle,
           ...(successMessage ? { message: successMessage } : {}),
           persistent: false,
-          duration: 4000
+          duration: 4000,
         })
 
         onSuccess?.(result)
@@ -193,7 +206,7 @@ export const useFormSubmissionNotifications = () => {
           title: errorTitle,
           message: err.message || 'An unexpected error occurred',
           persistent: false,
-          duration: 6000
+          duration: 6000,
         })
 
         onError?.(err)
@@ -205,7 +218,7 @@ export const useFormSubmissionNotifications = () => {
 
   return {
     submitFormWithNotifications,
-    ...helpers
+    ...helpers,
   }
 }
 
@@ -237,7 +250,7 @@ export const useBatchOperationNotifications = () => {
         showProgress = true,
         onItemComplete,
         onItemError,
-        onComplete
+        onComplete,
       } = options
 
       if (items.length === 0) {
@@ -245,7 +258,10 @@ export const useBatchOperationNotifications = () => {
         return []
       }
 
-      const notificationId = helpers.showLoading(batchTitle, `Processing ${items.length} items`)
+      const notificationId = helpers.showLoading(
+        batchTitle,
+        `Processing ${items.length} items`
+      )
       const results: Array<R | null> = []
       let completed = 0
       let errors = 0
@@ -268,7 +284,7 @@ export const useBatchOperationNotifications = () => {
           const progress = Math.round(((i + 1) / items.length) * 100)
           notifications.updateNotification(notificationId, {
             title: `${batchTitle} ${progress}%`,
-            message: `${completed} completed, ${errors} errors`
+            message: `${completed} completed, ${errors} errors`,
           })
         }
       }
@@ -286,13 +302,15 @@ export const useBatchOperationNotifications = () => {
             {
               label: 'View Details',
               onClick: () => {
-                helpers.showInfo('Operation Details',
-                  `Completed: ${completed}\nFailed: ${errors}\nTotal: ${items.length}`)
+                helpers.showInfo(
+                  'Operation Details',
+                  `Completed: ${completed}\nFailed: ${errors}\nTotal: ${items.length}`
+                )
               },
-              variant: 'primary'
-            }
-          ]
-        })
+              variant: 'primary',
+            },
+          ],
+        }),
       })
 
       onComplete?.(results)
@@ -303,6 +321,6 @@ export const useBatchOperationNotifications = () => {
 
   return {
     executeBatchOperation,
-    ...helpers
+    ...helpers,
   }
 }

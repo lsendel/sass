@@ -6,46 +6,61 @@ import { VALIDATION_MESSAGES, UI_LIMITS } from '@/constants/appConstants'
 // Base validation schemas
 export const ValidationSchemas = {
   email: z.string().email(VALIDATION_MESSAGES.INVALID_EMAIL),
-  
-  password: z.string()
+
+  password: z
+    .string()
     .min(8, VALIDATION_MESSAGES.PASSWORD_TOO_SHORT)
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/, 
-      'Password must contain uppercase, lowercase, number, and special character'),
-  
-  searchText: z.string()
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+      'Password must contain uppercase, lowercase, number, and special character'
+    ),
+
+  searchText: z
+    .string()
     .max(UI_LIMITS.MAX_SEARCH_LENGTH, VALIDATION_MESSAGES.SEARCH_TOO_LONG)
     .optional(),
-  
-  dateRange: z.object({
-    from: z.date(),
-    to: z.date(),
-  }).refine(data => data.from < data.to, {
-    message: 'Start date must be before end date',
-    path: ['from'],
-  }),
-  
-  fileSize: z.number()
-    .max(UI_LIMITS.MAX_FILE_SIZE_MB * 1024 * 1024, VALIDATION_MESSAGES.FILE_TOO_LARGE),
+
+  dateRange: z
+    .object({
+      from: z.date(),
+      to: z.date(),
+    })
+    .refine(data => data.from < data.to, {
+      message: 'Start date must be before end date',
+      path: ['from'],
+    }),
+
+  fileSize: z
+    .number()
+    .max(
+      UI_LIMITS.MAX_FILE_SIZE_MB * 1024 * 1024,
+      VALIDATION_MESSAGES.FILE_TOO_LARGE
+    ),
 } as const
 
 // Domain-specific validation schemas
 export const AuditValidationSchemas = {
-  exportRequest: z.object({
-    format: z.enum(['CSV', 'JSON', 'PDF']),
-    dateFrom: z.date().optional(),
-    dateTo: z.date().optional(),
-    search: ValidationSchemas.searchText,
-    actionTypes: z.array(z.string()).max(50).optional(),
-    resourceTypes: z.array(z.string()).max(50).optional(),
-  }).refine(data => {
-    if (data.dateFrom && data.dateTo) {
-      return data.dateFrom < data.dateTo
-    }
-    return true
-  }, {
-    message: 'Start date must be before end date',
-    path: ['dateFrom'],
-  }),
+  exportRequest: z
+    .object({
+      format: z.enum(['CSV', 'JSON', 'PDF']),
+      dateFrom: z.date().optional(),
+      dateTo: z.date().optional(),
+      search: ValidationSchemas.searchText,
+      actionTypes: z.array(z.string()).max(50).optional(),
+      resourceTypes: z.array(z.string()).max(50).optional(),
+    })
+    .refine(
+      data => {
+        if (data.dateFrom && data.dateTo) {
+          return data.dateFrom < data.dateTo
+        }
+        return true
+      },
+      {
+        message: 'Start date must be before end date',
+        path: ['dateFrom'],
+      }
+    ),
 
   userProfile: z.object({
     email: ValidationSchemas.email,
@@ -73,7 +88,10 @@ export class ValidationUtils {
   /**
    * Validates data against a Zod schema with improved error handling.
    */
-  static validate<T>(schema: z.ZodSchema<T>, data: unknown): ValidationResult<T> {
+  static validate<T>(
+    schema: z.ZodSchema<T>,
+    data: unknown
+  ): ValidationResult<T> {
     try {
       const result = schema.parse(data)
       return {
@@ -87,20 +105,22 @@ export class ValidationUtils {
           message: err.message,
           code: err.code,
         }))
-        
+
         return {
           success: false,
           errors,
         }
       }
-      
+
       return {
         success: false,
-        errors: [{
-          field: 'unknown',
-          message: 'Validation failed',
-          code: 'unknown_error',
-        }],
+        errors: [
+          {
+            field: 'unknown',
+            message: 'Validation failed',
+            code: 'unknown_error',
+          },
+        ],
       }
     }
   }
@@ -109,7 +129,7 @@ export class ValidationUtils {
    * Validates data asynchronously with custom async validators.
    */
   static async validateAsync<T>(
-    schema: z.ZodSchema<T>, 
+    schema: z.ZodSchema<T>,
     data: unknown,
     customValidators?: Array<AsyncValidator<T>>
   ): Promise<ValidationResult<T>> {
@@ -140,13 +160,13 @@ export class ValidationUtils {
     delay = 300
   ): (data: unknown) => Promise<ValidationResult<T>> {
     let timeoutId: number | NodeJS.Timeout | null = null
-    
+
     return (data: unknown) => {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         if (timeoutId) {
           clearTimeout(timeoutId)
         }
-        
+
         timeoutId = setTimeout(() => {
           resolve(this.validate(schema, data))
         }, delay)
@@ -158,11 +178,11 @@ export class ValidationUtils {
    * Validates form data with field-level error mapping.
    */
   static validateForm<T extends Record<string, any>>(
-    schema: z.ZodSchema<T>, 
+    schema: z.ZodSchema<T>,
     formData: T
   ): FormValidationResult<T> {
     const result = this.validate(schema, formData)
-    
+
     if (result.success) {
       return {
         success: true,
@@ -208,39 +228,45 @@ export function useFormValidation<T extends Record<string, any>>(
     [schema]
   )
 
-  const validateField = React.useCallback(async (field: keyof T, value: any) => {
-    setIsValidating(true)
-    
-    const fieldData = { ...data, [field]: value }
-    const result = await debouncedValidator(fieldData)
-    
-    setErrors(prev => {
-      const newErrors = { ...prev }
-      if (result.success) {
-        delete newErrors[field as string]
-      } else {
-        const fieldError = result.errors?.find(e => e.field === field)
-        if (fieldError) {
-          newErrors[field as string] = fieldError.message
-        }
-      }
-      return newErrors
-    })
-    
-    setIsValid(result.success && Object.keys(errors).length === 0)
-    setIsValidating(false)
-  }, [data, debouncedValidator, errors])
+  const validateField = React.useCallback(
+    async (field: keyof T, value: any) => {
+      setIsValidating(true)
 
-  const updateField = React.useCallback((field: keyof T, value: any) => {
-    const newData = { ...data, [field]: value }
-    setData(newData)
-    validateField(field, value)
-  }, [data, validateField])
+      const fieldData = { ...data, [field]: value }
+      const result = await debouncedValidator(fieldData)
+
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        if (result.success) {
+          delete newErrors[field as string]
+        } else {
+          const fieldError = result.errors?.find(e => e.field === field)
+          if (fieldError) {
+            newErrors[field as string] = fieldError.message
+          }
+        }
+        return newErrors
+      })
+
+      setIsValid(result.success && Object.keys(errors).length === 0)
+      setIsValidating(false)
+    },
+    [data, debouncedValidator, errors]
+  )
+
+  const updateField = React.useCallback(
+    (field: keyof T, value: any) => {
+      const newData = { ...data, [field]: value }
+      setData(newData)
+      validateField(field, value)
+    },
+    [data, validateField]
+  )
 
   const validateAll = React.useCallback(async () => {
     setIsValidating(true)
     const result = await debouncedValidator(data)
-    
+
     if (result.success) {
       setErrors({})
       setIsValid(true)
@@ -252,7 +278,7 @@ export function useFormValidation<T extends Record<string, any>>(
       setErrors(fieldErrors)
       setIsValid(false)
     }
-    
+
     setIsValidating(false)
     return result
   }, [data, debouncedValidator])
@@ -270,22 +296,21 @@ export function useFormValidation<T extends Record<string, any>>(
 
 // Export commonly used validators
 export const CommonValidators = {
-  required: (message = VALIDATION_MESSAGES.REQUIRED_FIELD) => 
+  required: (message = VALIDATION_MESSAGES.REQUIRED_FIELD) =>
     z.string().min(1, message),
-  
+
   email: ValidationSchemas.email,
-  
+
   password: ValidationSchemas.password,
-  
+
   url: z.string().url('Please enter a valid URL'),
-  
-  phoneNumber: z.string().regex(
-    /^\+?[1-9]\d{1,14}$/, 
-    'Please enter a valid phone number'
-  ),
-  
+
+  phoneNumber: z
+    .string()
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number'),
+
   positiveNumber: z.number().positive('Must be a positive number'),
-  
-  nonEmptyArray: <T>(schema: z.ZodSchema<T>) => 
+
+  nonEmptyArray: <T>(schema: z.ZodSchema<T>) =>
     z.array(schema).min(1, 'At least one item is required'),
 } as const

@@ -23,17 +23,14 @@ import StatsCard from '../../components/ui/StatsCard'
 import { getCardClasses } from '../../lib/theme'
 // import { usePagePerformance, usePerformanceTracking } from '../../utils/performance'
 
-
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
 
   // Performance tracking for dashboard
   // usePagePerformance('Dashboard')
   // usePerformanceTracking()
-  const {
-    data: organizations,
-    isLoading: orgsLoading
-  } = useGetUserOrganizationsQuery()
+  const { data: organizations, isLoading: orgsLoading } =
+    useGetUserOrganizationsQuery()
 
   // Get statistics for the first organization (primary org)
   const primaryOrg = organizations?.[0]
@@ -44,10 +41,10 @@ const DashboardPage: React.FC = () => {
   const {
     data: subscriptionStats,
     isLoading: subscriptionStatsLoading,
-    refetch: refetchSubscriptionStats
+    refetch: refetchSubscriptionStats,
   } = useGetSubscriptionStatisticsQuery(primaryOrg?.id || '', {
-      skip: !primaryOrg?.id,
-    })
+    skip: !primaryOrg?.id,
+  })
 
   // Set up real-time updates for dashboard data
   const realTimeUpdates = useRealTimeUpdates(
@@ -95,7 +92,10 @@ const DashboardPage: React.FC = () => {
     },
     {
       name: 'Revenue',
-      value: paymentStats && typeof paymentStats.totalAmount === 'number' ? `$${paymentStats.totalAmount.toFixed(2)}` : '$0.00',
+      value:
+        paymentStats && typeof paymentStats.totalAmount === 'number'
+          ? `$${paymentStats.totalAmount.toFixed(2)}`
+          : '$0.00',
       icon: ArrowTrendingUpIcon,
       bgColor: 'bg-accent-50',
       iconColor: 'text-accent-600',
@@ -117,7 +117,8 @@ const DashboardPage: React.FC = () => {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Welcome back, <span className="brand-element">{user?.email}</span>! 👋
+            Welcome back, <span className="brand-element">{user?.email}</span>!
+            👋
           </h1>
           <p className="text-sm text-gray-600">
             Here's your dashboard overview with the latest insights and metrics.
@@ -147,24 +148,28 @@ const DashboardPage: React.FC = () => {
 
       {/* Stats Grid - Compact */}
       <div className="grid grid-cols-4 gap-3">
-        {stats.map((stat) => {
+        {stats.map(stat => {
           const isPaymentsCard = stat.name === 'Total Payments'
           const isSubscriptionCard = stat.name === 'Subscription'
-          const displayValue = isPaymentsCard && paymentStatsLoading
-            ? <InlineLoading size="md" />
-            : isSubscriptionCard && subscriptionStatsLoading
-              ? <InlineLoading size="md" />
-              : stat.value
+          const displayValue =
+            isPaymentsCard && paymentStatsLoading ? (
+              <InlineLoading size="md" />
+            ) : isSubscriptionCard && subscriptionStatsLoading ? (
+              <InlineLoading size="md" />
+            ) : (
+              stat.value
+            )
 
           return (
             <StatsCard
               key={stat.name}
               unstyled
-              className={clsx(getCardClasses(), 'p-3 transition-shadow hover:shadow-lg brand-element')}
+              className={clsx(
+                getCardClasses(),
+                'p-3 transition-shadow hover:shadow-lg brand-element'
+              )}
               contentClassName="p-0"
-              icon={
-                <stat.icon className="w-3 h-3 brand-element" />
-              }
+              icon={<stat.icon className="w-3 h-3 brand-element" />}
               iconWrapperClassName={`inline-flex items-center justify-center w-6 h-6 ${stat.bgColor} ${stat.iconColor} rounded-lg mb-2`}
               title={stat.name}
               titleClassName="text-xs font-medium text-gray-600 mb-1"
@@ -183,7 +188,9 @@ const DashboardPage: React.FC = () => {
           <div className="w-6 h-6 gradient-brand rounded-lg flex items-center justify-center mr-2">
             <ChartBarIcon className="w-3 h-3 text-white brand-element" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 brand-element">Quick Actions</h3>
+          <h3 className="text-base font-semibold text-gray-900 brand-element">
+            Quick Actions
+          </h3>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <QuickActionCard
@@ -214,7 +221,9 @@ const DashboardPage: React.FC = () => {
             <div className="w-6 h-6 bg-success-600 rounded-lg flex items-center justify-center mr-2">
               <BellIcon className="w-3 h-3 text-white brand-element" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 brand-element">Recent Activity</h3>
+            <h3 className="text-base font-semibold text-gray-900 brand-element">
+              Recent Activity
+            </h3>
           </div>
           <div className="space-y-2">
             <div className="flex items-center p-2 bg-success-50 rounded-lg border border-success-200">
@@ -223,15 +232,27 @@ const DashboardPage: React.FC = () => {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-medium text-gray-900">
-                  Organization <span className="font-semibold brand-element">{primaryOrg.name}</span> created
+                  Organization{' '}
+                  <span className="font-semibold brand-element">
+                    {primaryOrg.name}
+                  </span>{' '}
+                  created
                 </p>
                 <p className="text-xs text-gray-500">
                   {format(new Date(primaryOrg.createdAt), 'MMM d, yyyy')}
                 </p>
               </div>
               <div className="text-success-600">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <svg
+                  className="w-3 h-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
             </div>
@@ -243,7 +264,10 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-medium text-gray-900">
-                    Subscription: <span className="font-semibold brand-element">{subscriptionStats.status}</span>
+                    Subscription:{' '}
+                    <span className="font-semibold brand-element">
+                      {subscriptionStats.status}
+                    </span>
                   </p>
                   <p className="text-xs text-gray-500">Active subscription</p>
                 </div>
@@ -288,15 +312,23 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
               {title}
             </a>
           </h3>
-          <p className="text-xs text-gray-600">
-            {description}
-          </p>
+          <p className="text-xs text-gray-600">{description}</p>
         </div>
 
         {/* Arrow icon */}
         <div className="absolute top-2 right-2 text-gray-400 group-hover:text-gray-600 transition-colors">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 7l5 5m0 0l-5 5m5-5H6"
+            />
           </svg>
         </div>
       </div>

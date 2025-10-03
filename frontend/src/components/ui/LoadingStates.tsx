@@ -29,12 +29,15 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   onClick,
   'data-testid': dataTestId,
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+  const baseClasses =
+    'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variantClasses = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
+    primary:
+      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-primary-500',
+    outline:
+      'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-primary-500',
     ghost: 'text-gray-700 hover:bg-gray-50 focus:ring-primary-500',
   }
 
@@ -84,10 +87,12 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   if (!isLoading) return null
 
   return (
-    <div className={clsx(
-      'absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50',
-      className
-    )}>
+    <div
+      className={clsx(
+        'absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50',
+        className
+      )}
+    >
       <div className="flex flex-col items-center">
         <LoadingSpinner size="lg" />
         <p className="mt-2 text-sm text-gray-600">{message}</p>
@@ -109,10 +114,12 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
   className = '',
 }) => {
   return (
-    <div className={clsx(
-      'bg-white border border-gray-200 rounded-lg p-6 text-center animate-pulse',
-      className
-    )}>
+    <div
+      className={clsx(
+        'bg-white border border-gray-200 rounded-lg p-6 text-center animate-pulse',
+        className
+      )}
+    >
       <div className="flex justify-center mb-4">
         <LoadingSpinner size="lg" />
       </div>
@@ -141,7 +148,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   const baseClasses = clsx(
     'bg-gray-200',
     animation === 'pulse' && 'animate-pulse',
-    animation === 'wave' && 'animate-pulse',
+    animation === 'wave' && 'animate-pulse'
   )
 
   const variantClasses = {
@@ -195,7 +202,10 @@ export const ListSkeleton: React.FC<{ items?: number }> = ({ items = 3 }) => {
   return (
     <div className="space-y-4">
       {Array.from({ length: items }).map((_, index) => (
-        <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg animate-pulse">
+        <div
+          key={index}
+          className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg animate-pulse"
+        >
           <Skeleton variant="circular" width={48} height={48} />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-3/4" />
@@ -209,9 +219,16 @@ export const ListSkeleton: React.FC<{ items?: number }> = ({ items = 3 }) => {
 }
 
 // Card loading skeleton
-export const CardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const CardSkeleton: React.FC<{ className?: string }> = ({
+  className = '',
+}) => {
   return (
-    <div className={clsx('p-4 border border-gray-200 rounded-lg animate-pulse', className)}>
+    <div
+      className={clsx(
+        'p-4 border border-gray-200 rounded-lg animate-pulse',
+        className
+      )}
+    >
       <div className="flex items-center space-x-3 mb-4">
         <Skeleton variant="circular" width={32} height={32} />
         <Skeleton className="h-5 w-32" />
@@ -249,13 +266,13 @@ export const InlineLoading: React.FC<InlineLoadingProps> = ({
 
   return (
     <div className={clsx('flex items-center', className)}>
-      <div className={clsx(
-        'animate-spin border-2 border-current border-t-transparent rounded-full',
-        spinnerSizes[size]
-      )} />
-      {text && (
-        <span className="ml-2 text-sm text-gray-600">{text}</span>
-      )}
+      <div
+        className={clsx(
+          'animate-spin border-2 border-current border-t-transparent rounded-full',
+          spinnerSizes[size]
+        )}
+      />
+      {text && <span className="ml-2 text-sm text-gray-600">{text}</span>}
     </div>
   )
 }

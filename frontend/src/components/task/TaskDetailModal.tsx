@@ -1,31 +1,30 @@
-import React, { useState } from 'react';
-import {
-  Calendar,
-  Clock,
-  MessageSquare,
-  Edit3
-} from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
-import { toast } from 'react-hot-toast';
+import React, { useState } from 'react'
+import { Calendar, Clock, MessageSquare, Edit3 } from 'lucide-react'
+import { formatDistanceToNow, format } from 'date-fns'
+import { toast } from 'react-hot-toast'
 
-import { useGetTaskQuery, useUpdateTaskMutation, type Task } from '../../store/api/projectManagementApi';
-import { Modal } from '../ui/Modal';
-import { Button } from '../ui/button';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import {
+  useGetTaskQuery,
+  useUpdateTaskMutation,
+  type Task,
+} from '../../store/api/projectManagementApi'
+import { Modal } from '../ui/Modal'
+import { Button } from '../ui/button'
+import LoadingSpinner from '../ui/LoadingSpinner'
 
 interface TaskDetailModalProps {
-  taskId: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onTaskUpdated: () => void;
+  taskId: string
+  isOpen: boolean
+  onClose: () => void
+  onTaskUpdated: () => void
 }
 
 /**
  * TaskDetailModal Component
- * 
+ *
  * Detailed view of a task with editing capabilities and activity history.
  * Shows comprehensive task information, comments, and subtasks.
- * 
+ *
  * Features:
  * - Full task details display
  * - Inline editing capabilities
@@ -42,20 +41,20 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   onClose,
   onTaskUpdated,
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [newComment, setNewComment] = useState('');
+  const [isEditing, setIsEditing] = useState(false)
+  const [newComment, setNewComment] = useState('')
 
   const {
     data: task,
     error,
     isLoading,
-    refetch
-  } = useGetTaskQuery(taskId, { skip: !isOpen });
+    refetch,
+  } = useGetTaskQuery(taskId, { skip: !isOpen })
 
-  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
+  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation()
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!task) return;
+    if (!task) return
 
     try {
       await updateTask({
@@ -63,18 +62,20 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         task: {
           status: newStatus as Task['status'],
         },
-      }).unwrap();
+      }).unwrap()
 
-      toast.success(`Task moved to ${newStatus.replace('_', ' ').toLowerCase()}`);
-      refetch();
-      onTaskUpdated();
+      toast.success(
+        `Task moved to ${newStatus.replace('_', ' ').toLowerCase()}`
+      )
+      refetch()
+      onTaskUpdated()
     } catch (error) {
-      toast.error('Failed to update task status');
+      toast.error('Failed to update task status')
     }
-  };
+  }
 
   const handlePriorityChange = async (newPriority: string) => {
-    if (!task) return;
+    if (!task) return
 
     try {
       await updateTask({
@@ -82,17 +83,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         task: {
           priority: newPriority as Task['priority'],
         },
-      }).unwrap();
+      }).unwrap()
 
-      toast.success(`Priority changed to ${newPriority.toLowerCase()}`);
-      refetch();
-      onTaskUpdated();
+      toast.success(`Priority changed to ${newPriority.toLowerCase()}`)
+      refetch()
+      onTaskUpdated()
     } catch (error) {
-      toast.error('Failed to update task priority');
+      toast.error('Failed to update task priority')
     }
-  };
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   if (isLoading) {
     return (
@@ -101,7 +102,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           <LoadingSpinner size="lg" />
         </div>
       </Modal>
-    );
+    )
   }
 
   if (error || !task) {
@@ -114,10 +115,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           </Button>
         </div>
       </Modal>
-    );
+    )
   }
 
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="lg">
@@ -129,12 +130,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               {task.title}
             </h1>
             {task.description && (
-              <p className="text-gray-600 text-sm">
-                {task.description}
-              </p>
+              <p className="text-gray-600 text-sm">{task.description}</p>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -158,7 +157,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               </label>
               <select
                 value={task.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
+                onChange={e => handleStatusChange(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 disabled={isUpdating}
               >
@@ -177,7 +176,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               </label>
               <select
                 value={task.priority}
-                onChange={(e) => handlePriorityChange(e.target.value)}
+                onChange={e => handlePriorityChange(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 disabled={isUpdating}
               >
@@ -215,9 +214,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Due Date
                 </label>
-                <div className={`flex items-center text-sm ${
-                  isOverdue ? 'text-red-600' : 'text-gray-900'
-                }`}>
+                <div
+                  className={`flex items-center text-sm ${
+                    isOverdue ? 'text-red-600' : 'text-gray-900'
+                  }`}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>
                     {format(new Date(task.dueDate), 'MMM d, yyyy')}
@@ -239,9 +240,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 </label>
                 <div className="flex items-center text-sm text-gray-900">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>
-                    {task.estimatedHours}h estimated
-                  </span>
+                  <span>{task.estimatedHours}h estimated</span>
                 </div>
               </div>
             )}
@@ -252,7 +251,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                 Created
               </label>
               <div className="text-sm text-gray-600">
-                {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(task.createdAt), {
+                  addSuffix: true,
+                })}
               </div>
             </div>
           </div>
@@ -267,12 +268,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Comments ({task.commentCount || 0})
           </label>
-          
+
           {/* Comment Input */}
           <div className="mb-4">
             <textarea
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={e => setNewComment(e.target.value)}
               placeholder="Add a comment..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               rows={3}
@@ -293,7 +294,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             {/* Attachments - Feature not yet in API */}
           </div>
-          
+
           <div className="flex space-x-2">
             <Button variant="outline" onClick={onClose}>
               Close
@@ -302,5 +303,5 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         </div>
       </div>
     </Modal>
-  );
-};
+  )
+}

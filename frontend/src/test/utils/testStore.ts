@@ -1,8 +1,8 @@
-import { configureStore } from '@reduxjs/toolkit';
-import type { Middleware, Reducer } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit'
+import type { Middleware, Reducer } from '@reduxjs/toolkit'
 
-import authReducer from '../../store/slices/authSlice';
-import type { RootState } from '../../store';
+import authReducer from '../../store/slices/authSlice'
+import type { RootState } from '../../store'
 
 /**
  * Test Store Utilities
@@ -28,11 +28,11 @@ export const createApiTestStore = (
       auth: authReducer,
       [api.reducerPath]: api.reducer as Reducer,
     },
-    middleware: (getDefaultMiddleware) =>
+    middleware: getDefaultMiddleware =>
       getDefaultMiddleware().concat(api.middleware as Middleware),
     preloadedState: preloadedState as RootState | undefined,
-  });
-};
+  })
+}
 
 /**
  * Create a test store with multiple API slices
@@ -48,22 +48,22 @@ export const createMultiApiTestStore = (
 ) => {
   const reducers: Record<string, Reducer> = {
     auth: authReducer,
-  };
+  }
 
-  const middlewares: Middleware[] = [];
+  const middlewares: Middleware[] = []
 
-  apis.forEach((api) => {
-    reducers[api.reducerPath] = api.reducer as Reducer;
-    middlewares.push(api.middleware as Middleware);
-  });
+  apis.forEach(api => {
+    reducers[api.reducerPath] = api.reducer as Reducer
+    middlewares.push(api.middleware as Middleware)
+  })
 
   return configureStore({
     reducer: reducers,
-    middleware: (getDefaultMiddleware) =>
+    middleware: getDefaultMiddleware =>
       getDefaultMiddleware().concat(...middlewares),
     preloadedState: preloadedState as RootState | undefined,
-  });
-};
+  })
+}
 
 /**
  * Create a test store with auth state pre-populated
@@ -76,12 +76,12 @@ export const createAuthenticatedApiTestStore = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   api: any,
   user?: {
-    id: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role: string;
-    token?: string;
+    id: string
+    email: string
+    firstName?: string
+    lastName?: string
+    role: string
+    token?: string
   }
 ) => {
   const defaultUser = user || {
@@ -93,15 +93,15 @@ export const createAuthenticatedApiTestStore = (
     emailVerified: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  }
 
   return createApiTestStore(api, {
     auth: {
       user: defaultUser as any,
       isAuthenticated: true,
-      token: (user?.token!) || null,
+      token: user?.token! || null,
       isLoading: false,
       error: null,
     },
-  });
-};
+  })
+}

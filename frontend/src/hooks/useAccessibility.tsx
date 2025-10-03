@@ -16,7 +16,9 @@ export const useFocusTrap = (isActive = false) => {
     )
 
     const firstElement = focusableElements[0] as HTMLElement
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+    const lastElement = focusableElements[
+      focusableElements.length - 1
+    ] as HTMLElement
 
     const handleTabKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return
@@ -55,7 +57,12 @@ export const useKeyboardNavigation = <T extends HTMLElement = HTMLElement>(
     disabled?: boolean
   } = {}
 ) => {
-  const { direction = 'vertical', loop = true, onSelect, disabled = false } = options
+  const {
+    direction = 'vertical',
+    loop = true,
+    onSelect,
+    disabled = false,
+  } = options
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const containerRef = useRef<T>(null)
   const itemsRef = useRef<HTMLElement[]>([])
@@ -72,70 +79,79 @@ export const useKeyboardNavigation = <T extends HTMLElement = HTMLElement>(
     itemsRef.current = focusableElements
   }, [])
 
-  const moveFocus = useCallback((newIndex: number) => {
-    if (!itemsRef.current.length) return
+  const moveFocus = useCallback(
+    (newIndex: number) => {
+      if (!itemsRef.current.length) return
 
-    let targetIndex = newIndex
+      let targetIndex = newIndex
 
-    if (loop) {
-      if (targetIndex < 0) targetIndex = itemsRef.current.length - 1
-      if (targetIndex >= itemsRef.current.length) targetIndex = 0
-    } else {
-      targetIndex = Math.max(0, Math.min(itemsRef.current.length - 1, targetIndex))
-    }
+      if (loop) {
+        if (targetIndex < 0) targetIndex = itemsRef.current.length - 1
+        if (targetIndex >= itemsRef.current.length) targetIndex = 0
+      } else {
+        targetIndex = Math.max(
+          0,
+          Math.min(itemsRef.current.length - 1, targetIndex)
+        )
+      }
 
-    setFocusedIndex(targetIndex)
-    itemsRef.current[targetIndex]?.focus()
-  }, [loop])
+      setFocusedIndex(targetIndex)
+      itemsRef.current[targetIndex]?.focus()
+    },
+    [loop]
+  )
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (disabled || !itemsRef.current.length) return
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (disabled || !itemsRef.current.length) return
 
-    updateFocusableItems()
-    const currentIndex = focusedIndex >= 0 ? focusedIndex : 0
+      updateFocusableItems()
+      const currentIndex = focusedIndex >= 0 ? focusedIndex : 0
 
-    switch (e.key) {
-      case 'ArrowDown':
-        if (direction === 'vertical' || direction === 'grid') {
+      switch (e.key) {
+        case 'ArrowDown':
+          if (direction === 'vertical' || direction === 'grid') {
+            e.preventDefault()
+            moveFocus(currentIndex + 1)
+          }
+          break
+        case 'ArrowUp':
+          if (direction === 'vertical' || direction === 'grid') {
+            e.preventDefault()
+            moveFocus(currentIndex - 1)
+          }
+          break
+        case 'ArrowRight':
+          if (direction === 'horizontal' || direction === 'grid') {
+            e.preventDefault()
+            moveFocus(currentIndex + 1)
+          }
+          break
+        case 'ArrowLeft':
+          if (direction === 'horizontal' || direction === 'grid') {
+            e.preventDefault()
+            moveFocus(currentIndex - 1)
+          }
+          break
+        case 'Home':
           e.preventDefault()
-          moveFocus(currentIndex + 1)
-        }
-        break
-      case 'ArrowUp':
-        if (direction === 'vertical' || direction === 'grid') {
+          moveFocus(0)
+          break
+        case 'End':
           e.preventDefault()
-          moveFocus(currentIndex - 1)
-        }
-        break
-      case 'ArrowRight':
-        if (direction === 'horizontal' || direction === 'grid') {
-          e.preventDefault()
-          moveFocus(currentIndex + 1)
-        }
-        break
-      case 'ArrowLeft':
-        if (direction === 'horizontal' || direction === 'grid') {
-          e.preventDefault()
-          moveFocus(currentIndex - 1)
-        }
-        break
-      case 'Home':
-        e.preventDefault()
-        moveFocus(0)
-        break
-      case 'End':
-        e.preventDefault()
-        moveFocus(itemsRef.current.length - 1)
-        break
-      case 'Enter':
-      case ' ':
-        if (onSelect && focusedIndex >= 0) {
-          e.preventDefault()
-          onSelect(focusedIndex)
-        }
-        break
-    }
-  }, [direction, disabled, focusedIndex, moveFocus, onSelect])
+          moveFocus(itemsRef.current.length - 1)
+          break
+        case 'Enter':
+        case ' ':
+          if (onSelect && focusedIndex >= 0) {
+            e.preventDefault()
+            onSelect(focusedIndex)
+          }
+          break
+      }
+    },
+    [direction, disabled, focusedIndex, moveFocus, onSelect]
+  )
 
   useEffect(() => {
     updateFocusableItems()
@@ -156,7 +172,7 @@ export const useKeyboardNavigation = <T extends HTMLElement = HTMLElement>(
     containerRef,
     focusedIndex,
     setFocusedIndex,
-    updateFocusableItems
+    updateFocusableItems,
   }
 }
 
@@ -167,28 +183,29 @@ export const useScreenReader = () => {
   const [announcement, setAnnouncement] = useState('')
   const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
 
-  const announce = useCallback((message: string, _priority: 'polite' | 'assertive' = 'polite') => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+  const announce = useCallback(
+    (message: string, _priority: 'polite' | 'assertive' = 'polite') => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
 
-    setAnnouncement('')
+      setAnnouncement('')
 
-    // Use timeout to ensure the announcement is read by screen readers
-    timeoutRef.current = setTimeout(() => {
-      setAnnouncement(message)
+      // Use timeout to ensure the announcement is read by screen readers
+      timeoutRef.current = setTimeout(() => {
+        setAnnouncement(message)
 
-      // Clear after announcement
-      setTimeout(() => setAnnouncement(''), 1000)
-    }, 10)
-  }, [])
+        // Clear after announcement
+        setTimeout(() => setAnnouncement(''), 1000)
+      }, 10)
+    },
+    []
+  )
 
-  const LiveRegion: React.FC<{ className?: string }> = ({ className = 'sr-only' }) => (
-    <div
-      aria-live="polite"
-      aria-atomic="true"
-      className={className}
-    >
+  const LiveRegion: React.FC<{ className?: string }> = ({
+    className = 'sr-only',
+  }) => (
+    <div aria-live="polite" aria-atomic="true" className={className}>
       {announcement}
     </div>
   )
@@ -263,9 +280,12 @@ export const useHighContrast = () => {
     return () => mediaQuery.removeEventListener('change', handler)
   }, [])
 
-  const getContrastClass = useCallback((normalClass: string, highContrastClass: string) => {
-    return isHighContrast ? highContrastClass : normalClass
-  }, [isHighContrast])
+  const getContrastClass = useCallback(
+    (normalClass: string, highContrastClass: string) => {
+      return isHighContrast ? highContrastClass : normalClass
+    },
+    [isHighContrast]
+  )
 
   return { isHighContrast, getContrastClass }
 }
@@ -274,35 +294,50 @@ export const useHighContrast = () => {
  * Hook for managing ARIA attributes dynamically
  */
 export const useAriaAttributes = () => {
-  const setAriaLabel = useCallback((element: HTMLElement | null, label: string) => {
-    if (element) {
-      element.setAttribute('aria-label', label)
-    }
-  }, [])
+  const setAriaLabel = useCallback(
+    (element: HTMLElement | null, label: string) => {
+      if (element) {
+        element.setAttribute('aria-label', label)
+      }
+    },
+    []
+  )
 
-  const setAriaDescribedBy = useCallback((element: HTMLElement | null, id: string) => {
-    if (element) {
-      element.setAttribute('aria-describedby', id)
-    }
-  }, [])
+  const setAriaDescribedBy = useCallback(
+    (element: HTMLElement | null, id: string) => {
+      if (element) {
+        element.setAttribute('aria-describedby', id)
+      }
+    },
+    []
+  )
 
-  const setAriaExpanded = useCallback((element: HTMLElement | null, expanded: boolean) => {
-    if (element) {
-      element.setAttribute('aria-expanded', expanded.toString())
-    }
-  }, [])
+  const setAriaExpanded = useCallback(
+    (element: HTMLElement | null, expanded: boolean) => {
+      if (element) {
+        element.setAttribute('aria-expanded', expanded.toString())
+      }
+    },
+    []
+  )
 
-  const setAriaSelected = useCallback((element: HTMLElement | null, selected: boolean) => {
-    if (element) {
-      element.setAttribute('aria-selected', selected.toString())
-    }
-  }, [])
+  const setAriaSelected = useCallback(
+    (element: HTMLElement | null, selected: boolean) => {
+      if (element) {
+        element.setAttribute('aria-selected', selected.toString())
+      }
+    },
+    []
+  )
 
-  const setAriaDisabled = useCallback((element: HTMLElement | null, disabled: boolean) => {
-    if (element) {
-      element.setAttribute('aria-disabled', disabled.toString())
-    }
-  }, [])
+  const setAriaDisabled = useCallback(
+    (element: HTMLElement | null, disabled: boolean) => {
+      if (element) {
+        element.setAttribute('aria-disabled', disabled.toString())
+      }
+    },
+    []
+  )
 
   const setRole = useCallback((element: HTMLElement | null, role: string) => {
     if (element) {
@@ -316,7 +351,7 @@ export const useAriaAttributes = () => {
     setAriaExpanded,
     setAriaSelected,
     setAriaDisabled,
-    setRole
+    setRole,
   }
 }
 
@@ -327,19 +362,22 @@ export const useLiveRegion = (type: 'status' | 'alert' = 'status') => {
   const [message, setMessage] = useState('')
   const timeoutRef = useRef<number | NodeJS.Timeout | null>(null)
 
-  const updateLiveRegion = useCallback((newMessage: string, clearAfter = 5000) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+  const updateLiveRegion = useCallback(
+    (newMessage: string, clearAfter = 5000) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
 
-    setMessage(newMessage)
+      setMessage(newMessage)
 
-    if (clearAfter > 0) {
-      timeoutRef.current = setTimeout(() => {
-        setMessage('')
-      }, clearAfter)
-    }
-  }, [])
+      if (clearAfter > 0) {
+        timeoutRef.current = setTimeout(() => {
+          setMessage('')
+        }, clearAfter)
+      }
+    },
+    []
+  )
 
   const clearLiveRegion = useCallback(() => {
     if (timeoutRef.current) {
@@ -348,7 +386,9 @@ export const useLiveRegion = (type: 'status' | 'alert' = 'status') => {
     setMessage('')
   }, [])
 
-  const LiveRegion: React.FC<{ className?: string }> = ({ className = 'sr-only' }) => (
+  const LiveRegion: React.FC<{ className?: string }> = ({
+    className = 'sr-only',
+  }) => (
     <div
       role={type}
       aria-live={type === 'alert' ? 'assertive' : 'polite'}
@@ -389,7 +429,7 @@ export const useAccessibilityContext = () => {
     components: {
       AnnouncementRegion,
       StatusRegion,
-      SkipLink
-    }
+      SkipLink,
+    },
   }
 }

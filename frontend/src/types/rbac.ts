@@ -53,7 +53,14 @@ export interface Permission {
 // Dynamic permission conditions
 export interface PermissionCondition {
   field: string
-  operator: 'equals' | 'not_equals' | 'in' | 'not_in' | 'greater_than' | 'less_than' | 'contains'
+  operator:
+    | 'equals'
+    | 'not_equals'
+    | 'in'
+    | 'not_in'
+    | 'greater_than'
+    | 'less_than'
+    | 'contains'
   value: string | string[] | number | boolean
   description?: string
 }
@@ -97,16 +104,27 @@ export interface UserRoleAssignment {
 
 // Role conditions (temporary assignments, time-based, etc.)
 export interface RoleCondition {
-  type: 'time_based' | 'ip_restricted' | 'device_restricted' | 'location_restricted'
+  type:
+    | 'time_based'
+    | 'ip_restricted'
+    | 'device_restricted'
+    | 'location_restricted'
   parameters: Record<string, any>
   description: string
 }
 
 // System-defined roles (cannot be modified)
-export interface SystemRole extends Omit<Role, 'isSystemRole' | 'isCustomRole'> {
+export interface SystemRole
+  extends Omit<Role, 'isSystemRole' | 'isCustomRole'> {
   isSystemRole: true
   isCustomRole: false
-  systemRoleType: 'super_admin' | 'org_owner' | 'org_admin' | 'org_member' | 'billing_manager' | 'read_only'
+  systemRoleType:
+    | 'super_admin'
+    | 'org_owner'
+    | 'org_admin'
+    | 'org_member'
+    | 'billing_manager'
+    | 'read_only'
 }
 
 // Permission evaluation context
@@ -212,7 +230,14 @@ export interface ComplianceStatus {
 // Audit trail for RBAC changes
 export interface RBACauditEvent {
   id: string
-  eventType: 'role_created' | 'role_updated' | 'role_deleted' | 'permission_granted' | 'permission_revoked' | 'assignment_created' | 'assignment_expired'
+  eventType:
+    | 'role_created'
+    | 'role_updated'
+    | 'role_deleted'
+    | 'permission_granted'
+    | 'permission_revoked'
+    | 'assignment_created'
+    | 'assignment_expired'
   entityType: 'role' | 'permission' | 'assignment'
   entityId: string
   actorId: string

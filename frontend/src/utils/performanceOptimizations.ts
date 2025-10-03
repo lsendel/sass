@@ -22,9 +22,11 @@ export class PerformanceMonitor {
 
   private setupCoreWebVitals(): void {
     // Largest Contentful Paint
-    const lcpObserver = new PerformanceObserver((list) => {
+    const lcpObserver = new PerformanceObserver(list => {
       const entries = list.getEntries()
-      const lastEntry = entries[entries.length - 1] as PerformanceNavigationTiming
+      const lastEntry = entries[
+        entries.length - 1
+      ] as PerformanceNavigationTiming
       this.metrics.set('LCP', lastEntry.startTime)
       this.reportMetric('LCP', lastEntry.startTime)
     })
@@ -32,7 +34,7 @@ export class PerformanceMonitor {
     this.observers.set('LCP', lcpObserver)
 
     // First Input Delay
-    const fidObserver = new PerformanceObserver((list) => {
+    const fidObserver = new PerformanceObserver(list => {
       const entries = list.getEntries()
       entries.forEach((entry: any) => {
         const delay = entry.processingStart - entry.startTime
@@ -45,7 +47,7 @@ export class PerformanceMonitor {
 
     // Cumulative Layout Shift
     let clsValue = 0
-    const clsObserver = new PerformanceObserver((list) => {
+    const clsObserver = new PerformanceObserver(list => {
       const entries = list.getEntries()
       entries.forEach((entry: any) => {
         if (!entry.hadRecentInput) {
@@ -60,16 +62,19 @@ export class PerformanceMonitor {
   }
 
   private setupResourceTiming(): void {
-    const resourceObserver = new PerformanceObserver((list) => {
+    const resourceObserver = new PerformanceObserver(list => {
       const entries = list.getEntries()
-      entries.forEach((entry) => {
+      entries.forEach(entry => {
         if (entry.entryType === 'resource') {
           const resourceEntry = entry as PerformanceResourceTiming
-          const loadTime = resourceEntry.responseEnd - resourceEntry.requestStart
+          const loadTime =
+            resourceEntry.responseEnd - resourceEntry.requestStart
 
           // Track slow resources
           if (loadTime > 1000) {
-            console.warn(`Slow resource detected: ${resourceEntry.name} took ${loadTime}ms`)
+            console.warn(
+              `Slow resource detected: ${resourceEntry.name} took ${loadTime}ms`
+            )
             this.reportSlowResource(resourceEntry.name, loadTime)
           }
         }
@@ -80,17 +85,19 @@ export class PerformanceMonitor {
   }
 
   private setupNavigationTiming(): void {
-    const navigationObserver = new PerformanceObserver((list) => {
+    const navigationObserver = new PerformanceObserver(list => {
       const entries = list.getEntries()
-      entries.forEach((entry) => {
+      entries.forEach(entry => {
         if (entry.entryType === 'navigation') {
           const navEntry = entry as PerformanceNavigationTiming
 
           const metrics = {
             TTFB: navEntry.responseStart - navEntry.requestStart,
-            DOMContentLoaded: navEntry.domContentLoadedEventEnd - navEntry.domContentLoadedEventStart,
+            DOMContentLoaded:
+              navEntry.domContentLoadedEventEnd -
+              navEntry.domContentLoadedEventStart,
             LoadComplete: navEntry.loadEventEnd - navEntry.loadEventStart,
-            TotalPageLoad: navEntry.loadEventEnd - navEntry.fetchStart
+            TotalPageLoad: navEntry.loadEventEnd - navEntry.fetchStart,
           }
 
           Object.entries(metrics).forEach(([key, value]) => {
@@ -105,9 +112,9 @@ export class PerformanceMonitor {
   }
 
   private setupUserTiming(): void {
-    const userTimingObserver = new PerformanceObserver((list) => {
+    const userTimingObserver = new PerformanceObserver(list => {
       const entries = list.getEntries()
-      entries.forEach((entry) => {
+      entries.forEach(entry => {
         if (entry.entryType === 'measure') {
           this.metrics.set(entry.name, entry.duration)
           this.reportMetric(entry.name, entry.duration)
@@ -121,33 +128,35 @@ export class PerformanceMonitor {
   private reportMetric(name: string, value: number): void {
     // Report to analytics
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'performance_metric', {
+      ;(window as any).gtag('event', 'performance_metric', {
         metric_name: name,
         value: Math.round(value),
-        custom_map: { metric_value: value }
+        custom_map: { metric_value: value },
       })
     }
 
     // Log warnings for poor performance
     const thresholds = {
-      LCP: 2500,    // Good: < 2.5s
-      FID: 100,     // Good: < 100ms
-      CLS: 0.1,     // Good: < 0.1
-      TTFB: 600,    // Good: < 600ms
-      TotalPageLoad: 3000 // Warning: > 3s
+      LCP: 2500, // Good: < 2.5s
+      FID: 100, // Good: < 100ms
+      CLS: 0.1, // Good: < 0.1
+      TTFB: 600, // Good: < 600ms
+      TotalPageLoad: 3000, // Warning: > 3s
     }
 
     const threshold = thresholds[name as keyof typeof thresholds]
     if (threshold && value > threshold) {
-      console.warn(`Poor ${name} performance: ${value}ms (threshold: ${threshold}ms)`)
+      console.warn(
+        `Poor ${name} performance: ${value}ms (threshold: ${threshold}ms)`
+      )
     }
   }
 
   private reportSlowResource(url: string, loadTime: number): void {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'slow_resource', {
+      ;(window as any).gtag('event', 'slow_resource', {
         resource_url: url,
-        load_time: Math.round(loadTime)
+        load_time: Math.round(loadTime),
       })
     }
   }
@@ -160,7 +169,10 @@ export class PerformanceMonitor {
     return result
   }
 
-  public async measureAsyncFunction<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  public async measureAsyncFunction<T>(
+    name: string,
+    fn: () => Promise<T>
+  ): Promise<T> {
     performance.mark(`${name}-start`)
     const result = await fn()
     performance.mark(`${name}-end`)
@@ -182,25 +194,25 @@ export class PerformanceMonitor {
 // Lazy loading utilities
 export const LazyDashboard = lazy(() =>
   import('../pages/dashboard/DashboardPage').then(module => ({
-    default: module.default
+    default: module.default,
   }))
 )
 
 export const LazyOrganizations = lazy(() =>
   import('../pages/organizations/OrganizationsPage').then(module => ({
-    default: module.default
+    default: module.default,
   }))
 )
 
 export const LazySubscription = lazy(() =>
   import('../pages/subscription/SubscriptionPage').then(module => ({
-    default: module.default
+    default: module.default,
   }))
 )
 
 export const LazySettings = lazy(() =>
   import('../pages/settings/SettingsPage').then(module => ({
-    default: module.default
+    default: module.default,
   }))
 )
 
@@ -220,7 +232,8 @@ export class ResourceHintManager {
   }
 
   public static preload(url: string, as: string, crossorigin?: string): void {
-    if (typeof document === 'undefined' || this.preloadedResources.has(url)) return
+    if (typeof document === 'undefined' || this.preloadedResources.has(url))
+      return
 
     const link = document.createElement('link')
     link.rel = 'preload'
@@ -233,7 +246,8 @@ export class ResourceHintManager {
   }
 
   public static prefetch(url: string): void {
-    if (typeof document === 'undefined' || this.prefetchedResources.has(url)) return
+    if (typeof document === 'undefined' || this.prefetchedResources.has(url))
+      return
 
     const link = document.createElement('link')
     link.rel = 'prefetch'
@@ -248,15 +262,10 @@ export class ResourceHintManager {
     const routeResources = {
       '/dashboard': [
         '/api/v1/organizations',
-        '/api/v1/subscriptions/statistics'
+        '/api/v1/subscriptions/statistics',
       ],
-      '/organizations': [
-        '/api/v1/organizations'
-      ],
-      '/subscription': [
-        '/api/v1/subscriptions',
-        '/api/v1/subscriptions/plans'
-      ]
+      '/organizations': ['/api/v1/organizations'],
+      '/subscription': ['/api/v1/subscriptions', '/api/v1/subscriptions/plans'],
     }
 
     const resources = routeResources[route as keyof typeof routeResources] || []
@@ -293,14 +302,16 @@ export const createOptimizedImageSrc = (
 
 // Bundle analyzer utility
 export const analyzeBundleSize = (): Promise<void> => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (typeof window === 'undefined') {
       resolve()
       return
     }
 
     // Measure bundle sizes
-    const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+    const resources = performance.getEntriesByType(
+      'resource'
+    ) as PerformanceResourceTiming[]
     const jsResources = resources.filter(r => r.name.endsWith('.js'))
     const cssResources = resources.filter(r => r.name.endsWith('.css'))
 
@@ -319,7 +330,8 @@ export const analyzeBundleSize = (): Promise<void> => {
     console.log(`CSS Resources: ${cssResources.length}`)
 
     // Warn about large bundles
-    if (totalJSSize > 500 * 1024) { // 500KB threshold
+    if (totalJSSize > 500 * 1024) {
+      // 500KB threshold
       console.warn('Large JS bundle detected. Consider code splitting.')
     }
 

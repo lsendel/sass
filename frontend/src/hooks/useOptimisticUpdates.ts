@@ -19,7 +19,9 @@ export interface OptimisticUpdate<T> {
 }
 
 export const useOptimisticUpdates = <T>() => {
-  const [optimisticUpdates, setOptimisticUpdates] = useState<Array<OptimisticUpdate<T>>>([])
+  const [optimisticUpdates, setOptimisticUpdates] = useState<
+    Array<OptimisticUpdate<T>>
+  >([])
   const timeoutRefs = useRef<Record<string, number | NodeJS.Timeout>>({})
 
   const addOptimisticUpdate = useCallback(
@@ -33,7 +35,7 @@ export const useOptimisticUpdates = <T>() => {
         onError,
         successMessage,
         errorMessage = 'Operation failed',
-        rollbackDelay = 5000
+        rollbackDelay = 5000,
       } = options
 
       const updateId = `optimistic-${Date.now()}-${Math.random()}`
@@ -41,7 +43,7 @@ export const useOptimisticUpdates = <T>() => {
         id: updateId,
         data,
         timestamp: Date.now(),
-        status: 'pending'
+        status: 'pending',
       }
 
       // Add optimistic update immediately
@@ -54,9 +56,7 @@ export const useOptimisticUpdates = <T>() => {
         // Mark as confirmed
         setOptimisticUpdates(prev =>
           prev.map(u =>
-            u.id === updateId
-              ? { ...u, status: 'confirmed' as const }
-              : u
+            u.id === updateId ? { ...u, status: 'confirmed' as const } : u
           )
         )
 
@@ -70,9 +70,7 @@ export const useOptimisticUpdates = <T>() => {
 
         // Clean up confirmed update after a delay
         setTimeout(() => {
-          setOptimisticUpdates(prev =>
-            prev.filter(u => u.id !== updateId)
-          )
+          setOptimisticUpdates(prev => prev.filter(u => u.id !== updateId))
         }, 3000)
 
         return result
@@ -83,19 +81,14 @@ export const useOptimisticUpdates = <T>() => {
         // Mark as failed
         setOptimisticUpdates(prev =>
           prev.map(u =>
-            u.id === updateId
-              ? { ...u, status: 'failed' as const }
-              : u
+            u.id === updateId ? { ...u, status: 'failed' as const } : u
           )
         )
 
         // Show error message with rollback option
-        toast.error(
-          `${errorMessage} Click to undo.`,
-          {
-            duration: rollbackDelay
-          }
-        )
+        toast.error(`${errorMessage} Click to undo.`, {
+          duration: rollbackDelay,
+        })
 
         // Auto-rollback after delay
         timeoutRefs.current[updateId] = setTimeout(() => {
@@ -109,7 +102,11 @@ export const useOptimisticUpdates = <T>() => {
   )
 
   const rollbackUpdate = useCallback(
-    (updateId: string, data: T, onError?: (error: Error, rollbackData: T) => void) => {
+    (
+      updateId: string,
+      data: T,
+      onError?: (error: Error, rollbackData: T) => void
+    ) => {
       // Clear timeout if it exists
       if (timeoutRefs.current[updateId]) {
         clearTimeout(timeoutRefs.current[updateId])
@@ -119,9 +116,7 @@ export const useOptimisticUpdates = <T>() => {
       // Mark as rolled back
       setOptimisticUpdates(prev =>
         prev.map(u =>
-          u.id === updateId
-            ? { ...u, status: 'rolledBack' as const }
-            : u
+          u.id === updateId ? { ...u, status: 'rolledBack' as const } : u
         )
       )
 
@@ -132,9 +127,7 @@ export const useOptimisticUpdates = <T>() => {
 
       // Clean up after rollback
       setTimeout(() => {
-        setOptimisticUpdates(prev =>
-          prev.filter(u => u.id !== updateId)
-        )
+        setOptimisticUpdates(prev => prev.filter(u => u.id !== updateId))
       }, 1000)
     },
     []
@@ -146,9 +139,7 @@ export const useOptimisticUpdates = <T>() => {
       delete timeoutRefs.current[updateId]
     }
 
-    setOptimisticUpdates(prev =>
-      prev.filter(u => u.id !== updateId)
-    )
+    setOptimisticUpdates(prev => prev.filter(u => u.id !== updateId))
   }, [])
 
   const getPendingUpdates = useCallback(() => {
@@ -161,9 +152,9 @@ export const useOptimisticUpdates = <T>() => {
 
   const hasOptimisticUpdates = optimisticUpdates.length > 0
 
-  const optimisticData = optimisticUpdates.filter(u =>
-    u.status === 'pending' || u.status === 'confirmed'
-  ).map(u => u.data)
+  const optimisticData = optimisticUpdates
+    .filter(u => u.status === 'pending' || u.status === 'confirmed')
+    .map(u => u.data)
 
   return {
     optimisticUpdates,
@@ -173,7 +164,7 @@ export const useOptimisticUpdates = <T>() => {
     getPendingUpdates,
     getFailedUpdates,
     hasOptimisticUpdates,
-    optimisticData
+    optimisticData,
   }
 }
 
@@ -182,17 +173,20 @@ export const useOptimisticList = <T extends { id: string }>(
   initialData: T[] = []
 ) => {
   const [baseData, setBaseData] = useState<T[]>(initialData)
-  const { addOptimisticUpdate, optimisticUpdates, hasOptimisticUpdates } = useOptimisticUpdates<{
-    type: 'add' | 'update' | 'delete'
-    item: T
-    index?: number
-  }>()
+  const { addOptimisticUpdate, optimisticUpdates, hasOptimisticUpdates } =
+    useOptimisticUpdates<{
+      type: 'add' | 'update' | 'delete'
+      item: T
+      index?: number
+    }>()
 
   // Compute the optimistic list by applying pending updates
   const optimisticList = baseData.slice()
 
   optimisticUpdates
-    .filter(update => update.status === 'pending' || update.status === 'confirmed')
+    .filter(
+      update => update.status === 'pending' || update.status === 'confirmed'
+    )
     .forEach(update => {
       const { type, item, index } = update.data
 
@@ -229,7 +223,7 @@ export const useOptimisticList = <T extends { id: string }>(
           onError: () => {
             // Remove from optimistic list on error
             setBaseData(prev => prev.filter(i => i.id !== item.id))
-          }
+          },
         }
       )
     },
@@ -249,10 +243,10 @@ export const useOptimisticList = <T extends { id: string }>(
             // Revert to original item on error
             if (originalItem) {
               setBaseData(prev =>
-                prev.map(i => i.id === item.id ? originalItem : i)
+                prev.map(i => (i.id === item.id ? originalItem : i))
               )
             }
-          }
+          },
         }
       )
     },
@@ -269,7 +263,7 @@ export const useOptimisticList = <T extends { id: string }>(
           onError: () => {
             // Restore item on error
             setBaseData(prev => [...prev, item])
-          }
+          },
         }
       )
     },
@@ -288,6 +282,6 @@ export const useOptimisticList = <T extends { id: string }>(
     updateItem,
     deleteItem,
     hasOptimisticUpdates,
-    optimisticUpdates
+    optimisticUpdates,
   }
 }

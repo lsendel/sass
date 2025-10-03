@@ -19,9 +19,30 @@ export type TimePeriod = 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year'
 export type TimeGranularity = 'minute' | 'hour' | 'day' | 'week' | 'month'
 
 // Analytics data types
-export type MetricType = 'counter' | 'gauge' | 'histogram' | 'rate' | 'percentage' | 'currency'
-export type AggregationType = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'median' | 'percentile'
-export type ChartType = 'line' | 'bar' | 'pie' | 'donut' | 'area' | 'scatter' | 'heatmap' | 'table'
+export type MetricType =
+  | 'counter'
+  | 'gauge'
+  | 'histogram'
+  | 'rate'
+  | 'percentage'
+  | 'currency'
+export type AggregationType =
+  | 'sum'
+  | 'avg'
+  | 'min'
+  | 'max'
+  | 'count'
+  | 'median'
+  | 'percentile'
+export type ChartType =
+  | 'line'
+  | 'bar'
+  | 'pie'
+  | 'donut'
+  | 'area'
+  | 'scatter'
+  | 'heatmap'
+  | 'table'
 
 // Core metric definition
 export interface Metric {
@@ -32,14 +53,14 @@ export interface Metric {
   unit: string
   category: string
   tags: string[]
-  
+
   // Data source configuration
   source: MetricSource
   calculation: MetricCalculation
-  
+
   // Display configuration
   display: MetricDisplay
-  
+
   // Metadata
   createdAt: Date
   updatedAt: Date
@@ -79,7 +100,17 @@ export interface MetricDisplay {
 
 export interface MetricFilter {
   field: string
-  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin' | 'contains' | 'regex'
+  operator:
+    | 'eq'
+    | 'ne'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'in'
+    | 'nin'
+    | 'contains'
+    | 'regex'
   value: any
   logical?: 'and' | 'or'
 }

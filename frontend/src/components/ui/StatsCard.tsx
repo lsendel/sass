@@ -55,17 +55,29 @@ export function StatsCard({
           </div>
         )}
         {title && (
-          <p className={clsx('text-sm font-medium text-gray-500', titleClassName)}>
+          <p
+            className={clsx(
+              'text-sm font-medium text-gray-500',
+              titleClassName
+            )}
+          >
             {title}
           </p>
         )}
         {value && (
-          <p className={clsx('mt-2 text-3xl font-semibold text-gray-900', valueClassName)}>
+          <p
+            className={clsx(
+              'mt-2 text-3xl font-semibold text-gray-900',
+              valueClassName
+            )}
+          >
             {value}
           </p>
         )}
         {description && (
-          <p className={clsx('mt-2 text-sm text-gray-500', descriptionClassName)}>
+          <p
+            className={clsx('mt-2 text-sm text-gray-500', descriptionClassName)}
+          >
             {description}
           </p>
         )}
@@ -79,9 +91,17 @@ export function StatsCard({
             {trend}
           </div>
         )}
-        {children && <div className={clsx(value || description ? 'mt-4' : undefined)}>{children}</div>}
+        {children && (
+          <div className={clsx(value || description ? 'mt-4' : undefined)}>
+            {children}
+          </div>
+        )}
       </div>
-      {footer && <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">{footer}</div>}
+      {footer && (
+        <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">
+          {footer}
+        </div>
+      )}
     </div>
   )
 }

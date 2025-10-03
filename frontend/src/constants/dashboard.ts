@@ -64,14 +64,16 @@ export const DASHBOARD_CONSTANTS = {
     REFRESH_FAILED: 'Failed to refresh data',
     NO_ORGANIZATION: 'No organization selected',
   } as const,
-} as const;
+} as const
 
 /**
  * Type definitions derived from constants for better type safety.
  */
-export type StatName = typeof DASHBOARD_CONSTANTS.STATS[keyof typeof DASHBOARD_CONSTANTS.STATS];
-export type ColorTheme = keyof typeof DASHBOARD_CONSTANTS.COLORS;
-export type TrendType = typeof DASHBOARD_CONSTANTS.TRENDS[keyof typeof DASHBOARD_CONSTANTS.TRENDS];
+export type StatName =
+  (typeof DASHBOARD_CONSTANTS.STATS)[keyof typeof DASHBOARD_CONSTANTS.STATS]
+export type ColorTheme = keyof typeof DASHBOARD_CONSTANTS.COLORS
+export type TrendType =
+  (typeof DASHBOARD_CONSTANTS.TRENDS)[keyof typeof DASHBOARD_CONSTANTS.TRENDS]
 
 /**
  * Default values for dashboard components.
@@ -81,4 +83,4 @@ export const DASHBOARD_DEFAULTS = {
   CURRENCY_SYMBOL: '$',
   ZERO_VALUE: '0.00',
   EMPTY_STATE: 'No data available',
-} as const;
+} as const

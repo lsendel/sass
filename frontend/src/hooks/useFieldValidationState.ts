@@ -1,19 +1,23 @@
-import { useMemo } from 'react';
-import { FieldErrors, FieldValues } from 'react-hook-form';
+import { useMemo } from 'react'
+import { FieldErrors, FieldValues } from 'react-hook-form'
 
 /**
  * Validation state for a form field
  */
-export type ValidationState = 'default' | 'valid' | 'error' | 'warning';
+export type ValidationState = 'default' | 'valid' | 'error' | 'warning'
 
 /**
  * Options for field validation state hook
  */
 export interface UseFieldValidationStateOptions {
   /** Whether to show valid state for untouched fields */
-  showValidUntouched?: boolean;
+  showValidUntouched?: boolean
   /** Custom validation state resolver */
-  customResolver?: (hasError: boolean, isTouched: boolean, hasValue: boolean) => ValidationState;
+  customResolver?: (
+    hasError: boolean,
+    isTouched: boolean,
+    hasValue: boolean
+  ) => ValidationState
 }
 
 /**
@@ -55,7 +59,7 @@ export function useFieldValidationState<T extends FieldValues>(
   dirtyFields: Partial<Readonly<{ [K in keyof T]?: boolean }>>,
   options: UseFieldValidationStateOptions = {}
 ) {
-  const { showValidUntouched = false, customResolver } = options;
+  const { showValidUntouched = false, customResolver } = options
 
   /**
    * Get the validation state for a specific field
@@ -63,34 +67,35 @@ export function useFieldValidationState<T extends FieldValues>(
   const getFieldState = useMemo(
     () =>
       (fieldName: keyof T, fieldValue?: any): ValidationState => {
-        const hasError = !!errors[fieldName];
-        const isTouched = !!dirtyFields[fieldName];
-        const hasValue = fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
+        const hasError = !!errors[fieldName]
+        const isTouched = !!dirtyFields[fieldName]
+        const hasValue =
+          fieldValue !== undefined && fieldValue !== null && fieldValue !== ''
 
         // Use custom resolver if provided
         if (customResolver) {
-          return customResolver(hasError, isTouched, hasValue);
+          return customResolver(hasError, isTouched, hasValue)
         }
 
         // Error state takes priority
         if (hasError) {
-          return isTouched ? 'error' : 'default';
+          return isTouched ? 'error' : 'default'
         }
 
         // Valid state only shown for touched fields with values
         if (isTouched && hasValue) {
-          return 'valid';
+          return 'valid'
         }
 
         // Optionally show valid state for untouched fields
         if (showValidUntouched && hasValue) {
-          return 'valid';
+          return 'valid'
         }
 
-        return 'default';
+        return 'default'
       },
     [errors, dirtyFields, showValidUntouched, customResolver]
-  );
+  )
 
   /**
    * Get validation class names for Tailwind styling
@@ -98,31 +103,34 @@ export function useFieldValidationState<T extends FieldValues>(
   const getFieldClassName = useMemo(
     () =>
       (fieldName: keyof T, fieldValue?: any, baseClasses = ''): string => {
-        const state = getFieldState(fieldName, fieldValue);
+        const state = getFieldState(fieldName, fieldValue)
         const stateClasses = {
           default: 'border-gray-300 focus:border-blue-500 focus:ring-blue-500',
           valid: 'border-green-500 focus:border-green-500 focus:ring-green-500',
           error: 'border-red-500 focus:border-red-500 focus:ring-red-500',
-          warning: 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500',
-        };
+          warning:
+            'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500',
+        }
 
-        return `${baseClasses} ${stateClasses[state]}`.trim();
+        return `${baseClasses} ${stateClasses[state]}`.trim()
       },
     [getFieldState]
-  );
+  )
 
   /**
    * Check if any field has errors
    */
-  const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
+  const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors])
 
   /**
    * Check if specific field has error
    */
   const hasFieldError = useMemo(
-    () => (fieldName: keyof T): boolean => !!errors[fieldName],
+    () =>
+      (fieldName: keyof T): boolean =>
+        !!errors[fieldName],
     [errors]
-  );
+  )
 
   /**
    * Get error message for a field
@@ -130,19 +138,21 @@ export function useFieldValidationState<T extends FieldValues>(
   const getFieldError = useMemo(
     () =>
       (fieldName: keyof T): string | undefined => {
-        const error = errors[fieldName];
-        return error?.message as string | undefined;
+        const error = errors[fieldName]
+        return error?.message as string | undefined
       },
     [errors]
-  );
+  )
 
   /**
    * Check if field is touched/dirty
    */
   const isFieldTouched = useMemo(
-    () => (fieldName: keyof T): boolean => !!dirtyFields[fieldName],
+    () =>
+      (fieldName: keyof T): boolean =>
+        !!dirtyFields[fieldName],
     [dirtyFields]
-  );
+  )
 
   return {
     getFieldState,
@@ -151,5 +161,5 @@ export function useFieldValidationState<T extends FieldValues>(
     hasFieldError,
     getFieldError,
     isFieldTouched,
-  };
+  }
 }

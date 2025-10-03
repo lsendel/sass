@@ -14,10 +14,13 @@ export function parseApiError(err: unknown): ParsedApiError {
     // Try to read common message shapes
     const data = (fbq as { data?: unknown }).data
     const rawMessage =
-      (data && typeof data === 'object' && data !== null &&
+      (data &&
+        typeof data === 'object' &&
+        data !== null &&
         ((data as Record<string, unknown>).message ??
           (data as Record<string, unknown>).error ??
-          (data as Record<string, unknown>).detail)) ?? undefined
+          (data as Record<string, unknown>).detail)) ??
+      undefined
 
     const message =
       (typeof rawMessage === 'string'
@@ -30,7 +33,7 @@ export function parseApiError(err: unknown): ParsedApiError {
         : status === 403
           ? 'Forbidden'
           : 'Request failed')
-    
+
     if (status !== undefined) {
       return { status, message }
     } else {
@@ -41,7 +44,7 @@ export function parseApiError(err: unknown): ParsedApiError {
   // SerializedError or generic
   const se = err as SerializedError
   if (se && typeof se === 'object' && ('message' in se || 'name' in se)) {
-    return { message: (se.message!) ?? 'Unexpected error' } as ParsedApiError
+    return { message: se.message! ?? 'Unexpected error' } as ParsedApiError
   }
 
   return { message: 'Unexpected error' }

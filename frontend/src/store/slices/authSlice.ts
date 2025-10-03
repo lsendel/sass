@@ -25,10 +25,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (
-      state,
-      action: PayloadAction<{ user: User }>
-    ) => {
+    setCredentials: (state, action: PayloadAction<{ user: User }>) => {
       state.user = action.payload.user
       // Token handled via httpOnly cookies, not stored in state
       state.isAuthenticated = true

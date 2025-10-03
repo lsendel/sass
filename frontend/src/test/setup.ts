@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom'
 
 // Mock global location for API tests
 Object.defineProperty(window, 'location', {
@@ -14,14 +14,14 @@ Object.defineProperty(window, 'location', {
     hash: '',
     href: 'http://localhost:3000/',
   },
-});
+})
 
 // Mock ResizeObserver
-(globalThis as any).ResizeObserver = class ResizeObserver {
+;(globalThis as any).ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-};
+}
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -36,15 +36,15 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }),
-});
+})
 
 // Mock IntersectionObserver
-(globalThis as any).IntersectionObserver = class IntersectionObserver {
+;(globalThis as any).IntersectionObserver = class IntersectionObserver {
   constructor() {}
   observe() {}
   disconnect() {}
   unobserve() {}
-};
+}
 
 // Mock scrollIntoView
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = vi.fn()

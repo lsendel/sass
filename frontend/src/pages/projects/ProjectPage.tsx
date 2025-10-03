@@ -1,29 +1,32 @@
-import React from 'react';
-import { useParams, Navigate } from 'react-router-dom';
-import { 
-  Settings, 
-  Users, 
-  Calendar, 
+import React from 'react'
+import { useParams, Navigate } from 'react-router-dom'
+import {
+  Settings,
+  Users,
+  Calendar,
   MoreHorizontal,
   ArrowLeft,
   Star,
-  Share2
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+  Share2,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { format } from 'date-fns'
 
-import { useGetProjectQuery, type Project } from '../../store/api/projectManagementApi';
-import { KanbanBoard } from '../../components/task/KanbanBoard';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/Badge';
+import {
+  useGetProjectQuery,
+  type Project,
+} from '../../store/api/projectManagementApi'
+import { KanbanBoard } from '../../components/task/KanbanBoard'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { Button } from '../../components/ui/button'
+import { Badge } from '../../components/ui/Badge'
 
 /**
  * ProjectPage Component
- * 
+ *
  * Main project view showing project details and task board.
  * Displays project metadata, team members, and integrated Kanban board.
- * 
+ *
  * Features:
  * - Project header with metadata
  * - Member list and management
@@ -33,24 +36,20 @@ import { Badge } from '../../components/ui/Badge';
  * - Mobile responsive layout
  */
 export const ProjectPage: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId } = useParams<{ projectId: string }>()
 
   if (!projectId) {
-    return <Navigate to="/projects" replace />;
+    return <Navigate to="/projects" replace />
   }
 
-  const {
-    data: project,
-    error,
-    isLoading,
-  } = useGetProjectQuery(projectId);
+  const { data: project, error, isLoading } = useGetProjectQuery(projectId)
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
-    );
+    )
   }
 
   if (error || !project) {
@@ -61,7 +60,8 @@ export const ProjectPage: React.FC = () => {
             Project Not Found
           </h2>
           <p className="text-gray-600 mb-6">
-            The project you're looking for doesn't exist or you don't have access to it.
+            The project you're looking for doesn't exist or you don't have
+            access to it.
           </p>
           <Link to="/projects">
             <Button>
@@ -71,7 +71,7 @@ export const ProjectPage: React.FC = () => {
           </Link>
         </div>
       </div>
-    );
+    )
   }
 
   const statusColors: Record<Project['status'], string> = {
@@ -80,11 +80,12 @@ export const ProjectPage: React.FC = () => {
     ON_HOLD: 'bg-yellow-100 text-yellow-800',
     COMPLETED: 'bg-blue-100 text-blue-800',
     ARCHIVED: 'bg-gray-100 text-gray-800',
-  };
+  }
 
-  const completionPercentage = project.taskCount > 0 
-    ? Math.round((project.completedTaskCount / project.taskCount) * 100)
-    : 0;
+  const completionPercentage =
+    project.taskCount > 0
+      ? Math.round((project.completedTaskCount / project.taskCount) * 100)
+      : 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -121,7 +122,8 @@ export const ProjectPage: React.FC = () => {
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
                     <span>
-                      Created {format(new Date(project.createdAt), 'MMM d, yyyy')}
+                      Created{' '}
+                      {format(new Date(project.createdAt), 'MMM d, yyyy')}
                     </span>
                   </div>
                   <Badge className={statusColors[project.status]}>
@@ -149,7 +151,7 @@ export const ProjectPage: React.FC = () => {
               <Button variant="ghost" size="sm">
                 <Star className="h-4 w-4" />
               </Button>
-              
+
               <Button variant="ghost" size="sm">
                 <Share2 className="h-4 w-4" />
               </Button>
@@ -210,5 +212,5 @@ export const ProjectPage: React.FC = () => {
         <KanbanBoard projectId={projectId} />
       </div>
     </div>
-  );
-};
+  )
+}

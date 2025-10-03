@@ -11,7 +11,13 @@
  */
 
 // MFA Method Types
-export type MFAMethodType = 'totp' | 'sms' | 'email' | 'backup_codes' | 'webauthn' | 'biometric'
+export type MFAMethodType =
+  | 'totp'
+  | 'sms'
+  | 'email'
+  | 'backup_codes'
+  | 'webauthn'
+  | 'biometric'
 
 export interface MFAMethod {
   id: string
@@ -95,7 +101,13 @@ export interface BiometricMethod extends MFAMethod {
 }
 
 // Union type for all MFA methods
-export type AnyMFAMethod = TOTPMethod | SMSMethod | EmailMethod | BackupCodesMethod | WebAuthnMethod | BiometricMethod
+export type AnyMFAMethod =
+  | TOTPMethod
+  | SMSMethod
+  | EmailMethod
+  | BackupCodesMethod
+  | WebAuthnMethod
+  | BiometricMethod
 
 // MFA Setup interfaces
 export interface MFASetupRequest {
@@ -258,14 +270,14 @@ export enum MFAStatus {
   FULLY_SETUP = 'fully_setup',
   DISABLED = 'disabled',
   LOCKED = 'locked',
-  RECOVERY_MODE = 'recovery_mode'
+  RECOVERY_MODE = 'recovery_mode',
 }
 
 export enum MFASecurityLevel {
-  BASIC = 'basic',       // Single factor (password only)
+  BASIC = 'basic', // Single factor (password only)
   STANDARD = 'standard', // Two factors (password + one MFA)
   ENHANCED = 'enhanced', // Multiple MFA methods available
-  MAXIMUM = 'maximum'    // Hardware security key + biometrics
+  MAXIMUM = 'maximum', // Hardware security key + biometrics
 }
 
 // Utility types

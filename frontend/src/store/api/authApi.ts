@@ -12,14 +12,14 @@ import type {
   AuthMethodsResponse,
 } from '@/types/api'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/auth`,
-    prepareHeaders: (headers: any, { getState }: any) => withAuthHeader(headers, getState),
+    prepareHeaders: (headers: any, { getState }: any) =>
+      withAuthHeader(headers, getState),
   }),
   tagTypes: ['Session'],
   endpoints: builder => ({

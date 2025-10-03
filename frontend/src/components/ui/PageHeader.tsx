@@ -17,15 +17,15 @@ export function PageHeader({
   actionsClassName,
 }: PageHeaderProps) {
   return (
-    <div className={clsx('md:flex md:items-center md:justify-between', className)}>
+    <div
+      className={clsx('md:flex md:items-center md:justify-between', className)}
+    >
       <div className="flex-1 min-w-0">
         <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
           {title}
         </h2>
         {description && (
-          <p className="mt-1 text-sm text-gray-500">
-            {description}
-          </p>
+          <p className="mt-1 text-sm text-gray-500">{description}</p>
         )}
       </div>
       {actions && (

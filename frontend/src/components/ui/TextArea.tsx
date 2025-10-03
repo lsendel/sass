@@ -1,15 +1,16 @@
-import React from 'react';
+import React from 'react'
 
-export interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  error?: string | undefined;
-  label?: string | undefined;
+export interface TextAreaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  error?: string | undefined
+  label?: string | undefined
 }
 
 /**
  * TextArea Component
- * 
+ *
  * Styled textarea input with error state support.
- * 
+ *
  * Features:
  * - Error state styling
  * - Optional label
@@ -31,20 +32,19 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
             block w-full px-3 py-2 border rounded-md shadow-sm
             focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500
             disabled:bg-gray-100 disabled:cursor-not-allowed
-            ${error 
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-              : 'border-gray-300'
+            ${
+              error
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-300'
             }
             ${className}
           `}
           {...props}
         />
-        {error && (
-          <p className="text-red-600 text-sm mt-1">{error}</p>
-        )}
+        {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
       </div>
-    );
+    )
   }
-);
+)
 
-TextArea.displayName = 'TextArea';
+TextArea.displayName = 'TextArea'
