@@ -11,6 +11,7 @@ permissions:
   security-events: write
   actions: read
   id-token: write
+  packages: write
 
 env:
   JAVA_VERSION: '21'
@@ -197,7 +198,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository_owner }}/sass
           tags: |
             type=ref,event=branch
             type=ref,event=pr
