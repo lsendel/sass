@@ -25,7 +25,7 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.ref == 'refs/heads/develop' && github.event.workflow_run.conclusion == 'success' && secrets.AWS_ACCESS_KEY_ID != ''
+    if: github.ref == 'refs/heads/develop' && github.event.workflow_run.conclusion == 'success'
     environment:
       name: staging
       url: https://staging.example.com
@@ -34,7 +34,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check AWS credentials
+        id: check_aws
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "AWS credentials not configured, skipping deployment"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check_aws.outputs.skip != 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -42,14 +53,17 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup kubectl
+        if: steps.check_aws.outputs.skip != 'true'
         uses: azure/setup-kubectl@v3
         with:
           version: "v1.28.0"
 
       - name: Update kubeconfig
+        if: steps.check_aws.outputs.skip != 'true'
         run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_STAGING }}
 
       - name: Deploy to staging
+        if: steps.check_aws.outputs.skip != 'true'
         id: deploy_staging
         run: |
           # Deploy application
@@ -117,6 +131,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
 
       - name: Run smoke tests
+        if: steps.check_aws.outputs.skip != 'true'
         run: |
           kubectl wait --for=condition=ready pod -l app=payment-platform -n staging --timeout=300s
           if ! ./scripts/smoke-tests.sh staging; then
@@ -129,7 +144,7 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success' && secrets.AWS_ACCESS_KEY_ID_PROD != ''
+    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
     environment:
       name: production
       url: https://app.example.com
@@ -138,7 +153,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check AWS credentials
+        id: check_aws_prod
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID_PROD }}" ]; then
+            echo "AWS credentials not configured, skipping deployment"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check_aws_prod.outputs.skip != 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
@@ -146,16 +172,20 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup kubectl
+        if: steps.check_aws_prod.outputs.skip != 'true'
         uses: azure/setup-kubectl@v3
 
       - name: Update kubeconfig
+        if: steps.check_aws_prod.outputs.skip != 'true'
         run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME_PROD }}
 
       - name: Pre-deployment validation
+        if: steps.check_aws_prod.outputs.skip != 'true'
         run: |
           ./scripts/pre-deployment-checks.sh production
 
       - name: Blue-Green deployment
+        if: steps.check_aws_prod.outputs.skip != 'true'
         run: |
           # Deploy green environment
           echo "Deploying green environment..."
@@ -195,6 +225,7 @@ jobs:
           kubectl scale deployment payment-platform-blue --replicas=1 -n production
 
       - name: Create release
+        if: steps.check_aws_prod.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
