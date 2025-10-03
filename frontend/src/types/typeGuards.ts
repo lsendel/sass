@@ -13,7 +13,6 @@ import type {
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
 } from '../store/api/organizationApi';
-
 import type {
   CreateProjectRequest,
   UpdateProjectRequest,

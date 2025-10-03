@@ -20,7 +20,7 @@ import { logger } from '../../utils/logger'
 import type { User } from '../../store/slices/authSlice'
 
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/Avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 
 const navigation = [
