@@ -2,6 +2,8 @@ package com.platform;
 
 import com.platform.config.IntegrationTestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -60,6 +62,8 @@ import org.testcontainers.utility.DockerImageName;
 @Import(IntegrationTestConfiguration.class)
 public abstract class AbstractIntegrationTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(AbstractIntegrationTest.class);
+
     /**
      * PostgreSQL container shared across ALL integration tests using singleton pattern.
      * Starts once and reused across all test classes to avoid connection issues.
@@ -92,7 +96,7 @@ public abstract class AbstractIntegrationTest {
                 POSTGRES_CONTAINER.stop();
                 REDIS_CONTAINER.stop();
             } catch (Exception e) {
-                // Ignore
+                logger.warn("Error stopping containers during shutdown: {}", e.getMessage());
             }
         }));
     }
@@ -173,7 +177,7 @@ public abstract class AbstractIntegrationTest {
             jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
         } catch (Exception e) {
             // Ignore errors if tables don't exist yet (first test run)
-            System.err.println("Note: Database cleanup skipped (tables may not exist yet): " + e.getMessage());
+            logger.warn("Note: Database cleanup skipped (tables may not exist yet): {}", e.getMessage());
         }
     }
 
@@ -212,7 +216,7 @@ public abstract class AbstractIntegrationTest {
             jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
         } catch (Exception e) {
             // Ignore errors if tables don't exist yet
-            System.err.println("Warning: Could not clean database: " + e.getMessage());
+            logger.warn("Warning: Could not clean database: {}", e.getMessage());
         }
     }
 
