@@ -15,26 +15,22 @@ import clsx from 'clsx'
 import { useAppSelector } from '../../store/hooks'
 import { selectCurrentUser } from '../../store/slices/authSlice'
 import { useGetUserOrganizationsQuery } from '../../store/api/organizationApi'
-// import { useGetPaymentStatisticsQuery } from '../../store/api/paymentApi'
 import { useGetSubscriptionStatisticsQuery } from '../../store/api/subscriptionApi'
 import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
 import { LoadingCard, InlineLoading } from '../../components/ui/LoadingStates'
 import StatsCard from '../../components/ui/StatsCard'
 import { getCardClasses } from '../../lib/theme'
-// import { usePagePerformance, usePerformanceTracking } from '../../utils/performance'
 
 const DashboardPage: React.FC = () => {
   const user = useAppSelector(selectCurrentUser)
 
-  // Performance tracking for dashboard
-  // usePagePerformance('Dashboard')
-  // usePerformanceTracking()
   const { data: organizations, isLoading: orgsLoading } =
     useGetUserOrganizationsQuery()
 
   // Get statistics for the first organization (primary org)
   const primaryOrg = organizations?.[0]
-  // Payment stats temporarily disabled
+
+  // Mock payment stats for display purposes
   const paymentStats = { totalSuccessfulPayments: 0, totalAmount: 0 }
   const paymentStatsLoading = false
 
@@ -49,7 +45,6 @@ const DashboardPage: React.FC = () => {
   // Set up real-time updates for dashboard data
   const realTimeUpdates = useRealTimeUpdates(
     async () => {
-      // Measure refresh performance
       // Refresh subscription statistics
       const subscriptionData = await refetchSubscriptionStats()
       return { subscriptionData }

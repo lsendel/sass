@@ -41,6 +41,13 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: 'terser',
       sourcemap: mode === 'development',
+      terserOptions: {
+        compress: {
+          drop_console: mode === 'production', // Remove console.log in production
+          drop_debugger: true,
+          pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : [],
+        },
+      },
       rollupOptions: {
         output: {
           // Advanced chunk splitting strategy

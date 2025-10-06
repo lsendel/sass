@@ -2,17 +2,19 @@ package com.platform.shared.exceptions;
 
 /**
  * Exception thrown when a requested resource is not found.
- *
- * @since 1.0.0
+ * Results in HTTP 404 responses.
  */
-public class ResourceNotFoundException extends DomainException {
+public class ResourceNotFoundException extends RuntimeException {
 
-    /**
-     * Constructs a new resource not found exception with the specified detail message.
-     *
-     * @param message the detail message
-     */
-    public ResourceNotFoundException(final String message) {
+    public ResourceNotFoundException(String message) {
         super(message);
+    }
+
+    public ResourceNotFoundException(String resource, String identifier) {
+        super(String.format("%s not found with identifier: %s", resource, identifier));
+    }
+
+    public ResourceNotFoundException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

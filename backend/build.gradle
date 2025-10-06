@@ -102,10 +102,9 @@ tasks.named('test') {
     // Security test configuration
     systemProperty 'security.testing.enabled', 'true'
 
-    // Exclude long-running security tests from regular builds
-    exclude '**/SecurityTestSuite.class'
+    // Include security tests in regular builds but exclude penetration tests
     exclude '**/PenetrationTest.class'
-    exclude '**/SecurityPipelineTest.class'
+    // SecurityTestSuite and SecurityPipelineTest are now stable and included
 }
 
 tasks.withType(JavaCompile) {
