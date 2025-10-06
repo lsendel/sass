@@ -1,6 +1,8 @@
 package com.platform.architecture;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.modulith.core.ApplicationModules;
 import org.springframework.modulith.docs.Documenter;
 
@@ -11,6 +13,7 @@ import org.springframework.modulith.docs.Documenter;
  */
 class ModulithTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(ModulithTest.class);
     private static final ApplicationModules modules = ApplicationModules.of(com.platform.AuditApplication.class);
 
     @Test
@@ -34,8 +37,8 @@ class ModulithTest {
         // Verify that modules only depend on allowed modules
         // This ensures proper layering and prevents circular dependencies
         modules.forEach(module -> {
-            System.out.println("Module: " + module.getDisplayName());
-            System.out.println("  Base Package: " + module.getBasePackage());
+            logger.info("Module: {}", module.getDisplayName());
+            logger.info("  Base Package: {}", module.getBasePackage());
         });
     }
 }
