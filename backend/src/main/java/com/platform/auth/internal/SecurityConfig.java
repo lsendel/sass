@@ -1,4 +1,5 @@
 package com.platform.auth.internal;
+import com.platform.shared.ratelimit.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -42,14 +43,18 @@ public class SecurityConfig {
     private static final int BCRYPT_STRENGTH = 12;
 
     private final OpaqueTokenAuthenticationFilter tokenFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
     /**
      * Constructor with dependency injection.
      *
      * @param tokenFilter the opaque token authentication filter
+     * @param rateLimitingFilter the rate limiting filter
      */
-    public SecurityConfig(final OpaqueTokenAuthenticationFilter tokenFilter) {
+    public SecurityConfig(final OpaqueTokenAuthenticationFilter tokenFilter,
+                         final RateLimitingFilter rateLimitingFilter) {
         this.tokenFilter = tokenFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     /**
@@ -85,6 +90,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
+                // Add rate limiting filter before authentication
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 // Add custom opaque token filter
                 .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class)
 
