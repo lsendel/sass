@@ -59,21 +59,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.17.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
-        continue-on-error: true
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
 
       - name: Run Trivy SARIF scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.17.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
-        continue-on-error: true
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3

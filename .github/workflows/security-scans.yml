@@ -126,20 +126,18 @@ jobs:
 
     # Container Security
     - name: Run Snyk Container Security
-      uses: snyk/actions/docker@master
+      uses: snyk/actions/docker@0.4.0
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         image: payment-platform/sass:latest
         args: --file=Dockerfile --severity-threshold=high
-      continue-on-error: true
 
     # Secrets Scanning
     - name: Run GitGuardian scan
-      uses: GitGuardian/ggshield-action@master
+      uses: GitGuardian/ggshield-action@v1.28.0
       env:
         GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
-      continue-on-error: true
 
     # CodeQL Analysis
     - name: Initialize CodeQL

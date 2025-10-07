@@ -45,7 +45,7 @@ jobs:
 
       - name: Setup kubectl
         if: steps.aws_creds.outcome == 'success'
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v4.0.0
         with:
           version: "v1.28.0"
 
@@ -155,7 +155,9 @@ jobs:
 
       - name: Setup kubectl
         if: steps.aws_creds_prod.outcome == 'success'
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v4.0.0
+        with:
+          version: "v1.28.0"
 
       - name: Update kubeconfig
         if: steps.aws_creds_prod.outcome == 'success'
