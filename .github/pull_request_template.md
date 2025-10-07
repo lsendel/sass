@@ -1,7 +1,9 @@
 ## Description
+
 Brief description of the changes made.
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
@@ -11,6 +13,7 @@ Brief description of the changes made.
 - [ ] Refactoring
 
 ## Constitutional Compliance Checklist
+
 - [ ] **Test-First Development**: All new code follows TDD principles
 - [ ] **Real Dependencies**: Integration tests use TestContainers with real services
 - [ ] **Comprehensive Error Handling**: All error paths are properly handled and tested
@@ -18,6 +21,7 @@ Brief description of the changes made.
 - [ ] **Data Protection**: Sensitive data is properly encrypted and protected
 
 ## Testing
+
 - [ ] Unit tests added/updated and passing
 - [ ] Integration tests added/updated and passing
 - [ ] Contract tests added/updated (if applicable)
@@ -26,6 +30,7 @@ Brief description of the changes made.
 - [ ] Performance testing completed (if applicable)
 
 ## Security Checklist
+
 - [ ] No hardcoded secrets or credentials
 - [ ] Input validation implemented
 - [ ] SQL injection prevention measures in place
@@ -34,6 +39,7 @@ Brief description of the changes made.
 - [ ] PCI DSS compliance maintained (for payment features)
 
 ## Code Quality
+
 - [ ] Code follows project style guidelines
 - [ ] Code is properly documented
 - [ ] No code duplication
@@ -42,6 +48,7 @@ Brief description of the changes made.
 - [ ] Dependencies are up to date and secure
 
 ## Deployment
+
 - [ ] Database migrations are backward compatible
 - [ ] Feature flags used for risky changes
 - [ ] Rollback plan documented
@@ -49,7 +56,9 @@ Brief description of the changes made.
 - [ ] Documentation updated
 
 ## Screenshots/Videos
+
 (If applicable, add screenshots or videos demonstrating the changes)
 
 ## Additional Notes
+
 Any additional information or context for reviewers.

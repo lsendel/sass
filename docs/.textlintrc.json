@@ -32,10 +32,7 @@
   "filters": {
     "comments": true,
     "allowlist": {
-      "allow": [
-        "/```[\\s\\S]*?```/m",
-        "/`[^`]*`/g"
-      ]
+      "allow": ["/```[\\s\\S]*?```/m", "/`[^`]*`/g"]
     }
   }
 }

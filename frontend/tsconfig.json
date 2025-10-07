@@ -13,7 +13,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client", "node", "vitest/globals", "@testing-library/jest-dom/vitest"],
+    "types": [
+      "vite/client",
+      "node",
+      "vitest/globals",
+      "@testing-library/jest-dom/vitest"
+    ],
 
     /* Linting */
     "strict": true,

@@ -45,6 +45,7 @@ pip install -e .[dev]
 Tests for the constitutional tools are located in `../tests/python/`.
 
 Run tests from the tools directory:
+
 ```bash
 cd tools
 python -m pytest ../tests/python/
