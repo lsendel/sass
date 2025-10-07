@@ -116,7 +116,8 @@ log() {
             write_to_file "$formatted_message"
         else
             # Remove color codes for file logging
-            echo "$formatted_message" | sed 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE"
+            mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+            echo "$formatted_message" | sed 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE" 2>/dev/null || true
         fi
     fi
 }
