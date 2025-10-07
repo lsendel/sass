@@ -70,6 +70,10 @@ dependencies {
     // Vault (optional - only in production)
     implementation 'org.springframework.vault:spring-vault-core:3.1.2'
     
+    // Rate Limiting
+    implementation 'com.bucket4j:bucket4j-core:8.10.1'
+    implementation 'com.bucket4j:bucket4j-redis:8.10.1'
+
     // Utilities
     implementation 'org.apache.commons:commons-lang3'
     compileOnly 'org.projectlombok:lombok'

@@ -42,14 +42,19 @@ public class SecurityConfig {
     private static final int BCRYPT_STRENGTH = 12;
 
     private final OpaqueTokenAuthenticationFilter tokenFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
     /**
      * Constructor with dependency injection.
      *
      * @param tokenFilter the opaque token authentication filter
+     * @param rateLimitingFilter the rate limiting filter
      */
-    public SecurityConfig(final OpaqueTokenAuthenticationFilter tokenFilter) {
+    public SecurityConfig(
+            final OpaqueTokenAuthenticationFilter tokenFilter,
+            final RateLimitingFilter rateLimitingFilter) {
         this.tokenFilter = tokenFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     /**
@@ -85,19 +90,22 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // Add custom opaque token filter
-                .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class)
+                // Add rate limiting filter first, then custom opaque token filter
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(tokenFilter, RateLimitingFilter.class)
 
                 // Security headers
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives(
                                         "default-src 'self'; "
-                                                + "script-src 'self' 'unsafe-inline'; "
-                                                + "style-src 'self' 'unsafe-inline'; "
+                                                + "script-src 'self'; "
+                                                + "style-src 'self'; "
                                                 + "img-src 'self' data: https:; "
                                                 + "font-src 'self' data:; "
-                                                + "connect-src 'self'"
+                                                + "connect-src 'self'; "
+                                                + "object-src 'none'; "
+                                                + "base-uri 'self'"
                                 )
                         )
                         .frameOptions(frame -> frame.deny())
@@ -131,8 +139,11 @@ public class SecurityConfig {
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
 
-        // Allow all headers
-        configuration.setAllowedHeaders(List.of("*"));
+        // Allow specific headers only (security improvement)
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "X-Requested-With",
+                "X-CSRF-TOKEN", "Accept", "Cache-Control"
+        ));
 
         // Allow credentials (cookies)
         configuration.setAllowCredentials(true);
