@@ -13,6 +13,7 @@ permissions: {}  # Start with zero permissions
 jobs:
   grant-permissions:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       permissions: ${{ steps.get-permissions.outputs.permissions }}
       
