@@ -167,3 +167,49 @@ logs/
 ### ACIS Runtime Files ###
 .acis/
 **/npm-audit-report.json
+
+### Archived Documentation ###
+.archive/
+
+### Temporary Status/Summary Documentation ###
+# Status reports and implementation summaries
+*SUMMARY*.md
+*STATUS*.md
+*COMPLETE*.md
+*PROGRESS*.md
+*REPORT*.md
+*SNAPSHOT*.md
+*EVIDENCE*.md
+*PLAN*.md
+*FIX*.md
+*ANALYSIS*.md
+*RESULTS*.md
+*ROADMAP*.md
+*GUIDE*.md
+*CHECKLIST*.md
+
+# Keep essential documentation
+!README.md
+!ARCHITECTURE.md
+!CONTRIBUTING.md
+!SECURITY.md
+!DEPLOYMENT.md
+!TROUBLESHOOTING.md
+!CLAUDE.md
+!AGENTS.md
+!docs/README.md
+!docs/**/README.md
+!.github/REMAINING-SETUP.md
+!.github/SETUP-CHECKLIST.md
+!.github/QUICK-START.md
+!.github/ENVIRONMENTS.md
+
+### Auto-generated API Documentation ###
+# TypeDoc generated files
+docs/frontend-api/**/*.md
+!docs/frontend-api/README.md
+
+# Javadoc generated files
+docs/backend-api-javadoc/**/*.html
+docs/backend-api-javadoc/**/*.js
+docs/backend-api-javadoc/**/*.css
