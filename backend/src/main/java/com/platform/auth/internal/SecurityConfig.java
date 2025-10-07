@@ -110,6 +110,8 @@ public class SecurityConfig {
                         )
                         .frameOptions(frame -> frame.deny())
                         .xssProtection(xss -> xss.disable()) // XSS protection deprecated, use CSP instead
+                        .contentTypeOptions(contentType -> {}) // Enable X-Content-Type-Options: nosniff
+                        .referrerPolicy(referrer -> referrer.policyDirectives("strict-origin-when-cross-origin"))
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(HSTS_MAX_AGE_SECONDS)
